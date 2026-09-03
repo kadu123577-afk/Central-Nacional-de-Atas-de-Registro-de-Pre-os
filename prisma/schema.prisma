@@ -20,6 +20,11 @@ enum StatusAta {
   REJEITADA
 }
 
+enum OrigemAta {
+  MANUAL
+  PNCP
+}
+
 enum EstagioAdesao {
   MAPEADA
   CONTATO_FORNECEDOR
@@ -29,6 +34,16 @@ enum EstagioAdesao {
   ACEITE_FORNECEDOR
   EMPENHADA
   FATURADA
+}
+
+model Admin {
+  id        String   @id @default(cuid())
+  nome      String
+  email     String   @unique
+  senhaHash String
+  createdAt DateTime @default(now())
+
+  @@map("admins")
 }
 
 model Fornecedor {
@@ -66,18 +81,19 @@ model Orgao {
 
 model Ata {
   id               String    @id @default(cuid())
-  numero           String
-  objeto           String
-  // Aprovada por padrão até o Sprint 6 introduzir a fila de moderação do
-  // admin — a partir daí o padrão vira PENDENTE e a aprovação passa a ser
-  // um passo manual antes da ata aparecer no catálogo público.
-  status           StatusAta @default(APROVADA)
-  dataAssinatura   DateTime
-  dataVigenciaFim  DateTime
-  fornecedorId     String
+  numero             String
+  objeto             String
+  status             StatusAta @default(PENDENTE)
+  origem             OrigemAta @default(MANUAL)
+  // Chave de deduplicação do rastreador do PNCP (Sprint 7) — nula para
+  // atas cadastradas manualmente.
+  numeroControlePncp String?   @unique
+  dataAssinatura     DateTime
+  dataVigenciaFim    DateTime
+  fornecedorId       String
   orgaoGerenciadorId String
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   fornecedor       Fornecedor @relation(fields: [fornecedorId], references: [id])
   orgaoGerenciador Orgao      @relation("OrgaoGerenciador", fields: [orgaoGerenciadorId], references: [id])

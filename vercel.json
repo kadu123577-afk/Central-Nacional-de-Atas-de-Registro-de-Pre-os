@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/rastreador-pncp",
+      "schedule": "0 6 * * *"
+    }
+  ]
+}
