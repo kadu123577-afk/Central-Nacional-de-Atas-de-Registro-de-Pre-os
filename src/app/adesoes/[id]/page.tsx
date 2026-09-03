@@ -95,8 +95,12 @@ export default async function DetalheAdesaoPage({
       {adesao.faturamento && (
         <section className="mt-8 rounded-lg border border-neutral-200 p-5">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
-            Faturamento
+            Faturamento — cobrado do fornecedor
           </h2>
+          <p className="mt-1 text-xs text-neutral-500">
+            O órgão público não paga nada nesta operação. A taxa abaixo é devida
+            exclusivamente por {adesao.item.ata.fornecedor.razaoSocial}.
+          </p>
           <dl className="mt-3 space-y-2 text-sm">
             <div className="flex justify-between">
               <dt className="text-neutral-600">Valor do contrato</dt>
@@ -106,7 +110,8 @@ export default async function DetalheAdesaoPage({
             </div>
             <div className="flex justify-between">
               <dt className="text-neutral-600">
-                Taxa de intermediação ({(Number(adesao.faturamento.percentualTaxa) * 100).toFixed(1)}%)
+                Taxa de intermediação — cobrada do fornecedor (
+                {(Number(adesao.faturamento.percentualTaxa) * 100).toFixed(1)}%)
               </dt>
               <dd className="font-medium tabular-nums">
                 R$ {Number(adesao.faturamento.valorTaxaIntermediacao).toFixed(2)}
