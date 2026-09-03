@@ -3,7 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { fornecedorIdLogado, orgaoIdLogado } from "@/lib/auth";
 import { proximoEstagio } from "@/lib/adesao";
+import { calcularFaturamento } from "@/lib/faturamento";
 import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@/generated/prisma/client";
 
 export interface EstadoAvancoEstagio {
   erro?: string;
@@ -49,7 +51,7 @@ export async function avancarEstagioAdesao(
 
   const alteradoPor = ehFornecedorDaAta ? `fornecedor:${fornecedorId}` : `orgao:${orgaoId}`;
 
-  await prisma.$transaction([
+  const operacoes: Prisma.PrismaPromise<unknown>[] = [
     prisma.adesao.update({
       where: { id: adesaoId },
       data: { estagio: proximo },
@@ -62,7 +64,30 @@ export async function avancarEstagioAdesao(
         alteradoPor,
       },
     }),
-  ]);
+  ];
+
+  // Sprint 8: ao chegar em EMPENHADA, a cobrança nasce sozinha — já
+  // dividida entre Tech 10 e a desenvolvedora, conforme o plano comercial.
+  if (proximo === "EMPENHADA") {
+    const faturamento = calcularFaturamento(
+      adesao.quantidadeSolicitada,
+      Number(adesao.item.valorUnitario),
+    );
+    operacoes.push(
+      prisma.faturamento.create({
+        data: {
+          adesaoId,
+          valorContrato: faturamento.valorContrato,
+          percentualTaxa: faturamento.percentualTaxa,
+          valorTaxaIntermediacao: faturamento.valorTaxaIntermediacao,
+          valorTech10: faturamento.valorTech10,
+          valorDesenvolvedora: faturamento.valorDesenvolvedora,
+        },
+      }),
+    );
+  }
+
+  await prisma.$transaction(operacoes);
 
   revalidatePath(`/adesoes/${adesaoId}`);
   revalidatePath("/orgao");

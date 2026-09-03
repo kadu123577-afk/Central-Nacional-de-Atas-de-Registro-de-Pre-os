@@ -19,6 +19,7 @@ export default async function DetalheAdesaoPage({
       item: { include: { ata: { include: { fornecedor: true } } } },
       orgaoAderente: true,
       historico: { orderBy: { alteradoEm: "asc" } },
+      faturamento: true,
     },
   });
 
@@ -89,6 +90,42 @@ export default async function DetalheAdesaoPage({
         <p className="text-sm font-medium text-neutral-600">
           Pedido concluído — taxa de intermediação faturada.
         </p>
+      )}
+
+      {adesao.faturamento && (
+        <section className="mt-8 rounded-lg border border-neutral-200 p-5">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
+            Faturamento
+          </h2>
+          <dl className="mt-3 space-y-2 text-sm">
+            <div className="flex justify-between">
+              <dt className="text-neutral-600">Valor do contrato</dt>
+              <dd className="font-medium tabular-nums">
+                R$ {Number(adesao.faturamento.valorContrato).toFixed(2)}
+              </dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-neutral-600">
+                Taxa de intermediação ({(Number(adesao.faturamento.percentualTaxa) * 100).toFixed(1)}%)
+              </dt>
+              <dd className="font-medium tabular-nums">
+                R$ {Number(adesao.faturamento.valorTaxaIntermediacao).toFixed(2)}
+              </dd>
+            </div>
+            <div className="flex justify-between border-t border-neutral-100 pt-2">
+              <dt className="text-neutral-600">Tech 10 (95%)</dt>
+              <dd className="tabular-nums">
+                R$ {Number(adesao.faturamento.valorTech10).toFixed(2)}
+              </dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-neutral-600">Desenvolvedora (5%)</dt>
+              <dd className="tabular-nums">
+                R$ {Number(adesao.faturamento.valorDesenvolvedora).toFixed(2)}
+              </dd>
+            </div>
+          </dl>
+        </section>
       )}
 
       <section className="mt-10">

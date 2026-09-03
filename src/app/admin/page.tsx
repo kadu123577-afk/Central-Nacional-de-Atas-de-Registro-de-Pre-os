@@ -12,22 +12,38 @@ export default async function PainelAdminPage() {
     redirect("/admin/login");
   }
 
-  const [totalAtas, itensComSaldo, pedidosEmAndamento, pedidosFaturados, atasPendentes] =
-    await Promise.all([
-      prisma.ata.count({ where: { status: "APROVADA" } }),
-      prisma.item.findMany({ include: { saldo: true } }),
-      prisma.adesao.count({ where: { estagio: { not: "FATURADA" } } }),
-      prisma.adesao.count({ where: { estagio: "FATURADA" } }),
-      prisma.ata.findMany({
-        where: { status: "PENDENTE" },
-        include: { fornecedor: true, orgaoGerenciador: true, itens: true },
-        orderBy: { createdAt: "asc" },
-      }),
-    ]);
+  const [
+    totalAtas,
+    itensComSaldo,
+    pedidosEmAndamento,
+    pedidosFaturados,
+    atasPendentes,
+    faturamentos,
+  ] = await Promise.all([
+    prisma.ata.count({ where: { status: "APROVADA" } }),
+    prisma.item.findMany({ include: { saldo: true } }),
+    prisma.adesao.count({ where: { estagio: { not: "FATURADA" } } }),
+    prisma.adesao.count({ where: { estagio: "FATURADA" } }),
+    prisma.ata.findMany({
+      where: { status: "PENDENTE" },
+      include: { fornecedor: true, orgaoGerenciador: true, itens: true },
+      orderBy: { createdAt: "asc" },
+    }),
+    prisma.faturamento.findMany(),
+  ]);
 
   const saldoTotalDisponivel = itensComSaldo.reduce(
     (total, item) =>
       total + saldoAgregadoDisponivel(item.quantidadeRegistrada, item.saldo?.quantidadeConsumida ?? 0),
+    0,
+  );
+
+  const receitaTotalIntermediacao = faturamentos.reduce(
+    (total, f) => total + Number(f.valorTaxaIntermediacao),
+    0,
+  );
+  const repasseTotalDesenvolvedora = faturamentos.reduce(
+    (total, f) => total + Number(f.valorDesenvolvedora),
     0,
   );
 
@@ -47,6 +63,16 @@ export default async function PainelAdminPage() {
         <Metrica rotulo="Saldo total disponível" valor={saldoTotalDisponivel} />
         <Metrica rotulo="Pedidos em andamento" valor={pedidosEmAndamento} />
         <Metrica rotulo="Contratos faturados" valor={pedidosFaturados} />
+        <Metrica
+          rotulo="Receita de intermediação"
+          valor={receitaTotalIntermediacao}
+          prefixo="R$ "
+        />
+        <Metrica
+          rotulo="Repasse à desenvolvedora (5%)"
+          valor={repasseTotalDesenvolvedora}
+          prefixo="R$ "
+        />
       </div>
 
       <section className="mt-10">
@@ -103,10 +129,21 @@ export default async function PainelAdminPage() {
   );
 }
 
-function Metrica({ rotulo, valor }: { rotulo: string; valor: number }) {
+function Metrica({
+  rotulo,
+  valor,
+  prefixo,
+}: {
+  rotulo: string;
+  valor: number;
+  prefixo?: string;
+}) {
   return (
     <div className="rounded-lg border border-neutral-200 p-4">
-      <p className="text-2xl font-semibold tabular-nums">{valor}</p>
+      <p className="text-2xl font-semibold tabular-nums">
+        {prefixo}
+        {prefixo ? valor.toFixed(2) : valor}
+      </p>
       <p className="mt-1 text-xs uppercase tracking-wide text-neutral-500">{rotulo}</p>
     </div>
   );

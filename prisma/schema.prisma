@@ -146,6 +146,7 @@ model Adesao {
   item          Item                @relation(fields: [itemId], references: [id])
   orgaoAderente Orgao               @relation("OrgaoAderente", fields: [orgaoAderenteId], references: [id])
   historico     AdesaoHistorico[]
+  faturamento   Faturamento?
 
   @@map("adesoes")
 }
@@ -162,4 +163,22 @@ model AdesaoHistorico {
   adesao Adesao @relation(fields: [adesaoId], references: [id])
 
   @@map("adesoes_historico")
+}
+
+// Gerada automaticamente quando a adesão chega em EMPENHADA (Sprint 8) —
+// já nasce com a divisão 95%/5% entre Tech 10 e a desenvolvedora prevista
+// no plano de gestão comercial.
+model Faturamento {
+  id                    String   @id @default(cuid())
+  adesaoId              String   @unique
+  valorContrato         Decimal  @db.Decimal(14, 2)
+  percentualTaxa        Decimal  @db.Decimal(5, 4)
+  valorTaxaIntermediacao Decimal @db.Decimal(14, 2)
+  valorTech10           Decimal  @db.Decimal(14, 2)
+  valorDesenvolvedora   Decimal  @db.Decimal(14, 2)
+  criadoEm              DateTime @default(now())
+
+  adesao Adesao @relation(fields: [adesaoId], references: [id])
+
+  @@map("faturamentos")
 }
