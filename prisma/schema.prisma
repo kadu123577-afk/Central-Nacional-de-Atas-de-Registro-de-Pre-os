@@ -1,0 +1,143 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum StatusAta {
+  PENDENTE
+  APROVADA
+  REJEITADA
+}
+
+enum EstagioAdesao {
+  MAPEADA
+  CONTATO_FORNECEDOR
+  APRESENTADA_ORGAO
+  OFICIO_EMITIDO
+  AGUARDANDO_GERENCIADOR
+  ACEITE_FORNECEDOR
+  EMPENHADA
+  FATURADA
+}
+
+model Fornecedor {
+  id          String   @id @default(cuid())
+  razaoSocial String
+  cnpj        String   @unique
+  email       String   @unique
+  telefone    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  atas Ata[]
+
+  @@map("fornecedores")
+}
+
+model Orgao {
+  id        String   @id @default(cuid())
+  nome      String
+  cnpj      String   @unique
+  uf        String
+  municipio String
+  esfera    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  atasGerenciadas Ata[]    @relation("OrgaoGerenciador")
+  adesoes         Adesao[] @relation("OrgaoAderente")
+
+  @@map("orgaos")
+}
+
+model Ata {
+  id               String    @id @default(cuid())
+  numero           String
+  objeto           String
+  status           StatusAta @default(PENDENTE)
+  dataAssinatura   DateTime
+  dataVigenciaFim  DateTime
+  fornecedorId     String
+  orgaoGerenciadorId String
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  fornecedor       Fornecedor @relation(fields: [fornecedorId], references: [id])
+  orgaoGerenciador Orgao      @relation("OrgaoGerenciador", fields: [orgaoGerenciadorId], references: [id])
+  itens            Item[]
+
+  @@unique([numero, orgaoGerenciadorId])
+  @@map("atas")
+}
+
+model Item {
+  id                    String  @id @default(cuid())
+  ataId                 String
+  descricao             String
+  categoria             String
+  marca                 String?
+  unidade               String
+  quantidadeRegistrada  Int
+  valorUnitario         Decimal @db.Decimal(14, 2)
+
+  ata     Ata      @relation(fields: [ataId], references: [id])
+  adesoes Adesao[]
+  saldo   Saldo?
+
+  @@map("itens")
+}
+
+// Snapshot materializado do consumo agregado do item, mantido em transação
+// junto com cada adesão aceita — evita recalcular a soma de todas as
+// adesões a cada checagem da trava do art. 86.
+model Saldo {
+  id                   String   @id @default(cuid())
+  itemId               String   @unique
+  quantidadeConsumida  Int      @default(0)
+  atualizadoEm         DateTime @updatedAt
+
+  item Item @relation(fields: [itemId], references: [id])
+
+  @@map("saldos")
+}
+
+model Adesao {
+  id                  String        @id @default(cuid())
+  itemId              String
+  orgaoAderenteId     String
+  quantidadeSolicitada Int
+  estagio             EstagioAdesao @default(MAPEADA)
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  item          Item                @relation(fields: [itemId], references: [id])
+  orgaoAderente Orgao               @relation("OrgaoAderente", fields: [orgaoAderenteId], references: [id])
+  historico     AdesaoHistorico[]
+
+  @@map("adesoes")
+}
+
+// Trilha de auditoria exigida pelo plano: quem mudou o estágio e quando.
+model AdesaoHistorico {
+  id              String        @id @default(cuid())
+  adesaoId        String
+  estagioAnterior EstagioAdesao?
+  estagioNovo     EstagioAdesao
+  alteradoPor     String
+  alteradoEm      DateTime      @default(now())
+
+  adesao Adesao @relation(fields: [adesaoId], references: [id])
+
+  @@map("adesoes_historico")
+}
