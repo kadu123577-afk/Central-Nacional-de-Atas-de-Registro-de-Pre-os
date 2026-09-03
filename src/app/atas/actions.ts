@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { hashSenha } from "@/lib/auth";
 
 export interface EstadoCadastroAta {
   erro?: string;
@@ -15,6 +16,7 @@ export async function cadastrarAta(
   const fornecedorRazaoSocial = String(formData.get("fornecedorRazaoSocial") ?? "").trim();
   const fornecedorCnpj = String(formData.get("fornecedorCnpj") ?? "").trim();
   const fornecedorEmail = String(formData.get("fornecedorEmail") ?? "").trim();
+  const fornecedorSenha = String(formData.get("fornecedorSenha") ?? "");
 
   const orgaoNome = String(formData.get("orgaoNome") ?? "").trim();
   const orgaoCnpj = String(formData.get("orgaoCnpj") ?? "").trim();
@@ -37,6 +39,7 @@ export async function cadastrarAta(
     !fornecedorRazaoSocial ||
     !fornecedorCnpj ||
     !fornecedorEmail ||
+    fornecedorSenha.length < 8 ||
     !orgaoNome ||
     !orgaoCnpj ||
     !orgaoUf ||
@@ -53,16 +56,22 @@ export async function cadastrarAta(
     !Number.isFinite(itemQuantidade) ||
     itemQuantidade <= 0
   ) {
-    return { erro: "Preencha todos os campos obrigatórios com valores válidos." };
+    return {
+      erro:
+        "Preencha todos os campos obrigatórios com valores válidos (senha do fornecedor precisa ter ao menos 8 caracteres).",
+    };
   }
+
+  const senhaHash = await hashSenha(fornecedorSenha);
 
   const fornecedor = await prisma.fornecedor.upsert({
     where: { cnpj: fornecedorCnpj },
-    update: { razaoSocial: fornecedorRazaoSocial, email: fornecedorEmail },
+    update: { razaoSocial: fornecedorRazaoSocial, email: fornecedorEmail, senhaHash },
     create: {
       razaoSocial: fornecedorRazaoSocial,
       cnpj: fornecedorCnpj,
       email: fornecedorEmail,
+      senhaHash,
     },
   });
 

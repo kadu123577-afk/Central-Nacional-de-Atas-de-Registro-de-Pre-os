@@ -37,6 +37,7 @@ model Fornecedor {
   cnpj        String   @unique
   email       String   @unique
   telefone    String?
+  senhaHash   String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -65,7 +66,10 @@ model Ata {
   id               String    @id @default(cuid())
   numero           String
   objeto           String
-  status           StatusAta @default(PENDENTE)
+  // Aprovada por padrão até o Sprint 6 introduzir a fila de moderação do
+  // admin — a partir daí o padrão vira PENDENTE e a aprovação passa a ser
+  // um passo manual antes da ata aparecer no catálogo público.
+  status           StatusAta @default(APROVADA)
   dataAssinatura   DateTime
   dataVigenciaFim  DateTime
   fornecedorId     String

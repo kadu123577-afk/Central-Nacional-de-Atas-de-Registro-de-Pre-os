@@ -7,12 +7,26 @@ export default function Home() {
       <p className="text-neutral-600">
         Plataforma de intermediação de adesões a atas de registro de preços vigentes.
       </p>
-      <Link
-        href="/atas"
-        className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white"
-      >
-        Ver atas cadastradas
-      </Link>
+      <div className="flex flex-wrap gap-3">
+        <Link
+          href="/catalogo"
+          className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white"
+        >
+          Catálogo público
+        </Link>
+        <Link
+          href="/fornecedor/login"
+          className="rounded-md border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-800"
+        >
+          Painel do fornecedor
+        </Link>
+        <Link
+          href="/atas"
+          className="rounded-md border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-800"
+        >
+          Cadastro interno de atas
+        </Link>
+      </div>
     </main>
   );
 }

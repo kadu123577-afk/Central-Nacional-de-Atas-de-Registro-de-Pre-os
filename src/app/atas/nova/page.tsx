@@ -21,6 +21,12 @@ export default function NovaAtaPage() {
           <Campo label="Razão social" name="fornecedorRazaoSocial" required />
           <Campo label="CNPJ" name="fornecedorCnpj" required />
           <Campo label="E-mail" name="fornecedorEmail" type="email" required />
+          <Campo
+            label="Senha de acesso ao painel do fornecedor (mín. 8 caracteres)"
+            name="fornecedorSenha"
+            type="password"
+            required
+          />
         </fieldset>
 
         <fieldset className="space-y-4">
