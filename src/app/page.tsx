@@ -21,6 +21,12 @@ export default function Home() {
           Painel do fornecedor
         </Link>
         <Link
+          href="/orgao/login"
+          className="rounded-md border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-800"
+        >
+          Painel do órgão comprador
+        </Link>
+        <Link
           href="/atas"
           className="rounded-md border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-800"
         >

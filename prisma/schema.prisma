@@ -53,6 +53,8 @@ model Orgao {
   uf        String
   municipio String
   esfera    String
+  email     String?  @unique
+  senhaHash String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
