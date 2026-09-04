@@ -10,6 +10,23 @@ Cada desenvolvedor roda sua própria cópia — os dados **não** são compartil
 entre máquinas diferentes até existir um banco compartilhado (Supabase, ver
 "Próximos passos" no fim).
 
+## Atalho pra Windows (`instalar.bat` / `iniciar.bat`)
+
+Depois de instalar Node.js, Git e PostgreSQL (passos 1-3 mais abaixo) e clonar o
+repositório, dois arquivos já resolvem o resto sozinhos — dá dois cliques neles no
+Explorador de Arquivos, ou rode pelo terminal dentro da pasta do projeto:
+
+- **`instalar.bat`** — só precisa rodar uma vez: instala as dependências, cria o
+  `.env` já com os valores certos pro Postgres local, gera a chave de sessão
+  sozinho, cria as tabelas do banco e prepara o Prisma. No final, ele mostra o
+  comando pra criar seu usuário admin.
+- **`iniciar.bat`** — roda toda vez que quiser abrir o site. Deixa essa janela
+  aberta e acesse `http://localhost:3000`.
+
+Se o `instalar.bat` parar com um erro, tira um print de tudo que apareceu na tela.
+O passo a passo manual abaixo existe caso prefira rodar cada comando você mesmo,
+ou esteja no Mac/Linux (os `.bat` são só pra Windows).
+
 ## Pré-requisitos
 
 - **Node.js 20 ou mais recente** ([nodejs.org](https://nodejs.org))
