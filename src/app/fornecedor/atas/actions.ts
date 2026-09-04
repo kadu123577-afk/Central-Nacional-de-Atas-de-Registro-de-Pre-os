@@ -37,11 +37,11 @@ export async function cadastrarAtaComoFornecedor(
   const dataAssinatura = String(formData.get("dataAssinatura") ?? "");
   const dataVigenciaFim = String(formData.get("dataVigenciaFim") ?? "");
 
-  const itemDescricao = String(formData.get("itemDescricao") ?? "").trim();
-  const itemCategoria = String(formData.get("itemCategoria") ?? "").trim();
-  const itemUnidade = String(formData.get("itemUnidade") ?? "").trim();
-  const itemQuantidade = Number(formData.get("itemQuantidade"));
-  const itemValorUnitario = String(formData.get("itemValorUnitario") ?? "").trim();
+  const itensDescricao = formData.getAll("itemDescricao[]").map((v) => String(v).trim());
+  const itensCategoria = formData.getAll("itemCategoria[]").map((v) => String(v).trim());
+  const itensUnidade = formData.getAll("itemUnidade[]").map((v) => String(v).trim());
+  const itensQuantidade = formData.getAll("itemQuantidade[]").map((v) => Number(v));
+  const itensValorUnitario = formData.getAll("itemValorUnitario[]").map((v) => String(v).trim());
 
   if (
     !orgaoNome ||
@@ -55,14 +55,32 @@ export async function cadastrarAtaComoFornecedor(
     !CATEGORIAS_ATAS.some((c) => c.rotulo === ataCategoria) ||
     !dataAssinatura ||
     !dataVigenciaFim ||
-    !itemDescricao ||
-    !itemCategoria ||
-    !itemUnidade ||
-    !itemValorUnitario ||
-    !Number.isFinite(itemQuantidade) ||
-    itemQuantidade <= 0
+    itensDescricao.length === 0
   ) {
     return { erro: "Preencha todos os campos obrigatórios com valores válidos." };
+  }
+
+  const contagensIguais =
+    itensDescricao.length === itensCategoria.length &&
+    itensDescricao.length === itensUnidade.length &&
+    itensDescricao.length === itensQuantidade.length &&
+    itensDescricao.length === itensValorUnitario.length;
+
+  const todosItensValidos =
+    contagensIguais &&
+    itensDescricao.every((d, i) => {
+      return (
+        d &&
+        itensCategoria[i] &&
+        itensUnidade[i] &&
+        itensValorUnitario[i] &&
+        Number.isFinite(itensQuantidade[i]) &&
+        itensQuantidade[i] > 0
+      );
+    });
+
+  if (!todosItensValidos) {
+    return { erro: "Preencha todos os campos obrigatórios de cada item com valores válidos." };
   }
 
   const orgaoGerenciador = await prisma.orgao.upsert({
@@ -89,14 +107,14 @@ export async function cadastrarAtaComoFornecedor(
         fornecedorId,
         orgaoGerenciadorId: orgaoGerenciador.id,
         itens: {
-          create: {
-            descricao: itemDescricao,
-            categoria: itemCategoria,
-            unidade: itemUnidade,
-            quantidadeRegistrada: itemQuantidade,
-            valorUnitario: itemValorUnitario,
+          create: itensDescricao.map((descricao, i) => ({
+            descricao,
+            categoria: itensCategoria[i],
+            unidade: itensUnidade[i],
+            quantidadeRegistrada: itensQuantidade[i],
+            valorUnitario: itensValorUnitario[i],
             saldo: { create: {} },
-          },
+          })),
         },
       },
     });

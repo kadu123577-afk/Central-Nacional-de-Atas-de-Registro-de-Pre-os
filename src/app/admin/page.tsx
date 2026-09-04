@@ -6,10 +6,25 @@ import { aprovarAta, logoutAdmin, rejeitarAta } from "./actions";
 import { AppShell } from "@/components/ui/app-shell";
 import { Secao } from "@/components/ui/secao";
 import { CartaoIndicador } from "@/components/ui/cartao-indicador";
+import { Badge } from "@/components/ui/badge";
 import { Cifra } from "@/components/ui/valores";
 import { VazioComAcao } from "@/components/ui/vazio-com-acao";
 
 export const dynamic = "force-dynamic";
+
+// Mesmo valor usado em src/lib/rastreador-pncp.ts pro fornecedor
+// placeholder quando o PNCP não retorna o vencedor da compra.
+const CNPJ_FORNECEDOR_A_CONFIRMAR = "00000000000000";
+
+/** Ata importada do PNCP que ainda não tem fornecedor real identificado ou
+ * nenhum item enriquecido — acha da revisão de telas de 2026-09-04: essas
+ * atas se perdiam misturadas com a fila normal de moderação. */
+function ataPncpIncompleta(ata: { origem: string; itens: unknown[]; fornecedor: { cnpj: string } }): boolean {
+  return (
+    ata.origem === "PNCP" &&
+    (ata.itens.length === 0 || ata.fornecedor.cnpj === CNPJ_FORNECEDOR_A_CONFIRMAR)
+  );
+}
 
 const NAV_ADMIN = [
   { rotulo: "Painel", href: "/admin" },
@@ -34,11 +49,18 @@ export default async function PainelAdminPage() {
     prisma.item.findMany({ include: { saldo: true } }),
     prisma.adesao.count({ where: { estagio: { not: "FATURADA" } } }),
     prisma.adesao.count({ where: { estagio: "FATURADA" } }),
-    prisma.ata.findMany({
-      where: { status: "PENDENTE" },
-      include: { fornecedor: true, orgaoGerenciador: true, itens: true },
-      orderBy: { createdAt: "asc" },
-    }),
+    prisma.ata
+      .findMany({
+        where: { status: "PENDENTE" },
+        include: { fornecedor: true, orgaoGerenciador: true, itens: true },
+        orderBy: { createdAt: "asc" },
+      })
+      .then((atas) =>
+        // Incompletas primeiro — são as que mais precisam de atenção do
+        // admin antes de aprovar/rejeitar, não deveriam ficar perdidas no
+        // meio da fila comum.
+        [...atas].sort((a, b) => Number(ataPncpIncompleta(b)) - Number(ataPncpIncompleta(a))),
+      ),
     prisma.faturamento.findMany(),
   ]);
 
@@ -104,21 +126,28 @@ export default async function PainelAdminPage() {
           <ul className="mt-4 flex flex-col gap-4">
             {atasPendentes.map((ata) => (
               <li key={ata.id} className="painel p-4">
-                <div className="flex items-baseline justify-between">
+                <div className="flex items-baseline justify-between gap-2">
                   <h3 className="font-medium" style={{ color: "var(--cor-texto)" }}>
                     Ata {ata.numero}
                   </h3>
-                  <span className="eyebrow">
-                    {ata.origem === "PNCP" ? "Importada do PNCP" : "Cadastro manual"}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    {ataPncpIncompleta(ata) && <Badge tom="alerta">PNCP incompleta</Badge>}
+                    <span className="eyebrow">
+                      {ata.origem === "PNCP" ? "Importada do PNCP" : "Cadastro manual"}
+                    </span>
+                  </div>
                 </div>
                 <p className="mt-1 text-sm" style={{ color: "var(--cor-texto-2)" }}>
                   {ata.objeto}
                 </p>
                 <p className="mt-1 text-xs" style={{ color: "var(--cor-texto-3)" }}>
-                  {ata.fornecedor.razaoSocial} · Órgão gerenciador: {ata.orgaoGerenciador.nome} (
-                  {ata.orgaoGerenciador.uf}) · {ata.itens.length}{" "}
-                  {ata.itens.length === 1 ? "item" : "itens"}
+                  {ata.fornecedor.cnpj === CNPJ_FORNECEDOR_A_CONFIRMAR
+                    ? "Fornecedor a confirmar"
+                    : ata.fornecedor.razaoSocial}{" "}
+                  · Órgão gerenciador: {ata.orgaoGerenciador.nome} ({ata.orgaoGerenciador.uf}) ·{" "}
+                  {ata.itens.length === 0
+                    ? "sem itens (a completar)"
+                    : `${ata.itens.length} ${ata.itens.length === 1 ? "item" : "itens"}`}
                 </p>
 
                 <div className="mt-3 flex gap-2">
