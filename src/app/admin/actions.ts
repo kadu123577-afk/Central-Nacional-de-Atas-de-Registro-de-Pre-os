@@ -66,28 +66,48 @@ export async function rejeitarAta(formData: FormData): Promise<void> {
   revalidatePath("/catalogo");
 }
 
-export async function marcarFaturamentoComoPago(formData: FormData): Promise<void> {
-  await exigirAdmin();
-  const faturamentoId = String(formData.get("faturamentoId") ?? "");
-  if (!faturamentoId) return;
-
-  await prisma.faturamento.update({
-    where: { id: faturamentoId },
-    data: { pago: true, pagoEm: new Date() },
-  });
-  revalidatePath("/admin/faturamento");
-  revalidatePath("/admin");
+export interface EstadoMarcarFaturamento {
+  erro?: string;
 }
 
-export async function marcarFaturamentoComoPendente(formData: FormData): Promise<void> {
+export async function marcarFaturamentoComoPago(
+  _estadoAnterior: EstadoMarcarFaturamento,
+  formData: FormData,
+): Promise<EstadoMarcarFaturamento> {
   await exigirAdmin();
   const faturamentoId = String(formData.get("faturamentoId") ?? "");
-  if (!faturamentoId) return;
+  if (!faturamentoId) return { erro: "Registro inválido." };
 
-  await prisma.faturamento.update({
-    where: { id: faturamentoId },
-    data: { pago: false, pagoEm: null },
-  });
+  try {
+    await prisma.faturamento.update({
+      where: { id: faturamentoId },
+      data: { pago: true, pagoEm: new Date() },
+    });
+  } catch {
+    return { erro: "Não foi possível marcar como recebido. Tente de novo." };
+  }
   revalidatePath("/admin/faturamento");
   revalidatePath("/admin");
+  return {};
+}
+
+export async function marcarFaturamentoComoPendente(
+  _estadoAnterior: EstadoMarcarFaturamento,
+  formData: FormData,
+): Promise<EstadoMarcarFaturamento> {
+  await exigirAdmin();
+  const faturamentoId = String(formData.get("faturamentoId") ?? "");
+  if (!faturamentoId) return { erro: "Registro inválido." };
+
+  try {
+    await prisma.faturamento.update({
+      where: { id: faturamentoId },
+      data: { pago: false, pagoEm: null },
+    });
+  } catch {
+    return { erro: "Não foi possível marcar como pendente. Tente de novo." };
+  }
+  revalidatePath("/admin/faturamento");
+  revalidatePath("/admin");
+  return {};
 }

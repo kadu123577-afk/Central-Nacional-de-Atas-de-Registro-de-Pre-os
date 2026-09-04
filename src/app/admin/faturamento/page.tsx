@@ -2,13 +2,11 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { adminIdLogado } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { marcarFaturamentoComoPago, marcarFaturamentoComoPendente } from "../actions";
 import { AppShell } from "@/components/ui/app-shell";
 import { CartaoIndicador } from "@/components/ui/cartao-indicador";
-import { Badge } from "@/components/ui/badge";
 import { Cifra } from "@/components/ui/valores";
 import { VazioComAcao } from "@/components/ui/vazio-com-acao";
-import { tomFaturamento } from "@/lib/severidade";
+import { StatusFaturamento } from "./status-faturamento";
 import { logoutAdmin } from "../actions";
 
 export const dynamic = "force-dynamic";
@@ -111,21 +109,7 @@ export default async function FaturamentoAdminPage() {
                   <td className="font-medium" style={{ color: "var(--cor-texto)" }}>
                     <Cifra valor={f.valorTaxaIntermediacao} />
                   </td>
-                  <td>
-                    <Badge tom={tomFaturamento(f.pago)}>
-                      {f.pago ? "Recebido" : "A receber"}
-                    </Badge>
-                  </td>
-                  <td>
-                    <form
-                      action={f.pago ? marcarFaturamentoComoPendente : marcarFaturamentoComoPago}
-                    >
-                      <input type="hidden" name="faturamentoId" value={f.id} />
-                      <button type="submit" className="botao-atas link">
-                        {f.pago ? "Marcar como pendente" : "Marcar como recebido"}
-                      </button>
-                    </form>
-                  </td>
+                  <StatusFaturamento faturamentoId={f.id} pagoInicial={f.pago} />
                 </tr>
               ))}
             </tbody>
