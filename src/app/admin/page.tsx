@@ -17,12 +17,14 @@ export const dynamic = "force-dynamic";
 // placeholder quando o PNCP não retorna o vencedor da compra.
 const CNPJ_FORNECEDOR_A_CONFIRMAR = "00000000000000";
 
-/** Ata importada do PNCP que ainda não tem fornecedor real identificado ou
- * nenhum item enriquecido — acha da revisão de telas de 2026-09-04: essas
- * atas se perdiam misturadas com a fila normal de moderação. */
-function ataPncpIncompleta(ata: { origem: string; itens: unknown[]; fornecedor: { cnpj: string } }): boolean {
+/** Ata importada automaticamente (PNCP ou Compras.gov.br) que ainda não tem
+ * fornecedor real identificado ou nenhum item enriquecido — acha da revisão
+ * de telas de 2026-09-04: essas atas se perdiam misturadas com a fila
+ * normal de moderação. Mesma checagem serve pras duas fontes, que rodam em
+ * paralelo desde 2026-09-04. */
+function ataImportadaIncompleta(ata: { origem: string; itens: unknown[]; fornecedor: { cnpj: string } }): boolean {
   return (
-    ata.origem === "PNCP" &&
+    (ata.origem === "PNCP" || ata.origem === "COMPRAS_GOV") &&
     (ata.itens.length === 0 || ata.fornecedor.cnpj === CNPJ_FORNECEDOR_A_CONFIRMAR)
   );
 }
@@ -62,7 +64,7 @@ export default async function PainelAdminPage() {
         // Incompletas primeiro — são as que mais precisam de atenção do
         // admin antes de aprovar/rejeitar, não deveriam ficar perdidas no
         // meio da fila comum.
-        [...atas].sort((a, b) => Number(ataPncpIncompleta(b)) - Number(ataPncpIncompleta(a))),
+        [...atas].sort((a, b) => Number(ataImportadaIncompleta(b)) - Number(ataImportadaIncompleta(a))),
       ),
     prisma.faturamento.findMany(),
   ]);
@@ -134,9 +136,13 @@ export default async function PainelAdminPage() {
                     Ata {ata.numero}
                   </h3>
                   <div className="flex items-center gap-2">
-                    {ataPncpIncompleta(ata) && <Badge tom="alerta">PNCP incompleta</Badge>}
+                    {ataImportadaIncompleta(ata) && <Badge tom="alerta">Importação incompleta</Badge>}
                     <span className="eyebrow">
-                      {ata.origem === "PNCP" ? "Importada do PNCP" : "Cadastro manual"}
+                      {ata.origem === "PNCP"
+                        ? "Importada do PNCP"
+                        : ata.origem === "COMPRAS_GOV"
+                          ? "Importada do Compras.gov.br"
+                          : "Cadastro manual"}
                     </span>
                   </div>
                 </div>
@@ -166,7 +172,7 @@ export default async function PainelAdminPage() {
                 ))}
 
                 <div className="mt-3 flex gap-2">
-                  {ataPncpIncompleta(ata) && (
+                  {ataImportadaIncompleta(ata) && (
                     <Link href={`/admin/atas/${ata.id}/completar`} className="botao-atas secundario">
                       Completar
                     </Link>

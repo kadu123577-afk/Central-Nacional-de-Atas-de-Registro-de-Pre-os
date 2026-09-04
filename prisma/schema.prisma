@@ -23,6 +23,10 @@ enum StatusAta {
 enum OrigemAta {
   MANUAL
   PNCP
+  // Segunda fonte de rastreamento automático, rodando em paralelo com o
+  // PNCP (dadosabertos.compras.gov.br) — decisão de 2026-09-04 de usar as
+  // duas fontes em vez de substituir uma pela outra.
+  COMPRAS_GOV
 }
 
 enum EstagioAdesao {

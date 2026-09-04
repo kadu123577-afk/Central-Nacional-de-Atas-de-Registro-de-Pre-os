@@ -2,8 +2,8 @@
 
 Plataforma que conecta atas de registro de preços vigentes a órgãos públicos que
 querem aderir a elas, com a trava de adesão do art. 86 da Lei 14.133/2021, catálogo
-público, painéis de fornecedor/órgão/admin, rastreador do PNCP e faturamento
-automático.
+público, painéis de fornecedor/órgão/admin, rastreadores automáticos do PNCP e do
+Compras.gov.br (as duas fontes rodam em paralelo) e faturamento automático.
 
 Este guia é pra rodar o projeto **na sua máquina**, com um banco Postgres local.
 Cada desenvolvedor roda sua própria cópia — os dados **não** são compartilhados
@@ -175,14 +175,17 @@ as mesmas variáveis do `.env.example`, com valores de produção:
   ```bash
   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
   ```
-- `CRON_SECRET` — gerar do mesmo jeito. A Vercel já envia esse valor sozinha no
-  cron do rastreador do PNCP (`vercel.json`) assim que a variável existir no
-  projeto — não precisa configurar mais nada além de criar a variável.
-- `PNCP_ACCESS_TOKEN` — opcional, mas sem ele o rastreador importa a ata do PNCP
-  sem itens nem fornecedor (ela cai pendente, com o selo "PNCP incompleta" no
-  painel admin, esperando alguém completar manualmente em
+- `CRON_SECRET` — gerar do mesmo jeito. A Vercel já envia esse valor sozinha nos
+  dois crons de rastreamento (PNCP e Compras.gov.br, ambos em `vercel.json`)
+  assim que a variável existir no projeto — não precisa configurar mais nada
+  além de criar a variável.
+- `PNCP_ACCESS_TOKEN` — opcional, mas sem ele o rastreador do PNCP importa a
+  ata sem itens nem fornecedor (ela cai pendente, com o selo "Importação
+  incompleta" no painel admin, esperando alguém completar manualmente em
   `/admin/atas/[id]/completar`). Se a Tech 10 tiver esse token de acesso à API
-  de órgãos do PNCP, vale configurar.
+  de órgãos do PNCP, vale configurar. O rastreador do Compras.gov.br (segunda
+  fonte, rodando em paralelo) não precisa de nenhum token — a API dele é
+  pública.
 - `TAXA_INTERMEDIACAO_PERCENTUAL` — só se o percentual for diferente de 5%.
 
 ### 3. Primeira execução no banco novo

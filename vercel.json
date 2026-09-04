@@ -3,6 +3,10 @@
     {
       "path": "/api/rastreador-pncp",
       "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/rastreador-compras-gov",
+      "schedule": "0 7 * * *"
     }
   ]
 }

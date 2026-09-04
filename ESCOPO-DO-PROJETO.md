@@ -134,6 +134,36 @@ Decisões que já foram tomadas e não precisam ser rediscutidas:
   novas como `PENDENTE` (entra na fila de moderação do admin antes de
   aparecer no catálogo público); `limparDescricaoPncp` evita o bug de
   número solto colado na descrição do item.
+- **Compras.gov.br, segunda fonte em paralelo (2026-09-04):**
+  `src/lib/compras-gov.ts` + `src/lib/rastreador-compras-gov.ts`, rodando
+  ao lado do rastreador do PNCP (não em substituição a ele — pedido
+  explícito de usar as duas fontes juntas). Consome a API pública e sem
+  autenticação `dadosabertos.compras.gov.br` (o banco por trás do "Painel
+  de Preços", confirmado ao vivo como multi-esfera — federal, estadual e
+  municipal na mesma consulta — e atual, com dados de 2026). Mesma chave
+  de deduplicação do PNCP (`Ata.numeroControlePncp`, único), então uma
+  ata que já entrou por uma fonte não é importada de novo pela outra.
+  Diferença estrutural relevante: o endpoint de itens dessa API já traz
+  descrição, quantidade, valor e fornecedor juntos numa única chamada
+  (o PNCP exige duas chamadas separadas); em compensação, esse mesmo
+  endpoint não filtra por ata, só pela compra de origem — uma compra pode
+  ter gerado mais de uma ata (um pregão com vários lotes), então o código
+  busca por compra e filtra pela ata específica do lado do cliente
+  (`mapearItensDaCompra`). Verificado ao vivo nesta sessão contra a API
+  real (não só com testes unitários, diferente do PNCP, que nunca teve
+  rede de saída disponível neste sandbox): um primeiro teste mostrou 0%
+  de enriquecimento de itens por causa de uma suposição errada de
+  parâmetro (`numeroAtaRegistroPreco` direto no endpoint de itens, que na
+  verdade não existe); corrigido e reverificado, chegando a ~70% de
+  enriquecimento numa amostra real. Cron próprio em `vercel.json`
+  (`/api/rastreador-compras-gov`, protegido pelo mesmo `CRON_SECRET`).
+  Mesma limitação do PNCP quanto à esfera do órgão: nenhum dos dois
+  endpoints usados informa a esfera federativa direto, então todo órgão
+  novo criado por este importador entra com `esfera: "não informada"`
+  (bloqueia adesão até confirmação manual — não existe hoje uma tela de
+  admin pra editar a esfera de um órgão já cadastrado, só a de completar
+  fornecedor/itens de uma ata PNCP incompleta; gap registrado, não
+  resolvido).
 - **Anexo de ata guardado no banco, não em provedor externo (2026-09-04)**
   — `DocumentoAta.conteudo: Bytes`, servido publicamente por
   `/api/documentos/[id]`. Escolhido porque não exige credencial de
@@ -351,6 +381,13 @@ até agora já aplicados.
   o fornecedor de todas as outras. Adicionar item cria um item por vez
   (formulário mais simples que o do fornecedor, que aceita N de uma vez —
   aqui o volume típico é baixo, completar uma ata específica).
+- **Segunda fonte de importação automática (2026-09-04)** — com a entrada
+  do Compras.gov.br ao lado do PNCP (ver §3), o selo e o rótulo em
+  `/admin` deixaram de dizer só "PNCP incompleta"/"Importada do PNCP" e
+  passaram a cobrir as duas origens (`ataImportadaIncompleta()`,
+  `src/app/admin/page.tsx`) — mesma regra de detecção (sem fornecedor
+  real ou sem itens), agora checando `origem === "PNCP" || origem ===
+  "COMPRAS_GOV"`.
 - **Gestão de usuários** (2026-09-04) — `/admin/usuarios` lista todo
   fornecedor e órgão com um badge Ativo/Desativado e um botão de
   alternar. Desativar bloqueia login (checado em `loginFornecedor` e

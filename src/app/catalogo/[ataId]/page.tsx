@@ -94,6 +94,7 @@ export default async function DetalheAtaPage({
           </h1>
           {ata.categoria && <SeloCategoria categoria={ata.categoria} />}
           {ata.origem === "PNCP" && <Badge tom="marca">Importado do PNCP</Badge>}
+          {ata.origem === "COMPRAS_GOV" && <Badge tom="marca">Importado do Compras.gov.br</Badge>}
           <Badge tom={tomVig}>{rotuloVigencia}</Badge>
         </div>
         <p className="mt-2 max-w-2xl text-sm" style={{ color: "var(--cor-texto-2)" }}>
