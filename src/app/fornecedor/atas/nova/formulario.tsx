@@ -55,6 +55,21 @@ export function FormularioNovaAta() {
           <div className="flex flex-col gap-4">
             <Campo label="Número" name="numero" required />
             <Campo label="Objeto" name="objeto" required />
+            <label className="block text-sm">
+              <span className="mb-1 block font-medium" style={{ color: "var(--cor-texto-2)" }}>
+                Tema da ata
+              </span>
+              <select name="ataCategoria" required className="campo-atas" defaultValue="">
+                <option value="" disabled>
+                  Selecione...
+                </option>
+                {CATEGORIAS_ATAS.map((c) => (
+                  <option key={c.slug} value={c.rotulo}>
+                    {c.rotulo}
+                  </option>
+                ))}
+              </select>
+            </label>
             <div className="grid grid-cols-2 gap-4 items-start">
               <Campo label="Data de assinatura" name="dataAssinatura" type="date" required />
               <Campo label="Vigência até" name="dataVigenciaFim" type="date" required />

@@ -219,6 +219,61 @@ async function main() {
       isSeed: true,
     },
   });
+  const eletricaFortaleza = await prisma.fornecedor.upsert({
+    where: { cnpj: "12312312000112" },
+    update: {},
+    create: {
+      razaoSocial: "Elétrica Fortaleza Demo LTDA",
+      cnpj: "12312312000112",
+      email: "contato@eletricafortaleza.demo",
+      senhaHash,
+      isSeed: true,
+    },
+  });
+  const hospitalarVida = await prisma.fornecedor.upsert({
+    where: { cnpj: "23423423000113" },
+    update: {},
+    create: {
+      razaoSocial: "Hospitalar Vida Demo LTDA",
+      cnpj: "23423423000113",
+      email: "contato@hospitalarvida.demo",
+      senhaHash,
+      isSeed: true,
+    },
+  });
+  const frotaNacional = await prisma.fornecedor.upsert({
+    where: { cnpj: "34534534000114" },
+    update: {},
+    create: {
+      razaoSocial: "Frota Nacional Demo LTDA",
+      cnpj: "34534534000114",
+      email: "contato@frotanacional.demo",
+      senhaHash,
+      isSeed: true,
+    },
+  });
+  const postoRota = await prisma.fornecedor.upsert({
+    where: { cnpj: "45645645000115" },
+    update: {},
+    create: {
+      razaoSocial: "Posto Rota Demo LTDA",
+      cnpj: "45645645000115",
+      email: "contato@postorota.demo",
+      senhaHash,
+      isSeed: true,
+    },
+  });
+  const limpaTudo = await prisma.fornecedor.upsert({
+    where: { cnpj: "56756756000116" },
+    update: {},
+    create: {
+      razaoSocial: "Limpa Tudo Demo LTDA",
+      cnpj: "56756756000116",
+      email: "contato@limpatudo.demo",
+      senhaHash,
+      isSeed: true,
+    },
+  });
 
   // ---- Órgãos (misturando esferas — município incluso, sem restrição) ----
   const belaVista = await prisma.orgao.upsert({
@@ -315,6 +370,7 @@ async function main() {
       objeto: "Registro de preços para material de escritório",
       status: "APROVADA",
       origem: "MANUAL",
+      categoria: "Material de escritório",
       dataAssinatura: diasAtras(330),
       dataVigenciaFim: diasNoFuturo(35),
       fornecedorId: papelaria.id,
@@ -342,6 +398,7 @@ async function main() {
       objeto: "Registro de preços para canetas esferográficas",
       status: "APROVADA",
       origem: "MANUAL",
+      categoria: "Material de escritório",
       dataAssinatura: diasAtras(300),
       dataVigenciaFim: diasNoFuturo(5),
       fornecedorId: papelaria.id,
@@ -369,6 +426,7 @@ async function main() {
       objeto: "Registro de preços para material de construção",
       status: "APROVADA",
       origem: "MANUAL",
+      categoria: "Material de construção",
       dataAssinatura: diasAtras(250),
       dataVigenciaFim: diasNoFuturo(240),
       fornecedorId: construtora.id,
@@ -396,6 +454,7 @@ async function main() {
       objeto: "Registro de preços para lâmpadas e material elétrico",
       status: "PENDENTE",
       origem: "MANUAL",
+      categoria: "Material elétrico",
       dataAssinatura: diasAtras(10),
       dataVigenciaFim: diasNoFuturo(355),
       fornecedorId: construtora.id,
@@ -423,6 +482,7 @@ async function main() {
       objeto: "Registro de preços para material hospitalar descartável",
       status: "APROVADA",
       origem: "MANUAL",
+      categoria: "Material hospitalar",
       dataAssinatura: diasAtras(400),
       dataVigenciaFim: diasAtras(20),
       fornecedorId: techmed.id,
@@ -451,6 +511,7 @@ async function main() {
       objeto: "Registro de preços para luvas cirúrgicas",
       status: "REJEITADA",
       origem: "MANUAL",
+      categoria: "Material hospitalar",
       dataAssinatura: diasAtras(15),
       dataVigenciaFim: diasNoFuturo(350),
       fornecedorId: techmed.id,
@@ -478,6 +539,7 @@ async function main() {
       objeto: "Registro de preços para equipamentos de informática",
       status: "APROVADA",
       origem: "PNCP",
+      categoria: "Equipamento de TI",
       numeroControlePncp: "00456789000110-1-000123/2025",
       dataAssinatura: diasAtras(200),
       dataVigenciaFim: diasNoFuturo(120),
@@ -497,6 +559,192 @@ async function main() {
       },
     },
     include: { itens: true },
+  });
+
+  // 8. Vigente — popula o tema "Material elétrico" com uma ata disponível
+  //    de verdade (a única outra do tema é PENDENTE e não aparece no
+  //    catálogo).
+  await prisma.ata.create({
+    data: {
+      numero: "012-demo/2025",
+      objeto: "Registro de preços para fiação e disjuntores elétricos",
+      status: "APROVADA",
+      origem: "MANUAL",
+      categoria: "Material elétrico",
+      dataAssinatura: diasAtras(90),
+      dataVigenciaFim: diasNoFuturo(180),
+      fornecedorId: eletricaFortaleza.id,
+      orgaoGerenciadorId: secObras.id,
+      isSeed: true,
+      itens: {
+        create: [
+          {
+            descricao: "Disjuntor bipolar 40A (demo)",
+            categoria: "Material elétrico",
+            unidade: "unidade",
+            quantidadeRegistrada: 2000,
+            valorUnitario: "22.50",
+            isSeed: true,
+            saldo: { create: {} },
+          },
+          {
+            descricao: "Cabo flexível 2,5mm (demo)",
+            categoria: "Material elétrico",
+            unidade: "metro",
+            quantidadeRegistrada: 12000,
+            valorUnitario: "3.10",
+            isSeed: true,
+            saldo: { create: {} },
+          },
+        ],
+      },
+    },
+  });
+
+  // 9. Vigente — popula o tema "Material hospitalar" com uma ata
+  //    disponível de verdade (as outras duas do tema estão vencida e
+  //    rejeitada).
+  await prisma.ata.create({
+    data: {
+      numero: "013-demo/2025",
+      objeto: "Registro de preços para insumos hospitalares básicos",
+      status: "APROVADA",
+      origem: "MANUAL",
+      categoria: "Material hospitalar",
+      dataAssinatura: diasAtras(60),
+      dataVigenciaFim: diasNoFuturo(300),
+      fornecedorId: hospitalarVida.id,
+      orgaoGerenciadorId: secEstadualSaude.id,
+      isSeed: true,
+      itens: {
+        create: [
+          {
+            descricao: "Seringa descartável 5ml (demo)",
+            categoria: "Material hospitalar",
+            unidade: "unidade",
+            quantidadeRegistrada: 40000,
+            valorUnitario: "0.65",
+            isSeed: true,
+            saldo: { create: {} },
+          },
+          {
+            descricao: "Álcool em gel 70% 500ml (demo)",
+            categoria: "Material hospitalar",
+            unidade: "unidade",
+            quantidadeRegistrada: 8000,
+            valorUnitario: "7.40",
+            isSeed: true,
+            saldo: { create: {} },
+          },
+        ],
+      },
+    },
+  });
+
+  // 10. Novo tema "Veículos e frota" — sem nenhuma ata antes deste seed.
+  await prisma.ata.create({
+    data: {
+      numero: "014-demo/2025",
+      objeto: "Registro de preços para veículos de passeio e utilitários",
+      status: "APROVADA",
+      origem: "MANUAL",
+      categoria: "Veículos e frota",
+      dataAssinatura: diasAtras(120),
+      dataVigenciaFim: diasNoFuturo(210),
+      fornecedorId: frotaNacional.id,
+      orgaoGerenciadorId: ministerioInfra.id,
+      isSeed: true,
+      itens: {
+        create: [
+          {
+            descricao: "Veículo utilitário compacto (demo)",
+            categoria: "Veículos e frota",
+            unidade: "unidade",
+            quantidadeRegistrada: 25,
+            valorUnitario: "89900.00",
+            isSeed: true,
+            saldo: { create: {} },
+          },
+        ],
+      },
+    },
+  });
+
+  // 11. Novo tema "Combustível" — sem nenhuma ata antes deste seed.
+  await prisma.ata.create({
+    data: {
+      numero: "015-demo/2025",
+      objeto: "Registro de preços para combustíveis automotivos",
+      status: "APROVADA",
+      origem: "MANUAL",
+      categoria: "Combustível",
+      dataAssinatura: diasAtras(45),
+      dataVigenciaFim: diasNoFuturo(140),
+      fornecedorId: postoRota.id,
+      orgaoGerenciadorId: portoNovo.id,
+      isSeed: true,
+      itens: {
+        create: [
+          {
+            descricao: "Gasolina comum (demo)",
+            categoria: "Combustível",
+            unidade: "litro",
+            quantidadeRegistrada: 60000,
+            valorUnitario: "6.15",
+            isSeed: true,
+            saldo: { create: {} },
+          },
+          {
+            descricao: "Óleo diesel S10 (demo)",
+            categoria: "Combustível",
+            unidade: "litro",
+            quantidadeRegistrada: 40000,
+            valorUnitario: "6.45",
+            isSeed: true,
+            saldo: { create: {} },
+          },
+        ],
+      },
+    },
+  });
+
+  // 12. Novo tema "Limpeza e conservação" — sem nenhuma ata antes deste
+  //     seed.
+  await prisma.ata.create({
+    data: {
+      numero: "016-demo/2025",
+      objeto: "Registro de preços para materiais de limpeza e conservação",
+      status: "APROVADA",
+      origem: "MANUAL",
+      categoria: "Limpeza e conservação",
+      dataAssinatura: diasAtras(75),
+      dataVigenciaFim: diasNoFuturo(160),
+      fornecedorId: limpaTudo.id,
+      orgaoGerenciadorId: belaVista.id,
+      isSeed: true,
+      itens: {
+        create: [
+          {
+            descricao: "Detergente neutro 5L (demo)",
+            categoria: "Limpeza e conservação",
+            unidade: "unidade",
+            quantidadeRegistrada: 3000,
+            valorUnitario: "18.90",
+            isSeed: true,
+            saldo: { create: {} },
+          },
+          {
+            descricao: "Sabão em pó 1kg (demo)",
+            categoria: "Limpeza e conservação",
+            unidade: "unidade",
+            quantidadeRegistrada: 5000,
+            valorUnitario: "9.75",
+            isSeed: true,
+            saldo: { create: {} },
+          },
+        ],
+      },
+    },
   });
 
   const itemPapel = ataPapel.itens[0];
@@ -601,7 +849,12 @@ async function main() {
   console.log("\nSeed de demonstração criado com sucesso.\n");
   console.log("Login de todos os usuários de teste — senha única: " + SENHA_PADRAO);
   console.log("  Admin:        " + admin.email);
-  console.log("  Fornecedores: " + [papelaria, construtora, techmed, infotech].map((f) => f.email).join(", "));
+  console.log(
+    "  Fornecedores: " +
+      [papelaria, construtora, techmed, infotech, eletricaFortaleza, hospitalarVida, frotaNacional, postoRota, limpaTudo]
+        .map((f) => f.email)
+        .join(", "),
+  );
   console.log(
     "  Órgãos:       " +
       [belaVista, secEstadualSaude, ministerioInfra, secObras, portoNovo, serraAlta]

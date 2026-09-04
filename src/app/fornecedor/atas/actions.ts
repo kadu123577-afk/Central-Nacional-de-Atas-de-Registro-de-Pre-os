@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { fornecedorIdLogado } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { CATEGORIAS_ATAS } from "@/lib/categorias";
 
 export interface EstadoCadastroAtaFornecedor {
   erro?: string;
@@ -32,6 +33,7 @@ export async function cadastrarAtaComoFornecedor(
 
   const numero = String(formData.get("numero") ?? "").trim();
   const objeto = String(formData.get("objeto") ?? "").trim();
+  const ataCategoria = String(formData.get("ataCategoria") ?? "").trim();
   const dataAssinatura = String(formData.get("dataAssinatura") ?? "");
   const dataVigenciaFim = String(formData.get("dataVigenciaFim") ?? "");
 
@@ -49,6 +51,8 @@ export async function cadastrarAtaComoFornecedor(
     !orgaoEsfera ||
     !numero ||
     !objeto ||
+    !ataCategoria ||
+    !CATEGORIAS_ATAS.some((c) => c.rotulo === ataCategoria) ||
     !dataAssinatura ||
     !dataVigenciaFim ||
     !itemDescricao ||
@@ -79,6 +83,7 @@ export async function cadastrarAtaComoFornecedor(
       data: {
         numero,
         objeto,
+        categoria: ataCategoria,
         dataAssinatura: new Date(dataAssinatura),
         dataVigenciaFim: new Date(dataVigenciaFim),
         fornecedorId,

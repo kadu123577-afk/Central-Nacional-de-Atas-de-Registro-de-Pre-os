@@ -4,7 +4,6 @@ import { CATEGORIAS_ATAS } from "@/lib/categorias";
 import { BarraTopo } from "@/components/ui/barra-topo";
 import { Secao } from "@/components/ui/secao";
 import { Badge } from "@/components/ui/badge";
-import { Cifra } from "@/components/ui/valores";
 import { VazioComAcao } from "@/components/ui/vazio-com-acao";
 import { TituloCiclico } from "@/components/ui/titulo-ciclico";
 import { VitrineInclinada } from "@/components/ui/vitrine-inclinada";
@@ -18,13 +17,15 @@ export default async function Home() {
   // ata pra chamar a função.
   const ataDisponivel = { status: "APROVADA" as const, dataVigenciaFim: { gte: new Date() } };
 
-  // isSeed: false — a home pública só mostra dado real; o catálogo (tela
-  // de trabalho) continua vendo os itens de demonstração normalmente.
+  // A home navega por tema de ata, não por item — uma ata com seis itens
+  // quase idênticos (ex.: variações de máscara cirúrgica) conta como uma
+  // ata só, não seis linhas. isSeed: false — a home pública só mostra
+  // dado real; o catálogo (tela de trabalho) continua vendo demonstração.
   const contagens = await Promise.all(
     CATEGORIAS_ATAS.map(async (c) => ({
       ...c,
-      total: await prisma.item.count({
-        where: { categoria: c.rotulo, ata: ataDisponivel, isSeed: false },
+      total: await prisma.ata.count({
+        where: { categoria: c.rotulo, ...ataDisponivel, isSeed: false },
       }),
     })),
   );
@@ -38,10 +39,11 @@ export default async function Home() {
 
   const categoriasEmDestaque = contagensOrdenadas.slice(0, 2).filter((c) => c.total > 0);
 
-  const itensVitrine = destaque
-    ? await prisma.item.findMany({
-        where: { categoria: destaque.rotulo, ata: ataDisponivel, isSeed: false },
-        orderBy: { valorUnitario: "desc" },
+  const atasVitrine = destaque
+    ? await prisma.ata.findMany({
+        where: { categoria: destaque.rotulo, ...ataDisponivel, isSeed: false },
+        include: { _count: { select: { itens: true } } },
+        orderBy: { dataVigenciaFim: "asc" },
         take: 3,
       })
     : [];
@@ -49,11 +51,11 @@ export default async function Home() {
   const secoesDestaque = await Promise.all(
     categoriasEmDestaque.map(async (c) => ({
       categoria: c,
-      itens: await prisma.item.findMany({
-        where: { categoria: c.rotulo, ata: ataDisponivel, isSeed: false },
-        include: { ata: { include: { fornecedor: true, orgaoGerenciador: true } } },
+      atas: await prisma.ata.findMany({
+        where: { categoria: c.rotulo, ...ataDisponivel, isSeed: false },
+        include: { fornecedor: true, orgaoGerenciador: true, _count: { select: { itens: true } } },
         take: 4,
-        orderBy: { descricao: "asc" },
+        orderBy: { dataVigenciaFim: "asc" },
       }),
     })),
   );
@@ -85,16 +87,16 @@ export default async function Home() {
                   href={`/catalogo?categoria=${encodeURIComponent(destaque.rotulo)}`}
                   className="painel relative flex min-h-72 flex-col justify-between gap-4 p-5 transition-colors hover:border-[var(--cor-borda-forte)] lg:col-span-2 lg:row-span-2"
                 >
-                  {itensVitrine.length > 0 && (
+                  {atasVitrine.length > 0 && (
                     <VitrineInclinada>
                       <ul className="flex flex-col gap-2">
-                        {itensVitrine.map((item) => (
-                          <li key={item.id} className="flex items-center justify-between gap-3 text-sm">
+                        {atasVitrine.map((ata) => (
+                          <li key={ata.id} className="flex items-center justify-between gap-3 text-sm">
                             <span className="truncate" style={{ color: "var(--cor-texto-2)" }}>
-                              {item.descricao}
+                              Ata {ata.numero}
                             </span>
                             <span style={{ color: "var(--cor-texto)" }}>
-                              <Cifra valor={item.valorUnitario} />
+                              {ata._count.itens} {ata._count.itens === 1 ? "item" : "itens"}
                             </span>
                           </li>
                         ))}
@@ -106,7 +108,7 @@ export default async function Home() {
                       {destaque.rotulo}
                     </span>
                     <span className="eyebrow mt-2 block">
-                      {destaque.total} {destaque.total === 1 ? "item" : "itens"} disponíveis
+                      {destaque.total} {destaque.total === 1 ? "ata disponível" : "atas disponíveis"}
                     </span>
                   </div>
                 </Link>
@@ -121,13 +123,13 @@ export default async function Home() {
                     {c.rotulo}
                   </span>
                   <span className="eyebrow mt-2">
-                    {c.total} {c.total === 1 ? "item" : "itens"} disponíveis
+                    {c.total} {c.total === 1 ? "ata disponível" : "atas disponíveis"}
                   </span>
                 </Link>
               ))}
             </div>
 
-            {secoesDestaque.map(({ categoria, itens }) => (
+            {secoesDestaque.map(({ categoria, atas }) => (
               <Secao
                 key={categoria.slug}
                 titulo={categoria.rotulo}
@@ -141,21 +143,21 @@ export default async function Home() {
                 }
               >
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                  {itens.map((item) => (
-                    <div key={item.id} className="painel p-4">
+                  {atas.map((ata) => (
+                    <Link key={ata.id} href={`/catalogo/${ata.id}`} className="painel p-4">
                       <p className="text-sm font-medium" style={{ color: "var(--cor-texto)" }}>
-                        {item.descricao}
+                        Ata {ata.numero}
                       </p>
                       <p className="mt-1 text-xs" style={{ color: "var(--cor-texto-3)" }}>
-                        {item.ata.fornecedor.razaoSocial}
+                        {ata.fornecedor.razaoSocial}
                       </p>
                       <div className="mt-2 flex items-center justify-between">
-                        <Badge tom="neutro">{item.ata.orgaoGerenciador.uf}</Badge>
+                        <Badge tom="neutro">{ata.orgaoGerenciador.uf}</Badge>
                         <span className="text-sm" style={{ color: "var(--cor-texto-2)" }}>
-                          <Cifra valor={item.valorUnitario} />
+                          {ata._count.itens} {ata._count.itens === 1 ? "item" : "itens"}
                         </span>
                       </div>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               </Secao>

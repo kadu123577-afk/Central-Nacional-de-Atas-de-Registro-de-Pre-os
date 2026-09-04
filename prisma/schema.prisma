@@ -91,6 +91,15 @@ model Ata {
   objeto             String
   status             StatusAta @default(PENDENTE)
   origem             OrigemAta @default(MANUAL)
+  // Tema da ata pra navegação por categoria (Opção A — decidido em
+  // 2026-09-04): a ata inteira pertence a um tema, escolhido no cadastro
+  // (por quem cadastra hoje; por uma classificação automática amanhã,
+  // quando o robô do PNCP ganhar essa inteligência). Nulo pra ata
+  // importada que ainda não foi classificada. Vocabulário fixo em
+  // src/lib/categorias.ts, igual Item.categoria — não é enum do Prisma
+  // de propósito, pra não exigir migração toda vez que um tema for
+  // adicionado.
+  categoria          String?
   // Chave de deduplicação do rastreador do PNCP (Sprint 7) — nula para
   // atas cadastradas manualmente.
   numeroControlePncp String?   @unique

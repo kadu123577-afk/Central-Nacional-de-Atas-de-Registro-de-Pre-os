@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
-import { saldoAgregadoDisponivel } from "@/lib/saldo";
 import { Logo } from "@/components/ui/logo";
 import { Secao } from "@/components/ui/secao";
-import { Cifra, Numero } from "@/components/ui/valores";
+import { Badge } from "@/components/ui/badge";
+import { Cifra } from "@/components/ui/valores";
 import { VazioComAcao } from "@/components/ui/vazio-com-acao";
 
 export const dynamic = "force-dynamic";
@@ -16,6 +16,11 @@ interface FiltrosCatalogo {
   valorMax?: string;
 }
 
+// Ata aprovada e ainda dentro da vigência — ver src/lib/atas.ts
+// (ataDisponivelParaAdesao) para a mesma regra aplicada onde o pedido de
+// adesão é de fato criado.
+const ataDisponivel = { status: "APROVADA" as const, dataVigenciaFim: { gte: new Date() } };
+
 export default async function CatalogoPage({
   searchParams,
 }: {
@@ -26,31 +31,6 @@ export default async function CatalogoPage({
   const categoria = filtros.categoria?.trim() ?? "";
   const uf = filtros.uf?.trim().toUpperCase() ?? "";
   const valorMax = filtros.valorMax?.trim() ?? "";
-
-  const where: Prisma.ItemWhereInput = {
-    // Ata aprovada e ainda dentro da vigência — ver src/lib/atas.ts
-    // (ataDisponivelParaAdesao) para a mesma regra aplicada onde o pedido
-    // de adesão é de fato criado.
-    ata: {
-      status: "APROVADA",
-      dataVigenciaFim: { gte: new Date() },
-      ...(uf ? { orgaoGerenciador: { uf } } : {}),
-    },
-    ...(q ? { descricao: { contains: q, mode: "insensitive" } } : {}),
-    ...(categoria ? { categoria: { contains: categoria, mode: "insensitive" } } : {}),
-    ...(valorMax && !Number.isNaN(Number(valorMax))
-      ? { valorUnitario: { lte: new Prisma.Decimal(valorMax) } }
-      : {}),
-  };
-
-  const itens = await prisma.item.findMany({
-    where,
-    include: {
-      saldo: true,
-      ata: { include: { fornecedor: true, orgaoGerenciador: true } },
-    },
-    orderBy: { descricao: "asc" },
-  });
 
   return (
     <main className="mx-auto flex max-w-4xl flex-col gap-5 px-6 py-10">
@@ -68,8 +48,8 @@ export default async function CatalogoPage({
 
       <Secao titulo="Buscar">
         <form className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <input name="q" defaultValue={q} placeholder="Produto" className="campo-atas col-span-2 sm:col-span-1" />
-          <input name="categoria" defaultValue={categoria} placeholder="Categoria" className="campo-atas" />
+          <input name="q" defaultValue={q} placeholder="Buscar um item específico" className="campo-atas col-span-2 sm:col-span-1" />
+          <input name="categoria" defaultValue={categoria} placeholder="Tema da ata" className="campo-atas" />
           <input
             name="uf"
             defaultValue={uf}
@@ -91,47 +71,7 @@ export default async function CatalogoPage({
         </form>
       </Secao>
 
-      {itens.length === 0 ? (
-        <VazioComAcao
-          titulo="Nenhum item encontrado"
-          descricao="Ajuste os filtros de busca ou tente um termo mais genérico."
-        />
-      ) : (
-        <ul className="flex flex-col gap-3">
-          {itens.map((item) => (
-            <li key={item.id} className="painel p-5">
-              <div className="flex items-baseline justify-between gap-3">
-                <h2 className="font-medium" style={{ color: "var(--cor-texto)" }}>
-                  {item.descricao}
-                </h2>
-                <span className="text-sm" style={{ color: "var(--cor-texto-2)" }}>
-                  <Cifra valor={item.valorUnitario} /> / {item.unidade}
-                </span>
-              </div>
-              <p className="eyebrow mt-1">{item.categoria}</p>
-              <p className="mt-2 text-sm" style={{ color: "var(--cor-texto-2)" }}>
-                Ata {item.ata.numero} — {item.ata.fornecedor.razaoSocial} · Órgão gerenciador:{" "}
-                {item.ata.orgaoGerenciador.nome} ({item.ata.orgaoGerenciador.uf})
-              </p>
-              <p className="mt-1 text-sm" style={{ color: "var(--cor-texto-2)" }}>
-                Saldo agregado disponível:{" "}
-                <strong style={{ color: "var(--cor-texto)" }}>
-                  <Numero>
-                    {saldoAgregadoDisponivel(
-                      item.quantidadeRegistrada,
-                      item.saldo?.quantidadeConsumida ?? 0,
-                    )}{" "}
-                    {item.unidade}
-                  </Numero>
-                </strong>
-              </p>
-              <Link href={`/orgao/pedido/novo?itemId=${item.id}`} className="botao-atas secundario mt-3">
-                Pedir adesão
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
+      {q ? <ResultadoBuscaPorItem q={q} /> : <ListaDeAtas categoria={categoria} uf={uf} valorMax={valorMax} />}
 
       <p className="text-xs" style={{ color: "var(--cor-texto-3)" }}>
         <Link href="/atas" className="underline">
@@ -139,5 +79,132 @@ export default async function CatalogoPage({
         </Link>
       </p>
     </main>
+  );
+}
+
+/**
+ * Busca por item específico (ex.: "máscara cirúrgica") pula direto pra
+ * dentro da ata que o contém, em vez de listar cada item solto — atas de
+ * escala PNCP têm dezenas de itens quase idênticos, e o que importa pra
+ * quem pesquisa é a ata, não a linha.
+ */
+async function ResultadoBuscaPorItem({ q }: { q: string }) {
+  const itens = await prisma.item.findMany({
+    where: {
+      descricao: { contains: q, mode: "insensitive" },
+      ata: ataDisponivel,
+    },
+    include: { ata: { include: { fornecedor: true, orgaoGerenciador: true } } },
+    orderBy: { descricao: "asc" },
+  });
+
+  if (itens.length === 0) {
+    return (
+      <VazioComAcao
+        titulo="Nenhum item encontrado"
+        descricao="Ajuste o termo de busca ou navegue pelos temas de ata abaixo."
+      />
+    );
+  }
+
+  return (
+    <Secao titulo={`Itens encontrados para "${q}"`}>
+      <ul className="flex flex-col gap-3">
+        {itens.map((item) => (
+          <li key={item.id} className="painel p-5">
+            <div className="flex items-baseline justify-between gap-3">
+              <h2 className="font-medium" style={{ color: "var(--cor-texto)" }}>
+                {item.descricao}
+              </h2>
+              <span className="text-sm" style={{ color: "var(--cor-texto-2)" }}>
+                <Cifra valor={item.valorUnitario} /> / {item.unidade}
+              </span>
+            </div>
+            <p className="mt-2 text-sm" style={{ color: "var(--cor-texto-2)" }}>
+              Ata {item.ata.numero} — {item.ata.fornecedor.razaoSocial} · Órgão gerenciador:{" "}
+              {item.ata.orgaoGerenciador.nome} ({item.ata.orgaoGerenciador.uf})
+            </p>
+            <Link
+              href={`/catalogo/${item.ataId}?item=${item.id}`}
+              className="botao-atas secundario mt-3"
+            >
+              Ver na ata
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </Secao>
+  );
+}
+
+/**
+ * Navegação por tema: lista atas (não itens soltos) — clicar numa ata
+ * revela os itens dela em /catalogo/[ataId].
+ */
+async function ListaDeAtas({
+  categoria,
+  uf,
+  valorMax,
+}: {
+  categoria: string;
+  uf: string;
+  valorMax: string;
+}) {
+  const where: Prisma.AtaWhereInput = {
+    ...ataDisponivel,
+    ...(uf ? { orgaoGerenciador: { uf } } : {}),
+    ...(categoria ? { categoria: { contains: categoria, mode: "insensitive" } } : {}),
+    ...(valorMax && !Number.isNaN(Number(valorMax))
+      ? { itens: { some: { valorUnitario: { lte: new Prisma.Decimal(valorMax) } } } }
+      : {}),
+  };
+
+  const atas = await prisma.ata.findMany({
+    where,
+    include: {
+      fornecedor: true,
+      orgaoGerenciador: true,
+      _count: { select: { itens: true } },
+    },
+    orderBy: { dataVigenciaFim: "asc" },
+  });
+
+  if (atas.length === 0) {
+    return (
+      <VazioComAcao
+        titulo="Nenhuma ata encontrada"
+        descricao="Ajuste os filtros de busca ou tente um tema mais genérico."
+      />
+    );
+  }
+
+  return (
+    <ul className="flex flex-col gap-3">
+      {atas.map((ata) => (
+        <li key={ata.id} className="painel p-5">
+          <div className="flex items-baseline justify-between gap-3">
+            <h2 className="font-medium" style={{ color: "var(--cor-texto)" }}>
+              Ata {ata.numero}
+            </h2>
+            <Badge tom="neutro">{ata.orgaoGerenciador.uf}</Badge>
+          </div>
+          {ata.categoria && <p className="eyebrow mt-1">{ata.categoria}</p>}
+          <p className="mt-2 text-sm" style={{ color: "var(--cor-texto-2)" }}>
+            {ata.objeto}
+          </p>
+          <p className="mt-1 text-sm" style={{ color: "var(--cor-texto-2)" }}>
+            {ata.fornecedor.razaoSocial} · Órgão gerenciador: {ata.orgaoGerenciador.nome}
+          </p>
+          <div className="mt-3 flex items-center justify-between">
+            <span className="text-sm" style={{ color: "var(--cor-texto-3)" }}>
+              {ata._count.itens} {ata._count.itens === 1 ? "item" : "itens"}
+            </span>
+            <Link href={`/catalogo/${ata.id}`} className="botao-atas secundario">
+              Ver itens da ata
+            </Link>
+          </div>
+        </li>
+      ))}
+    </ul>
   );
 }
