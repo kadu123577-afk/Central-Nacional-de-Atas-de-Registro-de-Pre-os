@@ -8,6 +8,7 @@ import {
   hashSenha,
   verificarSenha,
 } from "@/lib/auth";
+import { esferaValida } from "@/lib/esferas";
 
 export interface EstadoFormularioOrgao {
   erro?: string;
@@ -29,6 +30,9 @@ export async function cadastrarOrgao(
     return {
       erro: "Preencha todos os campos (senha precisa ter ao menos 8 caracteres).",
     };
+  }
+  if (!esferaValida(esfera)) {
+    return { erro: "Selecione uma esfera válida (federal, estadual, distrital ou municipal)." };
   }
 
   const jaExiste = await prisma.orgao.findFirst({

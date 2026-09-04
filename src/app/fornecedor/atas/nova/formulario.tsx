@@ -6,6 +6,7 @@ import { AppShell } from "@/components/ui/app-shell";
 import { Secao } from "@/components/ui/secao";
 import { logoutFornecedor } from "@/app/fornecedor/actions";
 import { CATEGORIAS_ATAS } from "@/lib/categorias";
+import { ESFERAS_ORGAO } from "@/lib/esferas";
 
 const estadoInicial: EstadoCadastroAtaFornecedor = {};
 
@@ -56,7 +57,21 @@ export function FormularioNovaAta() {
               <Campo label="UF" name="orgaoUf" required />
               <Campo label="Município" name="orgaoMunicipio" required />
             </div>
-            <Campo label="Esfera (federal/estadual/municipal)" name="orgaoEsfera" required />
+            <label className="block text-sm">
+              <span className="mb-1 block font-medium" style={{ color: "var(--cor-texto-2)" }}>
+                Esfera
+              </span>
+              <select name="orgaoEsfera" required className="campo-atas" defaultValue="">
+                <option value="" disabled>
+                  Selecione...
+                </option>
+                {ESFERAS_ORGAO.map((e) => (
+                  <option key={e} value={e}>
+                    {e[0].toUpperCase() + e.slice(1)}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
         </Secao>
 

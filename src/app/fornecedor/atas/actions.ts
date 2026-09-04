@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { fornecedorIdLogado } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { CATEGORIAS_ATAS } from "@/lib/categorias";
+import { esferaValida } from "@/lib/esferas";
 
 export interface EstadoCadastroAtaFornecedor {
   erro?: string;
@@ -52,6 +53,7 @@ export async function cadastrarAtaComoFornecedor(
     !orgaoUf ||
     !orgaoMunicipio ||
     !orgaoEsfera ||
+    !esferaValida(orgaoEsfera) ||
     !numero ||
     !objeto ||
     !ataCategoria ||

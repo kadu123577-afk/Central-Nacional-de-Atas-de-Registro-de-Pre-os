@@ -23,14 +23,28 @@ fora do instrumento de licitação.
 
 **Trava legal automática (art. 86):** por item de ata,
 - nenhum órgão aderente pode consumir mais de **50%** da quantidade
-  originalmente registrada;
+  originalmente registrada (§4º);
 - a soma de todas as adesões não pode ultrapassar **200%** (o dobro) da
-  quantidade registrada.
+  quantidade registrada (§5º);
+- a adesão só é elegível por **esfera federativa** (§§3º e 8º, achado da
+  revisão de 2026-09-04, a partir do texto comentado da lei): órgão
+  aderente federal só adere a ata gerenciada por federal; estadual/
+  distrital adere a federal/estadual/distrital; municipal só adere a ata
+  gerenciada por outro município. Ver `src/lib/esferas.ts`
+  (`verificarElegibilidadeEsfera`, 11 testes) e §1.2 abaixo pro que
+  **não** está coberto ainda (§§6º e 7º).
 
-Essa trava é código, não confiança: `src/lib/saldo.ts` (`verificarAdesao`)
-é chamada tanto pela ação real de pedido de adesão quanto pelo seed de
-demonstração — se a conta recusaria um pedido de verdade, o seed também
-falha, em vez de gravar um estado que o sistema nunca permitiria.
+A trava de quantidade é código, não confiança: `src/lib/saldo.ts`
+(`verificarAdesao`) é chamada tanto pela ação real de pedido de adesão
+quanto pelo seed de demonstração — se a conta recusaria um pedido de
+verdade, o seed também falha, em vez de gravar um estado que o sistema
+nunca permitiria. A trava de esfera (`verificarElegibilidadeEsfera`) só
+está ligada na ação real (`solicitarAdesao`) — o seed cria adesão direto
+no banco (`criarAdesaoProgredida`), sem passar por ela, então o cenário
+de demonstração tem hoje adesões de município a ata gerenciada por
+estado que a regra de esfera recusaria se fossem pedidas de verdade pela
+tela. Não corrigi o seed pra não reescrever o roteiro de demonstração
+sem confirmar — sinalizando aqui pra não ser um problema escondido.
 
 ### 1.1 Atores do sistema
 
@@ -73,6 +87,30 @@ Decisões que já foram tomadas e não precisam ser rediscutidas:
     clicar num tema mostra as *atas* daquele tema; clicar numa ata mostra
     os *itens* dela; buscar um item específico pula direto pra dentro da
     ata que o contém.
+- **Elegibilidade por esfera federativa (art. 86, §§ 3º e 8º — achado da
+  revisão de 2026-09-04)** — confirmado pelo usuário com citação exata
+  do texto comentado da lei. Implementado em `src/lib/esferas.ts` e
+  aplicado em `solicitarAdesao` (`src/app/orgao/pedido/actions.ts`).
+  `Orgao.esfera` deixou de ser texto livre e virou `<select>` fixo
+  (federal/estadual/distrital/municipal) nos dois pontos de cadastro
+  (`/orgao/cadastro` e no cadastro de ata pelo fornecedor). Esfera
+  desconhecida (ex.: `"não informada"`, usada pelo rastreador do PNCP
+  quando a API não informa) **recusa** a adesão em vez de assumir que a
+  regra foi cumprida.
+  - **Não coberto ainda — exige campo novo no schema, não é só
+    validação:** §6º (exceção ao teto de 200% pra adesão a ata federal
+    de programa de transferência voluntária) e §7º (exceção ao teto de
+    200% pra adesão emergencial a ata de medicamentos/material
+    médico-hospitalar gerenciada especificamente pelo Ministério da
+    Saúde). Nenhum dos dois tem hoje um jeito de ser identificado no
+    banco (não existe conceito de "programa de transferência
+    voluntária" nem uma flag "é o Ministério da Saúde"). Fica registrado
+    aqui pra não ser esquecido, não pra ser assumido como coberto.
+  - A condição do §3º de que o SRP tenha sido "formalizado por
+    licitação" é assumida sempre verdadeira nesta plataforma — toda ata
+    aqui nasce de cadastro (por trás de uma licitação real) ou de
+    importação do PNCP (só lista instrumento formal de licitação); não
+    existe fluxo de registro de preços fora de licitação no sistema.
 - **PNCP:** `src/lib/pncp.ts` mapeia o retorno da API pública
   (`/api/consulta/v1/atas`); `src/lib/rastreador-pncp.ts` importa atas
   novas como `PENDENTE` (entra na fila de moderação do admin antes de
@@ -344,3 +382,14 @@ prioridade ainda:
   que isso é decisão de processo/auditoria que exige mais contexto).
   Telas 2 e 3 passam de 🟡 Parcial pra ✅ Construída. Ambas verificadas ao
   vivo com Playwright.
+- **2026-09-04 (mesmo dia, achado trazido pelo usuário)** — Usuário
+  confirmou, com citação exata do texto comentado da Lei 14.133/2021
+  (art. 86, §§ 3º/4º/5º/6º/7º/8º), que a trava de quantidade (50%/200%)
+  já implementada estava certa, mas faltava elegibilidade por esfera
+  federativa (§§ 3º e 8º). Implementado `src/lib/esferas.ts`
+  (11 testes) e aplicado em `solicitarAdesao`; `Orgao.esfera` virou
+  `<select>` fixo em vez de texto livre nos dois cadastros. §§ 6º e 7º
+  (exceções ao teto de 200%) ficaram explicitamente não cobertos —
+  exigem campo novo no schema que ainda não existe. Seed de demonstração
+  não foi reescrito e hoje contém adesões que a nova trava recusaria se
+  fossem pedidas de verdade pela tela — sinalizado, não escondido.

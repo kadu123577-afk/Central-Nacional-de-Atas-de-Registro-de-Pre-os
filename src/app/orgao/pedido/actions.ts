@@ -6,6 +6,7 @@ import { orgaoIdLogado } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { verificarAdesao } from "@/lib/saldo";
 import { ataDisponivelParaAdesao } from "@/lib/atas";
+import { verificarElegibilidadeEsfera } from "@/lib/esferas";
 
 export interface EstadoPedidoAdesao {
   erro?: string;
@@ -27,12 +28,18 @@ export async function solicitarAdesao(
     return { erro: "Informe uma quantidade válida." };
   }
 
-  const item = await prisma.item.findUnique({
-    where: { id: itemId },
-    include: { ata: true },
-  });
+  const [item, orgaoAderente] = await Promise.all([
+    prisma.item.findUnique({
+      where: { id: itemId },
+      include: { ata: { include: { orgaoGerenciador: true } } },
+    }),
+    prisma.orgao.findUnique({ where: { id: orgaoId } }),
+  ]);
   if (!item || item.ata.status !== "APROVADA") {
     return { erro: "Item não encontrado." };
+  }
+  if (!orgaoAderente) {
+    return { erro: "Órgão não encontrado." };
   }
   if (!ataDisponivelParaAdesao(item.ata)) {
     return {
@@ -40,11 +47,23 @@ export async function solicitarAdesao(
     };
   }
 
-  // Adesão a atas geridas por órgão municipal é permitida por decisão de
-  // negócio — não há vedação expressa na Lei 14.133/2021, art. 86, e o
-  // sistema não restringe por esfera do órgão gerenciador (ver
-  // Orgao.esfera). Só os limites de quantidade abaixo (50% / dobro
-  // agregado) se aplicam, independente da esfera de quem gerencia a ata.
+  // Elegibilidade por esfera federativa — art. 86, §§ 3º e 8º da Lei
+  // 14.133/2021 (achado da revisão de 2026-09-04): órgão federal só
+  // adere a ata gerenciada por federal; estadual/distrital adere a
+  // federal/estadual/distrital; municipal só adere a ata gerenciada por
+  // outro município. Ver src/lib/esferas.ts pra regra completa e fontes.
+  const elegibilidade = verificarElegibilidadeEsfera(
+    orgaoAderente.esfera,
+    item.ata.orgaoGerenciador.esfera,
+  );
+  if (!elegibilidade.permitido) {
+    const mensagens: Record<string, string> = {
+      ESFERA_NAO_CONFIRMADA:
+        "Recusado: não foi possível confirmar a esfera federativa do seu órgão ou do órgão gerenciador desta ata (art. 86, §§ 3º e 8º da Lei 14.133/2021 exigem essa checagem).",
+      NIVEL_NAO_PERMITIDO: `Recusado: um órgão da esfera "${orgaoAderente.esfera}" não pode aderir a uma ata gerenciada por órgão da esfera "${item.ata.orgaoGerenciador.esfera}" (art. 86, §§ 3º e 8º da Lei 14.133/2021).`,
+    };
+    return { erro: mensagens[elegibilidade.motivo!] };
+  }
 
   try {
     const adesao = await prisma.$transaction(async (tx) => {

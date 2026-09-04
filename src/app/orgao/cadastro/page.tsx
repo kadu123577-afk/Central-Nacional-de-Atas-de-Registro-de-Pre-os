@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { cadastrarOrgao, type EstadoFormularioOrgao } from "../actions";
 import { Logo } from "@/components/ui/logo";
+import { ESFERAS_ORGAO } from "@/lib/esferas";
 
 const estadoInicial: EstadoFormularioOrgao = {};
 
@@ -28,7 +29,21 @@ export default function CadastroOrgaoPage() {
           <Campo label="UF" name="uf" required />
           <Campo label="Município" name="municipio" required />
         </div>
-        <Campo label="Esfera (federal/estadual/municipal)" name="esfera" required />
+        <label className="block text-sm">
+          <span className="mb-1 block font-medium" style={{ color: "var(--cor-texto-2)" }}>
+            Esfera
+          </span>
+          <select name="esfera" required className="campo-atas" defaultValue="">
+            <option value="" disabled>
+              Selecione...
+            </option>
+            {ESFERAS_ORGAO.map((e) => (
+              <option key={e} value={e}>
+                {e[0].toUpperCase() + e.slice(1)}
+              </option>
+            ))}
+          </select>
+        </label>
         <Campo label="E-mail" name="email" type="email" required />
         <Campo label="Senha (mín. 8 caracteres)" name="senha" type="password" required />
 
