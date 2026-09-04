@@ -34,6 +34,12 @@ export async function solicitarAdesao(
     return { erro: "Item não encontrado." };
   }
 
+  // Adesão a atas geridas por órgão municipal é permitida por decisão de
+  // negócio — não há vedação expressa na Lei 14.133/2021, art. 86, e o
+  // sistema não restringe por esfera do órgão gerenciador (ver
+  // Orgao.esfera). Só os limites de quantidade abaixo (50% / dobro
+  // agregado) se aplicam, independente da esfera de quem gerencia a ata.
+
   try {
     const adesao = await prisma.$transaction(async (tx) => {
       // Trava a linha de saldo do item para que dois pedidos simultâneos não
