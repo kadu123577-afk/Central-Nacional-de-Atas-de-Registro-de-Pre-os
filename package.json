@@ -14,7 +14,8 @@
     "seed:limpar": "tsx prisma/seed-limpar.ts",
     "rastreador:pncp": "tsx scripts/rastreador-pncp.ts",
     "corrigir:pncp": "tsx prisma/corrigir-descricoes-pncp.ts",
-    "definir:categoria-atas": "tsx prisma/definir-categoria-atas-existentes.ts"
+    "definir:categoria-atas": "tsx prisma/definir-categoria-atas-existentes.ts",
+    "limpar:testes-vazados": "tsx prisma/limpar-dados-teste-vazados.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
