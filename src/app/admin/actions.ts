@@ -66,6 +66,43 @@ export async function rejeitarAta(formData: FormData): Promise<void> {
   revalidatePath("/catalogo");
 }
 
+/**
+ * Gestão de usuários (2026-09-04) — desativar bloqueia login (checado em
+ * loginFornecedor/loginOrgao), sem apagar nada: atas, adesões e
+ * faturamento já existentes continuam intactos. Sessão já aberta no
+ * momento da desativação não é revogada na hora — expira sozinha em até
+ * 7 dias (mesma duração de qualquer sessão, ver src/lib/auth.ts).
+ */
+export async function alternarStatusFornecedor(formData: FormData): Promise<void> {
+  await exigirAdmin();
+  const fornecedorId = String(formData.get("fornecedorId") ?? "");
+  if (!fornecedorId) return;
+
+  const fornecedor = await prisma.fornecedor.findUnique({ where: { id: fornecedorId } });
+  if (!fornecedor) return;
+
+  await prisma.fornecedor.update({
+    where: { id: fornecedorId },
+    data: { ativo: !fornecedor.ativo },
+  });
+  revalidatePath("/admin/usuarios");
+}
+
+export async function alternarStatusOrgao(formData: FormData): Promise<void> {
+  await exigirAdmin();
+  const orgaoId = String(formData.get("orgaoId") ?? "");
+  if (!orgaoId) return;
+
+  const orgao = await prisma.orgao.findUnique({ where: { id: orgaoId } });
+  if (!orgao) return;
+
+  await prisma.orgao.update({
+    where: { id: orgaoId },
+    data: { ativo: !orgao.ativo },
+  });
+  revalidatePath("/admin/usuarios");
+}
+
 export interface EstadoMarcarFaturamento {
   erro?: string;
 }

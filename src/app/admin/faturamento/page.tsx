@@ -14,6 +14,7 @@ export const dynamic = "force-dynamic";
 const NAV_ADMIN = [
   { rotulo: "Painel", href: "/admin" },
   { rotulo: "Contas a receber", href: "/admin/faturamento" },
+  { rotulo: "Usuários", href: "/admin/usuarios" },
 ];
 
 export default async function FaturamentoAdminPage() {

@@ -79,6 +79,10 @@ export async function loginFornecedor(
     return { erro: "E-mail ou senha inválidos." };
   }
 
+  if (!fornecedor.ativo) {
+    return { erro: "Esta conta foi desativada. Fale com a Tech 10 para reativar o acesso." };
+  }
+
   await criarSessaoFornecedor(fornecedor.id);
   redirect("/fornecedor");
 }

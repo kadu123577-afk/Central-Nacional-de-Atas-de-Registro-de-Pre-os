@@ -303,8 +303,8 @@ agora já aplicados.
 
 ## 5. Tela 4 — Administração (Tech 10, autenticado)
 
-**Status: 🟡 Parcial** — fluxo principal existe e funciona; gaps de
-gestão ainda não construídos.
+**Status: ✅ Construída** — fluxo principal e todos os gaps levantados
+até agora já aplicados.
 
 ### 5.1 Páginas existentes
 
@@ -313,6 +313,7 @@ gestão ainda não construídos.
 | `/admin/login` | Login | ✅ Completo |
 | `/admin` | Painel — aprovar/rejeitar atas pendentes | ✅ Completo |
 | `/admin/faturamento` | Contas a receber (taxa de intermediação) — marcar como recebido | ✅ Completo (feedback visual imediato adicionado em rodada anterior) |
+| `/admin/usuarios` | Gestão de usuários — ativar/desativar fornecedor e órgão | ✅ Completo |
 | `/atas` | Cadastro/listagem interna completa de atas (todo status) | ✅ Completo — **agora atrás de login de admin** (corrigido em 2026-09-04, ver §2.4 item 3) |
 
 ### 5.2 Requisitos confirmados e já aplicados
@@ -326,11 +327,19 @@ gestão ainda não construídos.
   atas (informar o fornecedor certo, adicionar os itens) — hoje o admin só
   vê o alerta, mas precisa aprovar/rejeitar como estão ou completar por
   fora do sistema.
-
-### 5.3 Gaps identificados, aguardando confirmação pra construir
-
-- **Gestão de usuários** — hoje não existe tela pra admin listar/desativar
-  contas de fornecedor ou órgão.
+- **Gestão de usuários** (2026-09-04) — `/admin/usuarios` lista todo
+  fornecedor e órgão com um badge Ativo/Desativado e um botão de
+  alternar. Desativar bloqueia login (checado em `loginFornecedor` e
+  `loginOrgao`, mensagem clara de conta desativada) sem apagar nada —
+  atas, adesões e faturamento já existentes continuam intactos. Campo
+  novo: `Fornecedor.ativo` / `Orgao.ativo` (`Boolean @default(true)`).
+  **Limitação conhecida, aceita de propósito:** uma sessão já aberta no
+  momento da desativação não é revogada na hora — continua valendo até
+  expirar sozinha (até 7 dias, mesma duração de qualquer sessão). Revogar
+  na hora exigiria checar `ativo` em toda página autenticada a cada
+  requisição, não só no login — deixado de fora por ora por ser uma
+  mudança mais ampla no `src/lib/auth.ts`, não uma decisão de negócio.
+  Verificado ao vivo com Playwright.
 
 ---
 
@@ -404,3 +413,8 @@ prioridade ainda:
   (`seed-limpar.ts`, `limpar-dados-teste-vazados.ts`): faltava apagar
   `DocumentoAta` antes de `Ata`, quebrava a limpeza desde que o anexo de
   documento foi implementado.
+- **2026-09-04 (mesmo dia, próximo passo recomendado e aceito)** —
+  Construída a gestão de usuários (`/admin/usuarios`), o último gap
+  real das 4 telas principais. Tela 4 passa de 🟡 Parcial pra ✅
+  Construída — as 4 telas do escopo original estão todas construídas
+  agora. Verificado ao vivo com Playwright.

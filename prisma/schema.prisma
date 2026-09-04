@@ -60,6 +60,10 @@ model Fornecedor {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   isSeed      Boolean  @default(false)
+  // Gestão de usuários (admin, 2026-09-04) — login recusado quando false,
+  // sem apagar nada (atas/adesões/faturamento já existentes continuam
+  // intactos, só a conta para de conseguir entrar).
+  ativo       Boolean  @default(true)
 
   atas Ata[]
 
@@ -78,6 +82,8 @@ model Orgao {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   isSeed    Boolean  @default(false)
+  // Gestão de usuários (admin, 2026-09-04) — mesma regra do Fornecedor.
+  ativo     Boolean  @default(true)
 
   atasGerenciadas Ata[]    @relation("OrgaoGerenciador")
   adesoes         Adesao[] @relation("OrgaoAderente")

@@ -29,6 +29,7 @@ function ataPncpIncompleta(ata: { origem: string; itens: unknown[]; fornecedor: 
 const NAV_ADMIN = [
   { rotulo: "Painel", href: "/admin" },
   { rotulo: "Contas a receber", href: "/admin/faturamento" },
+  { rotulo: "Usuários", href: "/admin/usuarios" },
 ];
 
 export default async function PainelAdminPage() {
