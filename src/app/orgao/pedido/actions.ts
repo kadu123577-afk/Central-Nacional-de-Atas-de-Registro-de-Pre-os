@@ -48,10 +48,11 @@ export async function solicitarAdesao(
   }
 
   // Elegibilidade por esfera federativa — art. 86, §§ 3º e 8º da Lei
-  // 14.133/2021 (achado da revisão de 2026-09-04): órgão federal só
+  // 14.133/2021 (achado da revisão de 2026-09-04, direção corrigida no
+  // mesmo dia depois de conferir o texto literal): órgão federal só
   // adere a ata gerenciada por federal; estadual/distrital adere a
-  // federal/estadual/distrital; municipal só adere a ata gerenciada por
-  // outro município. Ver src/lib/esferas.ts pra regra completa e fontes.
+  // federal/estadual/distrital; município adere a ata gerenciada por
+  // qualquer esfera. Ver src/lib/esferas.ts pra regra completa e fontes.
   const elegibilidade = verificarElegibilidadeEsfera(
     orgaoAderente.esfera,
     item.ata.orgaoGerenciador.esfera,

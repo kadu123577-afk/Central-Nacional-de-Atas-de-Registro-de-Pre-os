@@ -27,12 +27,18 @@ fora do instrumento de licitação.
 - a soma de todas as adesões não pode ultrapassar **200%** (o dobro) da
   quantidade registrada (§5º);
 - a adesão só é elegível por **esfera federativa** (§§3º e 8º, achado da
-  revisão de 2026-09-04, a partir do texto comentado da lei): órgão
-  aderente federal só adere a ata gerenciada por federal; estadual/
-  distrital adere a federal/estadual/distrital; municipal só adere a ata
-  gerenciada por outro município. Ver `src/lib/esferas.ts`
-  (`verificarElegibilidadeEsfera`, 11 testes) e §1.2 abaixo pro que
-  **não** está coberto ainda (§§6º e 7º).
+  revisão de 2026-09-04): órgão aderente federal só adere a ata
+  gerenciada por federal (§8º veda o resto); estadual/distrital adere a
+  federal/estadual/distrital (§3º, I); municipal adere a **qualquer**
+  esfera (§3º, I para federal/estadual/distrital + §3º, II pra outro
+  município) — é o uso mais comum de "carona" na prática (município
+  pequeno aproveitando o processo de um governo maior). Ver
+  `src/lib/esferas.ts` (`verificarElegibilidadeEsfera`, 11 testes) e
+  §1.2 abaixo pro que **não** está coberto ainda (§§6º e 7º).
+  **Nota:** a primeira implementação (mesmo dia) tinha essa direção
+  invertida — corrigida depois que o usuário notou que "município não
+  poder aderir a ata estadual" não fazia sentido, e confirmou o texto
+  literal dos parágrafos.
 
 Essas travas são código, não confiança: `src/lib/saldo.ts`
 (`verificarAdesao`) é chamada tanto pela ação real de pedido de adesão
@@ -90,7 +96,7 @@ Decisões que já foram tomadas e não precisam ser rediscutidas:
     ata que o contém.
 - **Elegibilidade por esfera federativa (art. 86, §§ 3º e 8º — achado da
   revisão de 2026-09-04)** — confirmado pelo usuário com citação exata
-  do texto comentado da lei. Implementado em `src/lib/esferas.ts` e
+  do texto literal da lei. Implementado em `src/lib/esferas.ts` e
   aplicado em `solicitarAdesao` (`src/app/orgao/pedido/actions.ts`).
   `Orgao.esfera` deixou de ser texto livre e virou `<select>` fixo
   (federal/estadual/distrital/municipal) nos dois pontos de cadastro
@@ -98,6 +104,17 @@ Decisões que já foram tomadas e não precisam ser rediscutidas:
   desconhecida (ex.: `"não informada"`, usada pelo rastreador do PNCP
   quando a API não informa) **recusa** a adesão em vez de assumir que a
   regra foi cumprida.
+  - **Correção de direção (mesmo dia):** a primeira implementação leu o
+    §3º errado e bloqueava município de aderir a ata estadual/federal —
+    exatamente o caso mais comum de "carona" na prática. O usuário
+    notou que aquilo "não fazia o menor sentido" e confirmou o texto
+    literal dos incisos I e II do §3º; a regra certa é: município pode
+    aderir a **qualquer** esfera; só o federal é restrito (só adere a
+    ata federal, §8º). Corrigida em `NIVEIS_PERMITIDOS_POR_ADERENTE`
+    (`src/lib/esferas.ts`), sem precisar mexer no seed (as adesões de
+    demonstração já usavam órgãos estaduais/federais compatíveis mesmo
+    antes da correção — só o comentário do seed estava desatualizado,
+    também corrigido).
   - **Não coberto ainda — exige campo novo no schema, não é só
     validação:** §6º (exceção ao teto de 200% pra adesão a ata federal
     de programa de transferência voluntária) e §7º (exceção ao teto de
@@ -418,3 +435,12 @@ prioridade ainda:
   real das 4 telas principais. Tela 4 passa de 🟡 Parcial pra ✅
   Construída — as 4 telas do escopo original estão todas construídas
   agora. Verificado ao vivo com Playwright.
+- **2026-09-04 (mesmo dia, revisão dos prints pelo usuário)** — Usuário
+  revisou os prints de todas as telas e notou que a trava de esfera
+  estava bloqueando município de aderir a ata estadual — "isso não faz
+  o menor sentido". Reconferido o texto literal dos incisos I e II do
+  §3º: a direção estava mesmo invertida. Corrigida `NIVEIS_PERMITIDOS_
+  POR_ADERENTE` em `src/lib/esferas.ts` (município passa a poder aderir
+  a qualquer esfera; só federal continua restrito, só a ata federal).
+  11 testes ajustados, todos passando. Seed não precisou mudar de dado,
+  só de comentário.

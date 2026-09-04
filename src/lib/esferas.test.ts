@@ -26,24 +26,25 @@ describe("verificarElegibilidadeEsfera", () => {
     expect(verificarElegibilidadeEsfera("estadual", "distrital").permitido).toBe(true);
   });
 
-  it("recusa estadual aderir a ata gerenciada por município (art. 86 §3º)", () => {
-    expect(verificarElegibilidadeEsfera("estadual", "municipal").permitido).toBe(false);
-  });
-
   it("permite distrital aderir a ata gerenciada por federal, estadual ou distrital", () => {
     expect(verificarElegibilidadeEsfera("distrital", "federal").permitido).toBe(true);
     expect(verificarElegibilidadeEsfera("distrital", "estadual").permitido).toBe(true);
     expect(verificarElegibilidadeEsfera("distrital", "distrital").permitido).toBe(true);
   });
 
-  it("permite município aderir a ata gerenciada por outro município", () => {
+  it("permite município aderir a ata gerenciada por outro município (art. 86 §3º, II)", () => {
     expect(verificarElegibilidadeEsfera("municipal", "municipal").permitido).toBe(true);
   });
 
-  it("recusa município aderir a ata gerenciada por estadual, distrital ou federal (art. 86 §3º)", () => {
-    expect(verificarElegibilidadeEsfera("municipal", "estadual").permitido).toBe(false);
-    expect(verificarElegibilidadeEsfera("municipal", "distrital").permitido).toBe(false);
-    expect(verificarElegibilidadeEsfera("municipal", "federal").permitido).toBe(false);
+  it("permite município aderir a ata gerenciada por estadual, distrital ou federal (art. 86 §3º, I — o uso mais comum de carona na prática)", () => {
+    expect(verificarElegibilidadeEsfera("municipal", "estadual").permitido).toBe(true);
+    expect(verificarElegibilidadeEsfera("municipal", "distrital").permitido).toBe(true);
+    expect(verificarElegibilidadeEsfera("municipal", "federal").permitido).toBe(true);
+  });
+
+  it("recusa estadual ou distrital aderir a ata gerenciada por município (nenhum inciso do §3º cobre esse caso)", () => {
+    expect(verificarElegibilidadeEsfera("estadual", "municipal").permitido).toBe(false);
+    expect(verificarElegibilidadeEsfera("distrital", "municipal").permitido).toBe(false);
   });
 
   it("recusa quando a esfera do órgão gerenciador não é conhecida (ex.: importado do PNCP sem essa informação)", () => {

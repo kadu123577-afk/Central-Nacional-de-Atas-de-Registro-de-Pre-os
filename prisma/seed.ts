@@ -757,13 +757,11 @@ async function main() {
   // Órgão aderente sempre compatível com a esfera do órgão gerenciador da
   // ata (art. 86, §§ 3º e 8º da Lei 14.133/2021 — ver src/lib/esferas.ts):
   // itemPapel/itemCaneta são geridos por município (belaVista), então só
-  // aderente municipal; itemCimento é gerido por estado (secObras), só
-  // aderente estadual/distrital; itemNotebook é gerido por órgão federal
-  // (ministerioInfra), aceita aderente federal ou estadual/distrital.
-  // Antes desta correção (achado do usuário, 2026-09-04) o seed tinha
-  // adesão de município a ata gerida por estado/federal, que a trava real
-  // recusaria — dado de demonstração não pode contradizer a própria regra
-  // que o sistema aplica.
+  // aderente municipal (§3º, II); itemCimento é gerido por estado
+  // (secObras) e itemNotebook por órgão federal (ministerioInfra) —
+  // ambos aceitam aderente de qualquer esfera (§3º, I), inclusive
+  // município (o uso mais comum de "carona" na prática), mas aqui usamos
+  // secEstadualSaude (estadual) pra variar o cenário de demonstração.
 
   await criarAdesaoProgredida({
     itemId: itemPapel.id,
