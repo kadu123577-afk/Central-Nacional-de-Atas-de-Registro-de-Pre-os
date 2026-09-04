@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { cadastrarAta, type EstadoCadastroAta } from "../actions";
 import { Secao } from "@/components/ui/secao";
+import { CATEGORIAS_ATAS } from "@/lib/categorias";
 
 const estadoInicial: EstadoCadastroAta = {};
 
@@ -62,7 +63,21 @@ export default function NovaAtaPage() {
           <div className="flex flex-col gap-4">
             <Campo label="Descrição" name="itemDescricao" required />
             <div className="grid grid-cols-2 gap-4 items-start">
-              <Campo label="Categoria" name="itemCategoria" required />
+              <label className="block text-sm">
+                <span className="mb-1 block font-medium" style={{ color: "var(--cor-texto-2)" }}>
+                  Categoria
+                </span>
+                <select name="itemCategoria" required className="campo-atas" defaultValue="">
+                  <option value="" disabled>
+                    Selecione...
+                  </option>
+                  {CATEGORIAS_ATAS.map((c) => (
+                    <option key={c.slug} value={c.rotulo}>
+                      {c.rotulo}
+                    </option>
+                  ))}
+                </select>
+              </label>
               <Campo label="Unidade" name="itemUnidade" required />
             </div>
             <div className="grid grid-cols-2 gap-4 items-start">
