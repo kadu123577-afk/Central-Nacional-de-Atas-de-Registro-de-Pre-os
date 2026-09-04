@@ -1,31 +1,36 @@
 /**
  * Tokens visuais da Central Nacional de Atas — identidade Tech 10.
- * Extraído do material de marca da Tech 10 (fundo escuro teal-black,
- * acento verde). Nenhum componente escreve hex direto — todos leem daqui.
+ * Amostrado por pixel do material de marca da Tech 10 (fundo azul-petróleo
+ * escuro, acento verde e lima oliva) — não é uma aproximação, é a cor real
+ * do kit. Nenhum componente escreve hex direto — todos leem daqui.
  *
  * Todo par texto/fundo abaixo foi conferido com a fórmula de contraste
- * WCAG (mínimo 4.5:1) — ver /tmp/contraste.js usado durante o design.
+ * WCAG (mínimo 4.5:1 para texto; 3:1 para borda/ícone) — ver
+ * /tmp/contraste.js usado durante o design. --cor-superficie-2 só é usada
+ * hoje com --cor-texto-2 (6.35:1) e como borda/hover (regra de 3:1) — não
+ * usar --cor-texto-3/--cor-alerta/--cor-critico como texto sobre ela sem
+ * reconferir o contraste.
  */
 
 :root {
   /* Superfícies — do mais escuro (fundo) ao mais claro (hover) */
-  --cor-fundo: #071a17;
-  --cor-superficie: #0d2420;
-  --cor-superficie-2: #123028;
-  --cor-borda: #1c3d35;
-  --cor-borda-forte: #2a5c4c;
+  --cor-fundo: #061c2b;
+  --cor-superficie: #0d2a35;
+  --cor-superficie-2: #123a44;
+  --cor-borda: #1b3c42;
+  --cor-borda-forte: #2a5c62;
 
   /* Texto — três níveis de ênfase, nunca mais que isso */
   --cor-texto: #eef6f1;
-  --cor-texto-2: #aec4bc;
-  --cor-texto-3: #87a599;
+  --cor-texto-2: #a8bfc0;
+  --cor-texto-3: #7d9a9c;
 
   /* Marca — verde Tech 10. Estrutural: título, botão principal, item de
      navegação ativo. NUNCA usada pra indicar erro/risco. */
-  --cor-marca-clara: #9ef01a;
-  --cor-marca: #39b54a;
-  --cor-marca-escura: #1f7a37;
-  --cor-marca-fundo: rgba(57, 181, 74, 0.14);
+  --cor-marca-clara: #9ac65a;
+  --cor-marca: #3eb655;
+  --cor-marca-escura: #266b40;
+  --cor-marca-fundo: rgba(62, 182, 85, 0.14);
 
   /* Severidade — a ÚNICA família de cor que significa "atenção" */
   --cor-atencao: #e0a835;
