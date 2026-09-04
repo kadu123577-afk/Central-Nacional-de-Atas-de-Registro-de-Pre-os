@@ -176,10 +176,23 @@ export function montarUrlResultadosItem(
   return `${BASE_URL_ORGAOS}/v1/orgaos/${cnpj}/compras/${ano}/${sequencialCompra}/itens/${numeroItem}/resultados`;
 }
 
+/**
+ * Muita descrição de item do PNCP vem com um código numérico solto colado
+ * no final (ex.: "Máscara cirúrgica descartável 75336346") — resíduo de
+ * como o campo de texto livre foi preenchido por quem publicou, não faz
+ * parte do nome do item. Remove só esse sufixo (6+ dígitos, separado por
+ * espaço) — números curtos que fazem parte do nome de verdade (ex.:
+ * "Parafuso M6", "Cabo 10mm") não batem no padrão e ficam intactos.
+ */
+export function limparDescricaoPncp(descricaoBruta: string): string {
+  const semSufixoNumerico = descricaoBruta.trim().replace(/\s+\d{6,}$/, "");
+  return semSufixoNumerico.length > 0 ? semSufixoNumerico : descricaoBruta.trim();
+}
+
 export function mapearItemPncp(bruta: ItemCompraPncpBruto): ItemImportado {
   return {
     numeroItem: bruta.numeroItem,
-    descricao: bruta.descricao,
+    descricao: limparDescricaoPncp(bruta.descricao),
     categoria: bruta.materialOuServico === "S" ? "Serviço" : "Material",
     unidade: bruta.unidadeMedida,
     quantidadeRegistrada: bruta.quantidade,

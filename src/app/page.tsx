@@ -12,13 +12,19 @@ import { VitrineInclinada } from "@/components/ui/vitrine-inclinada";
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
+  // Ata aprovada e ainda dentro da vigência — mesma regra de
+  // src/lib/atas.ts (ataDisponivelParaAdesao), aplicada aqui como filtro
+  // de banco porque essas consultas não carregam o registro inteiro da
+  // ata pra chamar a função.
+  const ataDisponivel = { status: "APROVADA" as const, dataVigenciaFim: { gte: new Date() } };
+
   // isSeed: false — a home pública só mostra dado real; o catálogo (tela
   // de trabalho) continua vendo os itens de demonstração normalmente.
   const contagens = await Promise.all(
     CATEGORIAS_ATAS.map(async (c) => ({
       ...c,
       total: await prisma.item.count({
-        where: { categoria: c.rotulo, ata: { status: "APROVADA" }, isSeed: false },
+        where: { categoria: c.rotulo, ata: ataDisponivel, isSeed: false },
       }),
     })),
   );
@@ -34,7 +40,7 @@ export default async function Home() {
 
   const itensVitrine = destaque
     ? await prisma.item.findMany({
-        where: { categoria: destaque.rotulo, ata: { status: "APROVADA" }, isSeed: false },
+        where: { categoria: destaque.rotulo, ata: ataDisponivel, isSeed: false },
         orderBy: { valorUnitario: "desc" },
         take: 3,
       })
@@ -44,7 +50,7 @@ export default async function Home() {
     categoriasEmDestaque.map(async (c) => ({
       categoria: c,
       itens: await prisma.item.findMany({
-        where: { categoria: c.rotulo, ata: { status: "APROVADA" }, isSeed: false },
+        where: { categoria: c.rotulo, ata: ataDisponivel, isSeed: false },
         include: { ata: { include: { fornecedor: true, orgaoGerenciador: true } } },
         take: 4,
         orderBy: { descricao: "asc" },

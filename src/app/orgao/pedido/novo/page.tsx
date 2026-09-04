@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { orgaoIdLogado } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { saldoAgregadoDisponivel, limitePorOrgao } from "@/lib/saldo";
+import { ataDisponivelParaAdesao } from "@/lib/atas";
 import { FormularioPedido } from "./formulario";
 import { Secao } from "@/components/ui/secao";
 import { Numero } from "@/components/ui/valores";
@@ -28,7 +29,7 @@ export default async function NovoPedidoPage({
     include: { saldo: true, ata: { include: { fornecedor: true, orgaoGerenciador: true } } },
   });
 
-  if (!item || item.ata.status !== "APROVADA") {
+  if (!item || !ataDisponivelParaAdesao(item.ata)) {
     redirect("/catalogo");
   }
 

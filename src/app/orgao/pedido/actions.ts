@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { orgaoIdLogado } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { verificarAdesao } from "@/lib/saldo";
+import { ataDisponivelParaAdesao } from "@/lib/atas";
 
 export interface EstadoPedidoAdesao {
   erro?: string;
@@ -32,6 +33,11 @@ export async function solicitarAdesao(
   });
   if (!item || item.ata.status !== "APROVADA") {
     return { erro: "Item não encontrado." };
+  }
+  if (!ataDisponivelParaAdesao(item.ata)) {
+    return {
+      erro: `Recusado: a Ata ${item.ata.numero} está fora da vigência (venceu em ${item.ata.dataVigenciaFim.toLocaleDateString("pt-BR")}) e não aceita mais adesões.`,
+    };
   }
 
   // Adesão a atas geridas por órgão municipal é permitida por decisão de

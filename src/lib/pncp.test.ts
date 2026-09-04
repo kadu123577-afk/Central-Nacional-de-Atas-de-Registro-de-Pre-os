@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  limparDescricaoPncp,
   mapearAtaPncp,
   mapearFornecedorVencedor,
   mapearItemPncp,
@@ -126,6 +127,29 @@ describe("montarUrlResultadosItem", () => {
   });
 });
 
+describe("limparDescricaoPncp", () => {
+  it("remove um código numérico solto colado no final", () => {
+    expect(limparDescricaoPncp("Máscara cirúrgica descartável 75336346")).toBe(
+      "Máscara cirúrgica descartável",
+    );
+  });
+
+  it("não mexe em número curto que faz parte do nome de verdade", () => {
+    expect(limparDescricaoPncp("Parafuso M6")).toBe("Parafuso M6");
+    expect(limparDescricaoPncp("Cabo de rede categoria 6")).toBe("Cabo de rede categoria 6");
+  });
+
+  it("não mexe em descrição sem número colado", () => {
+    expect(limparDescricaoPncp("Luva de procedimento, látex, tamanho M")).toBe(
+      "Luva de procedimento, látex, tamanho M",
+    );
+  });
+
+  it("não some com o texto se a descrição inteira for só o número", () => {
+    expect(limparDescricaoPncp("75336346")).toBe("75336346");
+  });
+});
+
 describe("mapearItemPncp", () => {
   const exemplo: ItemCompraPncpBruto = {
     numeroItem: 1,
@@ -150,6 +174,14 @@ describe("mapearItemPncp", () => {
 
   it("mapeia materialOuServico 'S' como categoria Serviço", () => {
     expect(mapearItemPncp({ ...exemplo, materialOuServico: "S" }).categoria).toBe("Serviço");
+  });
+
+  it("também limpa o número colado quando mapeia o item completo", () => {
+    const resultado = mapearItemPncp({
+      ...exemplo,
+      descricao: "Cimento CP-II 50kg 81917590",
+    });
+    expect(resultado.descricao).toBe("Cimento CP-II 50kg");
   });
 });
 

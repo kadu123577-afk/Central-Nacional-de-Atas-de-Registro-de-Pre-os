@@ -28,8 +28,12 @@ export default async function CatalogoPage({
   const valorMax = filtros.valorMax?.trim() ?? "";
 
   const where: Prisma.ItemWhereInput = {
+    // Ata aprovada e ainda dentro da vigência — ver src/lib/atas.ts
+    // (ataDisponivelParaAdesao) para a mesma regra aplicada onde o pedido
+    // de adesão é de fato criado.
     ata: {
       status: "APROVADA",
+      dataVigenciaFim: { gte: new Date() },
       ...(uf ? { orgaoGerenciador: { uf } } : {}),
     },
     ...(q ? { descricao: { contains: q, mode: "insensitive" } } : {}),
