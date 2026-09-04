@@ -10,6 +10,9 @@ export interface EstadoCadastroAtaFornecedor {
   erro?: string;
 }
 
+const TAMANHO_MAXIMO_DOCUMENTO_BYTES = 10 * 1024 * 1024;
+const TIPOS_MIME_DOCUMENTO_ACEITOS = ["application/pdf", "image/jpeg", "image/png"];
+
 /**
  * Cadastro de ata pelo fornecedor autenticado — substitui o antigo fluxo
  * público de /atas/nova (achado da auditoria de 2026-09-04: qualquer um
@@ -83,6 +86,20 @@ export async function cadastrarAtaComoFornecedor(
     return { erro: "Preencha todos os campos obrigatórios de cada item com valores válidos." };
   }
 
+  // Documento é opcional — campo de arquivo vazio chega como File de
+  // tamanho 0, não como null.
+  const documento = formData.get("documento");
+  const temDocumento = documento instanceof File && documento.size > 0;
+
+  if (temDocumento) {
+    if (documento.size > TAMANHO_MAXIMO_DOCUMENTO_BYTES) {
+      return { erro: "O documento não pode passar de 10MB." };
+    }
+    if (!TIPOS_MIME_DOCUMENTO_ACEITOS.includes(documento.type)) {
+      return { erro: "Envie o documento em PDF, JPEG ou PNG." };
+    }
+  }
+
   const orgaoGerenciador = await prisma.orgao.upsert({
     where: { cnpj: orgaoCnpj },
     update: { nome: orgaoNome, uf: orgaoUf, municipio: orgaoMunicipio, esfera: orgaoEsfera },
@@ -94,6 +111,8 @@ export async function cadastrarAtaComoFornecedor(
       esfera: orgaoEsfera,
     },
   });
+
+  const conteudoDocumento = temDocumento ? Buffer.from(await documento.arrayBuffer()) : null;
 
   let ataId: string;
   try {
@@ -116,6 +135,18 @@ export async function cadastrarAtaComoFornecedor(
             saldo: { create: {} },
           })),
         },
+        ...(temDocumento
+          ? {
+              documentos: {
+                create: {
+                  nomeArquivo: documento.name,
+                  tipoMime: documento.type,
+                  tamanhoBytes: documento.size,
+                  conteudo: conteudoDocumento!,
+                },
+              },
+            }
+          : {}),
       },
     });
     ataId = ata.id;

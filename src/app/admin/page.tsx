@@ -52,7 +52,7 @@ export default async function PainelAdminPage() {
     prisma.ata
       .findMany({
         where: { status: "PENDENTE" },
-        include: { fornecedor: true, orgaoGerenciador: true, itens: true },
+        include: { fornecedor: true, orgaoGerenciador: true, itens: true, documentos: true },
         orderBy: { createdAt: "asc" },
       })
       .then((atas) =>
@@ -149,6 +149,18 @@ export default async function PainelAdminPage() {
                     ? "sem itens (a completar)"
                     : `${ata.itens.length} ${ata.itens.length === 1 ? "item" : "itens"}`}
                 </p>
+                {ata.documentos.map((doc) => (
+                  <a
+                    key={doc.id}
+                    href={`/api/documentos/${doc.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-1 inline-block text-xs underline"
+                    style={{ color: "var(--cor-texto-2)" }}
+                  >
+                    📎 {doc.nomeArquivo}
+                  </a>
+                ))}
 
                 <div className="mt-3 flex gap-2">
                   <form action={aprovarAta}>

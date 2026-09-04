@@ -23,7 +23,7 @@ export default async function PainelFornecedorPage() {
     where: { id: fornecedorId },
     include: {
       atas: {
-        include: { itens: { include: { saldo: true } } },
+        include: { itens: { include: { saldo: true } }, documentos: true },
         orderBy: { createdAt: "desc" },
       },
     },
@@ -84,6 +84,18 @@ export default async function PainelFornecedorPage() {
               <p className="text-sm" style={{ color: "var(--cor-texto-2)" }}>
                 {ata.objeto}
               </p>
+              {ata.documentos.map((doc) => (
+                <a
+                  key={doc.id}
+                  href={`/api/documentos/${doc.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-2 inline-block text-sm underline"
+                  style={{ color: "var(--cor-texto-2)" }}
+                >
+                  📎 {doc.nomeArquivo}
+                </a>
+              ))}
 
               <div className="mt-4 overflow-x-auto">
                 <table className="tabela-atas">

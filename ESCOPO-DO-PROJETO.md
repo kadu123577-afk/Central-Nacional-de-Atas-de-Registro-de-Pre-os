@@ -78,6 +78,18 @@ Decisões que já foram tomadas e não precisam ser rediscutidas:
   novas como `PENDENTE` (entra na fila de moderação do admin antes de
   aparecer no catálogo público); `limparDescricaoPncp` evita o bug de
   número solto colado na descrição do item.
+- **Anexo de ata guardado no banco, não em provedor externo (2026-09-04)**
+  — `DocumentoAta.conteudo: Bytes`, servido publicamente por
+  `/api/documentos/[id]`. Escolhido porque não exige credencial de
+  serviço de armazenamento (S3/R2/Vercel Blob) nenhuma e não depende de
+  disco local (que não sobrevive a deploy serverless). Limite de 10MB,
+  só PDF/JPEG/PNG.
+- **"De quem é a vez" é só rótulo, não trava (2026-09-04)** —
+  `atorEsperado()` (`src/lib/adesao.ts`) é puramente informativo. O
+  sistema continua deixando fornecedor OU órgão avançar qualquer
+  estágio de uma adesão; isso é decisão de processo/auditoria que exige
+  mais contexto de negócio antes de virar uma trava de permissão de
+  verdade.
 
 ---
 
@@ -168,8 +180,8 @@ após implementar (7/7 passou):
 
 ## 3. Tela 2 — Fornecedor (autenticado)
 
-**Status: 🟡 Parcial** — fluxo principal existe e funciona; gaps abaixo
-ainda não confirmados/construídos.
+**Status: ✅ Construída** — fluxo principal e todos os gaps levantados
+até agora já aplicados.
 
 ### 3.1 Páginas existentes
 
@@ -196,21 +208,27 @@ ainda não confirmados/construídos.
   Playwright (3 itens numa mesma ata, todos apareceram na página de
   detalhe).
 
+- **Upload de documento** (edital, ofício, ata digitalizada) (2026-09-04)
+  — decisão de arquitetura: guardado como bytes direto no Postgres
+  (`DocumentoAta.conteudo: Bytes`), não num provedor externo (S3/R2/Vercel
+  Blob) — funciona sem nenhuma credencial nova e continua funcionando em
+  qualquer ambiente de deploy sério, ao contrário de disco local (que se
+  perde em serverless). Campo opcional no formulário, PDF/JPEG/PNG até
+  10MB, validado no servidor. Link de download em `/api/documentos/[id]`
+  (público, sem login — documento de licitação é registro público),
+  aparece em "Minhas atas" (fornecedor), na página pública da ata e na
+  fila de moderação do admin. Verificado ao vivo com Playwright.
+
 ### 3.3 Gaps identificados, aguardando confirmação pra construir
 
-- **Upload de documento** (edital, ofício, ata digitalizada) — hoje o
-  cadastro é só formulário de texto, sem anexo. **Não construído ainda**
-  porque exige uma decisão de infraestrutura que não é só código: qual
-  serviço de armazenamento de arquivo usar (S3, R2, Vercel Blob, etc.) e
-  as credenciais correspondentes — não é algo pra decidir sozinho.
-- Nenhum outro gap novo levantado desde a última rodada de discussão.
+- Nenhum gap novo levantado desde a última rodada de discussão.
 
 ---
 
 ## 4. Tela 3 — Órgão público / Município (autenticado)
 
-**Status: 🟡 Parcial** — fluxo principal existe e funciona; gap de UX
-identificado.
+**Status: ✅ Construída** — fluxo principal e o único gap levantado até
+agora já aplicados.
 
 ### 4.1 Páginas existentes
 
@@ -218,26 +236,29 @@ identificado.
 |---|---|---|
 | `/orgao/login` | Login | ✅ Completo |
 | `/orgao/cadastro` | Auto-cadastro de órgão | ✅ Completo |
-| `/orgao` | Painel — pedidos de adesão do órgão, por estágio | ✅ Completo |
+| `/orgao` | Painel — pedidos de adesão do órgão, separados por "precisa da sua ação" vs. outros | ✅ Completo |
 | `/orgao/pedido/novo` | Novo pedido de adesão (a partir de um item do catálogo) | ✅ Completo (já envolvido em `AppShell`/sidebar, corrigido em rodada anterior) |
 | `/adesoes/[id]` | Detalhe do pedido — esteira de 8 estágios, histórico, versão pra impressão | ✅ Completo (proposital: sem sidebar, é documento imprimível) |
 
-### 4.2 Gaps identificados, aguardando confirmação pra construir
+### 4.2 Requisitos confirmados e já aplicados
 
-- **Filtro "precisa da sua ação"** no painel do órgão — hoje a lista de
-  pedidos não distingue "está com você aguardando ação" de "está com o
-  fornecedor/Tech10 aguardando eles". **Não construído ainda** porque o
-  sistema hoje não tem essa distinção como regra de negócio de verdade:
-  `avancarEstagioAdesao` (`src/app/adesoes/actions.ts`) deixa **qualquer
-  um dos dois lados** (fornecedor ou órgão) avançar **qualquer** estágio
-  — não existe hoje um conceito de "de quem é a vez" real no sistema. Um
-  filtro assim precisaria ou (a) só rotular visualmente um "provável
-  próximo responsável" por estágio, com base no nome de cada estágio (ex.:
-  `APRESENTADA_ORGAO` sugere ser a vez do órgão emitir ofício), sem mudar
-  quem pode clicar "avançar"; ou (b) implementar de verdade a trava de
-  quem pode agir em cada estágio. São duas features bem diferentes —
-  peço confirmação de qual das duas antes de construir.
-- Nenhum outro gap novo levantado desde a última rodada de discussão.
+- **Filtro "precisa da sua ação"** (2026-09-04) — decisão: só rótulo
+  informativo (opção "a"), **sem** trava de permissão de verdade. Motivo:
+  `avancarEstagioAdesao` (`src/app/adesoes/actions.ts`) deixa hoje
+  qualquer um dos dois lados (fornecedor ou órgão) avançar qualquer
+  estágio — isso é comportamento de negócio/auditoria de um sistema de
+  compra pública, não é algo pra mudar sem mais contexto. `atorEsperado()`
+  (`src/lib/adesao.ts`) infere "de quem é a vez" a partir do sentido de
+  cada estágio (`APRESENTADA_ORGAO` → órgão; `MAPEADA`/
+  `CONTATO_FORNECEDOR`/`ACEITE_FORNECEDOR` → fornecedor;
+  `OFICIO_EMITIDO`/`AGUARDANDO_GERENCIADOR` → terceiros;
+  `EMPENHADA`/`FATURADA` → concluído) e só separa a lista em duas seções
+  na tela — não muda quem pode clicar "avançar". Verificado ao vivo com
+  Playwright.
+
+### 4.3 Gaps identificados, aguardando confirmação pra construir
+
+- Nenhum gap novo levantado desde a última rodada de discussão.
 
 ---
 
@@ -315,3 +336,11 @@ prioridade ainda:
   armazenamento) e filtro "precisa da sua ação" (Tela 3 — precisa decidir
   se é só rótulo informativo ou trava de verdade em
   `avancarEstagioAdesao`).
+- **2026-09-04 (mesma rodada, a pedido explícito do usuário: "decida")**
+  — Decididas e construídas as duas pendências: upload de documento
+  guardado como bytes no Postgres (não provedor externo, evita depender
+  de credencial que não temos) e "precisa da sua ação" implementado só
+  como rótulo informativo (não mexe em quem pode avançar o estágio, já
+  que isso é decisão de processo/auditoria que exige mais contexto).
+  Telas 2 e 3 passam de 🟡 Parcial pra ✅ Construída. Ambas verificadas ao
+  vivo com Playwright.

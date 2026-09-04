@@ -111,12 +111,35 @@ model Ata {
   updatedAt          DateTime  @updatedAt
   isSeed             Boolean   @default(false)
 
-  fornecedor       Fornecedor @relation(fields: [fornecedorId], references: [id])
-  orgaoGerenciador Orgao      @relation("OrgaoGerenciador", fields: [orgaoGerenciadorId], references: [id])
+  fornecedor       Fornecedor      @relation(fields: [fornecedorId], references: [id])
+  orgaoGerenciador Orgao           @relation("OrgaoGerenciador", fields: [orgaoGerenciadorId], references: [id])
   itens            Item[]
+  documentos       DocumentoAta[]
 
   @@unique([numero, orgaoGerenciadorId])
   @@map("atas")
+}
+
+// Anexo da ata (edital, ofício, ata digitalizada) — decisão de 2026-09-04:
+// guardado como bytes direto no Postgres (não um provedor externo tipo
+// S3/R2), porque funciona sem nenhuma credencial nova e continua
+// funcionando em qualquer ambiente de deploy sério, diferente de disco
+// local (que se perde em ambiente serverless). Limite de tamanho é
+// aplicado na camada de aplicação (src/app/fornecedor/atas/actions.ts),
+// não no schema.
+model DocumentoAta {
+  id           String   @id @default(cuid())
+  ataId        String
+  nomeArquivo  String
+  tipoMime     String
+  tamanhoBytes Int
+  conteudo     Bytes
+  criadoEm     DateTime @default(now())
+  isSeed       Boolean  @default(false)
+
+  ata Ata @relation(fields: [ataId], references: [id])
+
+  @@map("documentos_ata")
 }
 
 model Item {

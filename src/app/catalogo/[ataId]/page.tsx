@@ -30,6 +30,7 @@ export default async function DetalheAtaPage({
       fornecedor: true,
       orgaoGerenciador: true,
       itens: { include: { saldo: true }, orderBy: { descricao: "asc" } },
+      documentos: true,
     },
   });
 
@@ -113,6 +114,22 @@ export default async function DetalheAtaPage({
             <Campo rotulo="Número de controle PNCP" valor={ata.numeroControlePncp} />
           )}
         </div>
+        {ata.documentos.length > 0 && (
+          <div className="mt-3 flex flex-col gap-1">
+            {ata.documentos.map((doc) => (
+              <a
+                key={doc.id}
+                href={`/api/documentos/${doc.id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm underline"
+                style={{ color: "var(--cor-texto-2)" }}
+              >
+                📎 {doc.nomeArquivo}
+              </a>
+            ))}
+          </div>
+        )}
       </Secao>
 
       <Secao titulo={`Itens (${ata.itens.length})`}>

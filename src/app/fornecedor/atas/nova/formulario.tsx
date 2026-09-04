@@ -47,7 +47,7 @@ export function FormularioNovaAta() {
         </p>
       </div>
 
-      <form action={formAction} className="flex flex-col gap-5">
+      <form action={formAction} className="flex flex-col gap-5" encType="multipart/form-data">
         <Secao titulo="Órgão gerenciador">
           <div className="flex flex-col gap-4">
             <Campo label="Nome" name="orgaoNome" required />
@@ -83,6 +83,20 @@ export function FormularioNovaAta() {
               <Campo label="Data de assinatura" name="dataAssinatura" type="date" required />
               <Campo label="Vigência até" name="dataVigenciaFim" type="date" required />
             </div>
+            <label className="block text-sm">
+              <span className="mb-1 block font-medium" style={{ color: "var(--cor-texto-2)" }}>
+                Documento (edital, ofício ou ata digitalizada) — opcional
+              </span>
+              <input
+                name="documento"
+                type="file"
+                accept="application/pdf,image/jpeg,image/png"
+                className="campo-atas"
+              />
+              <span className="mt-1 block text-xs" style={{ color: "var(--cor-texto-3)" }}>
+                PDF ou imagem, até 10MB.
+              </span>
+            </label>
           </div>
         </Secao>
 

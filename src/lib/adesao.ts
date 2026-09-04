@@ -36,3 +36,30 @@ export function proximoEstagio(atual: EstagioAdesao): EstagioAdesao | null {
 export function estagioConcluido(estagio: EstagioAdesao): boolean {
   return estagio === "FATURADA";
 }
+
+export type AtorEsperado = "orgao" | "fornecedor" | "terceiros" | "concluido";
+
+/**
+ * "De quem é a vez" num estágio, só como rótulo informativo pra tela do
+ * órgão — inferido do nome/sentido de cada estágio, não uma trava de
+ * verdade. `avancarEstagioAdesao` (src/app/adesoes/actions.ts) continua
+ * deixando fornecedor OU órgão avançar qualquer estágio; mudar isso pra
+ * uma trava de permissão de fato é uma decisão de processo/auditoria
+ * separada, ainda não tomada.
+ */
+export function atorEsperado(estagio: EstagioAdesao): AtorEsperado {
+  switch (estagio) {
+    case "MAPEADA":
+    case "CONTATO_FORNECEDOR":
+    case "ACEITE_FORNECEDOR":
+      return "fornecedor";
+    case "APRESENTADA_ORGAO":
+      return "orgao";
+    case "OFICIO_EMITIDO":
+    case "AGUARDANDO_GERENCIADOR":
+      return "terceiros";
+    case "EMPENHADA":
+    case "FATURADA":
+      return "concluido";
+  }
+}
