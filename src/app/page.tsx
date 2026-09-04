@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { CATEGORIAS_ATAS } from "@/lib/categorias";
+import { CATEGORIAS_ATAS, corDaCategoria } from "@/lib/categorias";
 import { BarraTopo } from "@/components/ui/barra-topo";
 import { Secao } from "@/components/ui/secao";
 import { Badge } from "@/components/ui/badge";
@@ -85,7 +85,8 @@ export default async function Home() {
                 <Link
                   key={destaque.slug}
                   href={`/catalogo?categoria=${encodeURIComponent(destaque.rotulo)}`}
-                  className="painel relative flex min-h-72 flex-col justify-between gap-4 p-5 transition-colors hover:border-[var(--cor-borda-forte)] lg:col-span-2 lg:row-span-2"
+                  className="painel relative flex min-h-72 flex-col justify-between gap-4 border-l-[3px] p-5 transition-colors hover:border-[var(--cor-borda-forte)] lg:col-span-2 lg:row-span-2"
+                  style={{ borderLeftColor: corDaCategoria(destaque.rotulo) }}
                 >
                   {atasVitrine.length > 0 && (
                     <VitrineInclinada>
@@ -104,7 +105,11 @@ export default async function Home() {
                     </VitrineInclinada>
                   )}
                   <div>
-                    <span className="marca text-2xl" style={{ color: "var(--cor-texto)" }}>
+                    <span
+                      className="mb-2 inline-block size-2.5 rounded-full"
+                      style={{ background: corDaCategoria(destaque.rotulo) }}
+                    />
+                    <span className="marca block text-2xl" style={{ color: "var(--cor-texto)" }}>
                       {destaque.rotulo}
                     </span>
                     <span className="eyebrow mt-2 block">
@@ -117,8 +122,13 @@ export default async function Home() {
                 <Link
                   key={c.slug}
                   href={`/catalogo?categoria=${encodeURIComponent(c.rotulo)}`}
-                  className="painel relative flex min-h-32 flex-col justify-end p-5 transition-colors hover:border-[var(--cor-borda-forte)]"
+                  className="painel relative flex min-h-32 flex-col justify-end border-l-[3px] p-5 transition-colors hover:border-[var(--cor-borda-forte)]"
+                  style={{ borderLeftColor: corDaCategoria(c.rotulo) }}
                 >
+                  <span
+                    className="mb-2 inline-block size-2 rounded-full"
+                    style={{ background: corDaCategoria(c.rotulo) }}
+                  />
                   <span className="marca text-base" style={{ color: "var(--cor-texto)" }}>
                     {c.rotulo}
                   </span>

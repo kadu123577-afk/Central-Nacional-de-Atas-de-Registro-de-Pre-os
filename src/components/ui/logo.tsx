@@ -43,7 +43,7 @@ export function Logo({
           strokeWidth="3"
         />
       </svg>
-      <span className="marca text-base" style={{ color: corTexto }}>
+      <span className="marca-wordmark text-base" style={{ color: corTexto }}>
         Central de Atas
       </span>
     </span>

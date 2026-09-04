@@ -33,9 +33,13 @@ export function BarraTopo() {
       </div>
 
       {/* Categorias — segunda linha no mobile (não disputa espaço com a
-          busca), volta pra mesma linha a partir de md. */}
-      <div className="relative order-3 w-full min-w-0 md:order-2 md:w-auto md:flex-1">
-        <nav className="flex gap-4 overflow-x-auto pr-8">
+          busca), volta pra mesma linha a partir de md. Quebra linha em vez
+          de rolar horizontalmente: com a lista podendo crescer (hoje 8
+          temas, mais no futuro), rolagem com um degradê fixo por cima
+          acabava escondendo permanentemente o último item em telas largas
+          onde nem havia overflow de verdade. */}
+      <div className="order-3 w-full min-w-0 md:order-2 md:w-auto md:flex-1">
+        <nav className="flex flex-wrap gap-x-4 gap-y-1">
           {CATEGORIAS_ATAS.map((c) => (
             <Link
               key={c.slug}
@@ -47,14 +51,6 @@ export function BarraTopo() {
             </Link>
           ))}
         </nav>
-        {/* degradê indicando que dá pra rolar mais, em vez de cortar a palavra */}
-        <div
-          className="pointer-events-none absolute right-0 top-0 h-full"
-          style={{
-            width: "32px",
-            background: "linear-gradient(to right, transparent, var(--cor-fundo))",
-          }}
-        />
       </div>
 
       <div className="order-2 ml-auto flex items-center gap-2 md:order-3 md:ml-0">
@@ -79,13 +75,6 @@ export function BarraTopo() {
                 style={{ color: "var(--cor-texto-2)" }}
               >
                 Painel do fornecedor
-              </Link>
-              <Link
-                href="/atas"
-                className="rounded-[var(--raio)] px-3 py-2 text-sm"
-                style={{ color: "var(--cor-texto-2)" }}
-              >
-                Cadastro interno de atas
               </Link>
               <Link
                 href="/admin/login"

@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { adminIdLogado } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { limitePorOrgao, saldoAgregadoDisponivel } from "@/lib/saldo";
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +12,21 @@ import { tomStatusAta } from "@/lib/severidade";
 // Depende sempre de dados atuais do banco — nunca pré-renderizar em build.
 export const dynamic = "force-dynamic";
 
+/**
+ * Cadastro interno de atas — mostra TODO status (inclusive PENDENTE e
+ * REJEITADA, que não têm nada a ver com o catálogo público) com dado
+ * completo de fornecedor e órgão. Achado da revisão de telas de
+ * 2026-09-04 (prompt 3): esta página não tinha nenhum guard de
+ * autenticação, embora o cadastro (`/atas/nova`) já tivesse sido
+ * desativado antes por essa mesma razão. Trava aqui também, atrás do
+ * login de admin — não é fluxo de fornecedor nem de órgão.
+ */
 export default async function AtasPage() {
+  const adminId = await adminIdLogado();
+  if (!adminId) {
+    redirect("/admin/login");
+  }
+
   const atas = await prisma.ata.findMany({
     include: {
       fornecedor: true,

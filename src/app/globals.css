@@ -27,7 +27,19 @@ body {
 
 /* ---- tipografia de papel fixo ---- */
 
+/* Título (página, card, item) — peso semi-bold e tamanho maior fazem a
+   hierarquia, não caixa alta: texto em caixa alta lê como um bloco só,
+   não importa o tamanho da fonte, e achatava título/label/botão no mesmo
+   nível visual (achado da revisão de telas de 2026-09-04, prompt 4). */
 .marca {
+  font-family: var(--fonte-marca);
+  font-weight: 600;
+  text-wrap: balance;
+}
+
+/* Uso reservado à marca de verdade (logotipo/wordmark) — aqui sim caixa
+   alta e letter-spacing fazem sentido, é identidade, não título de tela. */
+.marca-wordmark {
   font-family: var(--fonte-marca);
   font-weight: 700;
   text-transform: uppercase;
@@ -139,6 +151,8 @@ body {
   background: transparent;
   color: var(--cor-texto-2);
   border-color: var(--cor-borda-forte);
+  text-transform: none;
+  letter-spacing: normal;
 }
 .botao-atas.secundario:hover:not(:disabled) {
   background: var(--cor-superficie-2);

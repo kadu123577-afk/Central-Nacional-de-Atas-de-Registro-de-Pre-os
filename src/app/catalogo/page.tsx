@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { Logo } from "@/components/ui/logo";
 import { Secao } from "@/components/ui/secao";
 import { Badge } from "@/components/ui/badge";
+import { SeloCategoria } from "@/components/ui/selo-categoria";
 import { Cifra } from "@/components/ui/valores";
 import { VazioComAcao } from "@/components/ui/vazio-com-acao";
 
@@ -72,12 +73,6 @@ export default async function CatalogoPage({
       </Secao>
 
       {q ? <ResultadoBuscaPorItem q={q} /> : <ListaDeAtas categoria={categoria} uf={uf} valorMax={valorMax} />}
-
-      <p className="text-xs" style={{ color: "var(--cor-texto-3)" }}>
-        <Link href="/atas" className="underline">
-          Ver cadastro interno de atas
-        </Link>
-      </p>
     </main>
   );
 }
@@ -188,7 +183,11 @@ async function ListaDeAtas({
             </h2>
             <Badge tom="neutro">{ata.orgaoGerenciador.uf}</Badge>
           </div>
-          {ata.categoria && <p className="eyebrow mt-1">{ata.categoria}</p>}
+          {ata.categoria && (
+            <div className="mt-1">
+              <SeloCategoria categoria={ata.categoria} />
+            </div>
+          )}
           <p className="mt-2 text-sm" style={{ color: "var(--cor-texto-2)" }}>
             {ata.objeto}
           </p>

@@ -20,3 +20,22 @@ export function tomFaturamento(pago: boolean): Tom {
 export function tomEstagioAdesao(estagio: EstagioAdesao): Tom {
   return estagioConcluido(estagio) ? "neutro" : "atencao";
 }
+
+/**
+ * Cor da barra de consumo da trava do art. 86 (por órgão ou agregada):
+ * verde até ~60%, amarelo até ~90%, vermelho acima disso — o mesmo limiar
+ * em qualquer lugar que mostrar quanto do teto já foi consumido.
+ */
+export function tomConsumo(percentual: number): Tom {
+  if (percentual >= 90) return "critico";
+  if (percentual >= 60) return "atencao";
+  return "neutro";
+}
+
+/** Cor do badge de vigência de uma ata: vencida é crítico, perto de vencer
+ * (30 dias ou menos) é atenção, o resto é neutro. */
+export function tomVigencia(diasParaVencer: number): Tom {
+  if (diasParaVencer < 0) return "critico";
+  if (diasParaVencer <= 30) return "atencao";
+  return "neutro";
+}
