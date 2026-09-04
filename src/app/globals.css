@@ -168,6 +168,27 @@ body {
   background: transparent;
 }
 
+/* ---- titulo ciclico ---- */
+
+@keyframes titulo-ciclico-entra {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.titulo-ciclico-palavra {
+  animation: titulo-ciclico-entra 0.35s ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .titulo-ciclico-palavra {
+    animation: none;
+  }
+}
+
 /* ---- impressão ---- */
 
 .somente-impressao,
