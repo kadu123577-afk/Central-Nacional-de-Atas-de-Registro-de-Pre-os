@@ -42,6 +42,10 @@ model Admin {
   email     String   @unique
   senhaHash String
   createdAt DateTime @default(now())
+  // Marca dados criados pelo seed de demonstração (prisma/seed.ts), pra
+  // poder ser apagado seletivamente por prisma/seed-limpar.ts sem tocar
+  // em admins reais criados por seed-admin.ts.
+  isSeed    Boolean  @default(false)
 
   @@map("admins")
 }
@@ -55,6 +59,7 @@ model Fornecedor {
   senhaHash   String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  isSeed      Boolean  @default(false)
 
   atas Ata[]
 
@@ -72,6 +77,7 @@ model Orgao {
   senhaHash String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  isSeed    Boolean  @default(false)
 
   atasGerenciadas Ata[]    @relation("OrgaoGerenciador")
   adesoes         Adesao[] @relation("OrgaoAderente")
@@ -94,6 +100,7 @@ model Ata {
   orgaoGerenciadorId String
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
+  isSeed             Boolean   @default(false)
 
   fornecedor       Fornecedor @relation(fields: [fornecedorId], references: [id])
   orgaoGerenciador Orgao      @relation("OrgaoGerenciador", fields: [orgaoGerenciadorId], references: [id])
@@ -112,6 +119,7 @@ model Item {
   unidade               String
   quantidadeRegistrada  Int
   valorUnitario         Decimal @db.Decimal(14, 2)
+  isSeed                Boolean @default(false)
 
   ata     Ata      @relation(fields: [ataId], references: [id])
   adesoes Adesao[]
@@ -142,6 +150,7 @@ model Adesao {
   estagio             EstagioAdesao @default(MAPEADA)
   createdAt           DateTime      @default(now())
   updatedAt           DateTime      @updatedAt
+  isSeed              Boolean       @default(false)
 
   item          Item                @relation(fields: [itemId], references: [id])
   orgaoAderente Orgao               @relation("OrgaoAderente", fields: [orgaoAderenteId], references: [id])

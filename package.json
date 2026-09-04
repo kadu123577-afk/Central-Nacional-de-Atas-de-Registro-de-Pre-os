@@ -10,6 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "seed:admin": "tsx prisma/seed-admin.ts",
+    "seed": "tsx prisma/seed.ts",
+    "seed:limpar": "tsx prisma/seed-limpar.ts",
     "rastreador:pncp": "tsx scripts/rastreador-pncp.ts"
   },
   "dependencies": {
