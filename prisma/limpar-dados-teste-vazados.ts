@@ -41,6 +41,7 @@ async function main() {
   const adesoes = await prisma.adesao.deleteMany({ where: { isSeed: false } });
   const saldos = await prisma.saldo.deleteMany({ where: { item: { isSeed: false } } });
   const itens = await prisma.item.deleteMany({ where: { isSeed: false } });
+  const documentos = await prisma.documentoAta.deleteMany({ where: { ata: { isSeed: false } } });
   const atas = await prisma.ata.deleteMany({ where: { isSeed: false } });
   const fornecedores = await prisma.fornecedor.deleteMany({
     where: { isSeed: false, cnpj: { not: CNPJ_FORNECEDOR_A_CONFIRMAR } },
@@ -53,6 +54,7 @@ async function main() {
   console.log(`  adesões: ${adesoes.count}`);
   console.log(`  saldos: ${saldos.count}`);
   console.log(`  itens: ${itens.count}`);
+  console.log(`  documentos anexados: ${documentos.count}`);
   console.log(`  atas: ${atas.count}`);
   console.log(`  fornecedores: ${fornecedores.count}`);
   console.log(`  órgãos: ${orgaos.count}`);

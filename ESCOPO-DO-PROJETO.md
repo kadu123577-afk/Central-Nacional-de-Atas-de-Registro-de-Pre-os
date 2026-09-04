@@ -34,17 +34,18 @@ fora do instrumento de licitação.
   (`verificarElegibilidadeEsfera`, 11 testes) e §1.2 abaixo pro que
   **não** está coberto ainda (§§6º e 7º).
 
-A trava de quantidade é código, não confiança: `src/lib/saldo.ts`
+Essas travas são código, não confiança: `src/lib/saldo.ts`
 (`verificarAdesao`) é chamada tanto pela ação real de pedido de adesão
 quanto pelo seed de demonstração — se a conta recusaria um pedido de
 verdade, o seed também falha, em vez de gravar um estado que o sistema
 nunca permitiria. A trava de esfera (`verificarElegibilidadeEsfera`) só
-está ligada na ação real (`solicitarAdesao`) — o seed cria adesão direto
-no banco (`criarAdesaoProgredida`), sem passar por ela, então o cenário
-de demonstração tem hoje adesões de município a ata gerenciada por
-estado que a regra de esfera recusaria se fossem pedidas de verdade pela
-tela. Não corrigi o seed pra não reescrever o roteiro de demonstração
-sem confirmar — sinalizando aqui pra não ser um problema escondido.
+é chamada de fato dentro da ação real (`solicitarAdesao`), já que o seed
+cria adesão direto no banco (`criarAdesaoProgredida`, sem passar pela
+ação) — mas o **dado** do seed foi corrigido à mão pra respeitar a mesma
+regra (cada adesão de demonstração usa um órgão aderente de esfera
+compatível com o órgão gerenciador da ata), depois que o usuário apontou
+que um dado de demonstração contradizendo a própria regra do sistema não
+é aceitável.
 
 ### 1.1 Atores do sistema
 
@@ -390,6 +391,16 @@ prioridade ainda:
   (11 testes) e aplicado em `solicitarAdesao`; `Orgao.esfera` virou
   `<select>` fixo em vez de texto livre nos dois cadastros. §§ 6º e 7º
   (exceções ao teto de 200%) ficaram explicitamente não cobertos —
-  exigem campo novo no schema que ainda não existe. Seed de demonstração
-  não foi reescrito e hoje contém adesões que a nova trava recusaria se
-  fossem pedidas de verdade pela tela — sinalizado, não escondido.
+  exigem campo novo no schema que ainda não existe.
+- **2026-09-04 (mesmo dia, correção seguinte)** — Usuário apontou que dado
+  de demonstração contradizendo a própria regra do sistema não é
+  aceitável ("se é indevida deve bloquear, óbvio"). Reescritas as
+  adesões do seed pra cada uma usar um órgão aderente de esfera
+  compatível com o órgão gerenciador (município só com município,
+  estado só com estado, federal só com federal ou recebendo de
+  estado/distrito) — banco recriado do zero (`seed:limpar` + `seed`)
+  pra confirmar que passa por `verificarAdesao` de ponta a ponta sem
+  erro. Também corrigido um bug de FK nos dois scripts de limpeza
+  (`seed-limpar.ts`, `limpar-dados-teste-vazados.ts`): faltava apagar
+  `DocumentoAta` antes de `Ata`, quebrava a limpeza desde que o anexo de
+  documento foi implementado.

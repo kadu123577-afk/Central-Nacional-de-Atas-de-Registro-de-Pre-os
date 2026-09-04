@@ -753,6 +753,17 @@ async function main() {
   const itemNotebook = ataNotebook.itens[0];
 
   // ---- Adesões — uma em cada um dos 8 estágios, datas espalhadas ----
+  //
+  // Órgão aderente sempre compatível com a esfera do órgão gerenciador da
+  // ata (art. 86, §§ 3º e 8º da Lei 14.133/2021 — ver src/lib/esferas.ts):
+  // itemPapel/itemCaneta são geridos por município (belaVista), então só
+  // aderente municipal; itemCimento é gerido por estado (secObras), só
+  // aderente estadual/distrital; itemNotebook é gerido por órgão federal
+  // (ministerioInfra), aceita aderente federal ou estadual/distrital.
+  // Antes desta correção (achado do usuário, 2026-09-04) o seed tinha
+  // adesão de município a ata gerida por estado/federal, que a trava real
+  // recusaria — dado de demonstração não pode contradizer a própria regra
+  // que o sistema aplica.
 
   await criarAdesaoProgredida({
     itemId: itemPapel.id,
@@ -766,7 +777,7 @@ async function main() {
 
   await criarAdesaoProgredida({
     itemId: itemCimento.id,
-    orgaoAderenteId: serraAlta.id,
+    orgaoAderenteId: secEstadualSaude.id,
     quantidadeSolicitada: 3000,
     estagioAlvo: "FATURADA",
     criadaEm: diasAtras(60),
@@ -785,7 +796,7 @@ async function main() {
 
   await criarAdesaoProgredida({
     itemId: itemNotebook.id,
-    orgaoAderenteId: portoNovo.id,
+    orgaoAderenteId: secEstadualSaude.id,
     quantidadeSolicitada: 100,
     estagioAlvo: "EMPENHADA",
     criadaEm: diasAtras(20),
@@ -794,7 +805,7 @@ async function main() {
 
   await criarAdesaoProgredida({
     itemId: itemCaneta.id,
-    orgaoAderenteId: secEstadualSaude.id,
+    orgaoAderenteId: serraAlta.id,
     quantidadeSolicitada: 900,
     estagioAlvo: "ACEITE_FORNECEDOR",
     criadaEm: diasAtras(55),
@@ -803,7 +814,7 @@ async function main() {
 
   await criarAdesaoProgredida({
     itemId: itemNotebook.id,
-    orgaoAderenteId: belaVista.id,
+    orgaoAderenteId: secEstadualSaude.id,
     quantidadeSolicitada: 80,
     estagioAlvo: "AGUARDANDO_GERENCIADOR",
     criadaEm: diasAtras(42),
@@ -812,7 +823,7 @@ async function main() {
 
   await criarAdesaoProgredida({
     itemId: itemCimento.id,
-    orgaoAderenteId: belaVista.id,
+    orgaoAderenteId: secEstadualSaude.id,
     quantidadeSolicitada: 1500,
     estagioAlvo: "OFICIO_EMITIDO",
     criadaEm: diasAtras(30),
@@ -839,7 +850,7 @@ async function main() {
 
   await criarAdesaoProgredida({
     itemId: itemCimento.id,
-    orgaoAderenteId: portoNovo.id,
+    orgaoAderenteId: secEstadualSaude.id,
     quantidadeSolicitada: 2000,
     estagioAlvo: "MAPEADA",
     criadaEm: diasAtras(3),
