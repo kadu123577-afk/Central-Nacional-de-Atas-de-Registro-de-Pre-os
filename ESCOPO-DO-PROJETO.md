@@ -178,7 +178,7 @@ ainda não confirmados/construídos.
 | `/fornecedor/login` | Login | ✅ Completo |
 | `/fornecedor/cadastro` | Auto-cadastro de fornecedor | ✅ Completo |
 | `/fornecedor` | Painel "minhas atas" (saldo calculado) | ✅ Completo |
-| `/fornecedor/atas/nova` | Cadastro de nova ata | 🟡 Funciona, mas só 1 item por ata (ver gap) |
+| `/fornecedor/atas/nova` | Cadastro de nova ata (N itens) | ✅ Completo |
 | `/fornecedor/adesoes` | Pedidos de adesão recebidos | ✅ Completo |
 
 ### 3.2 Requisitos confirmados e já aplicados
@@ -186,23 +186,24 @@ ainda não confirmados/construídos.
 - Cadastro de ata pede o **tema** (`Ata.categoria`) desde a rodada de
   2026-09-04 (Opção A) — campo obrigatório, validado contra o vocabulário
   fixo de `src/lib/categorias.ts`.
+- **Cadastro de ata com múltiplos itens de uma vez** (2026-09-04) — o
+  formulário agora tem "+ Adicionar item" (e "Remover" por bloco, exceto
+  quando só resta 1), enviando a lista inteira via `FormData.getAll` com
+  campos `itemDescricao[]`/`itemCategoria[]`/`itemUnidade[]`/
+  `itemQuantidade[]`/`itemValorUnitario[]`. A ação valida que todos os
+  arrays têm o mesmo tamanho e cada item é válido, e cria a ata com todos
+  os itens num único `prisma.ata.create`. Verificado ao vivo com
+  Playwright (3 itens numa mesma ata, todos apareceram na página de
+  detalhe).
 
 ### 3.3 Gaps identificados, aguardando confirmação pra construir
 
-- **Cadastro de ata com múltiplos itens de uma vez.** Achado da revisão
-  de telas (Prompt 1, 2026-09-04): o formulário hoje só tem **uma** seção
-  de item fixa — sem "adicionar outro item". Toda ata cadastrada por esse
-  formulário sai com exatamente 1 item, mesmo o schema suportando N
-  (`Ata.itens: Item[]` já é um-para-muitos de verdade — a prova é o seed,
-  que cria atas com 2+ itens direto no banco). **Este é o gap mais
-  importante da Tela 2** — sem ele, toda ata real cadastrada por
-  fornecedor continuará chegando com 1 item só, o que não representa o
-  caso real (atas de 200-541 itens, como a de medicamentos mencionada).
 - **Upload de documento** (edital, ofício, ata digitalizada) — hoje o
-  cadastro é só formulário de texto, sem anexo.
-- Nenhum gap adicional foi levantado ainda pro restante do painel do
-  fornecedor — a lista acima reflete o estado da última rodada de
-  discussão.
+  cadastro é só formulário de texto, sem anexo. **Não construído ainda**
+  porque exige uma decisão de infraestrutura que não é só código: qual
+  serviço de armazenamento de arquivo usar (S3, R2, Vercel Blob, etc.) e
+  as credenciais correspondentes — não é algo pra decidir sozinho.
+- Nenhum outro gap novo levantado desde a última rodada de discussão.
 
 ---
 
@@ -225,8 +226,17 @@ identificado.
 
 - **Filtro "precisa da sua ação"** no painel do órgão — hoje a lista de
   pedidos não distingue "está com você aguardando ação" de "está com o
-  fornecedor/Tech10 aguardando eles". Levantado na primeira rodada de
-  gap-analysis, ainda não confirmado como prioridade.
+  fornecedor/Tech10 aguardando eles". **Não construído ainda** porque o
+  sistema hoje não tem essa distinção como regra de negócio de verdade:
+  `avancarEstagioAdesao` (`src/app/adesoes/actions.ts`) deixa **qualquer
+  um dos dois lados** (fornecedor ou órgão) avançar **qualquer** estágio
+  — não existe hoje um conceito de "de quem é a vez" real no sistema. Um
+  filtro assim precisaria ou (a) só rotular visualmente um "provável
+  próximo responsável" por estágio, com base no nome de cada estágio (ex.:
+  `APRESENTADA_ORGAO` sugere ser a vez do órgão emitir ofício), sem mudar
+  quem pode clicar "avançar"; ou (b) implementar de verdade a trava de
+  quem pode agir em cada estágio. São duas features bem diferentes —
+  peço confirmação de qual das duas antes de construir.
 - Nenhum outro gap novo levantado desde a última rodada de discussão.
 
 ---
@@ -245,15 +255,22 @@ gestão ainda não construídos.
 | `/admin/faturamento` | Contas a receber (taxa de intermediação) — marcar como recebido | ✅ Completo (feedback visual imediato adicionado em rodada anterior) |
 | `/atas` | Cadastro/listagem interna completa de atas (todo status) | ✅ Completo — **agora atrás de login de admin** (corrigido em 2026-09-04, ver §2.4 item 3) |
 
-### 5.2 Gaps identificados, aguardando confirmação pra construir
+### 5.2 Requisitos confirmados e já aplicados
+
+- **Sinalização de atas PNCP incompletas** (2026-09-04) — atas com
+  `origem = PNCP` e sem fornecedor real identificado (CNPJ placeholder
+  `00000000000000`) ou sem nenhum item enriquecido agora aparecem com um
+  selo "PNCP incompleta" e vêm primeiro na fila de "Atas aguardando
+  moderação" em `/admin`, em vez de se perderem misturadas com o resto.
+  **Ainda não construído:** uma tela de edição pra de fato completar essas
+  atas (informar o fornecedor certo, adicionar os itens) — hoje o admin só
+  vê o alerta, mas precisa aprovar/rejeitar como estão ou completar por
+  fora do sistema.
+
+### 5.3 Gaps identificados, aguardando confirmação pra construir
 
 - **Gestão de usuários** — hoje não existe tela pra admin listar/desativar
   contas de fornecedor ou órgão.
-- **Fila de atas importadas do PNCP incompletas** — atas importadas sem
-  fornecedor identificado (fornecedor "a confirmar") ou sem itens
-  enriquecidos ficam pendentes, mas não há uma tela dedicada pra revisar
-  e completar esses casos — hoje elas se misturam com a fila normal de
-  moderação em `/admin`.
 
 ---
 
@@ -288,3 +305,13 @@ prioridade ainda:
   ao vivo). Telas 2, 3 e 4 documentadas no estado "parcial" com os gaps
   já levantados nas rodadas de discussão anteriores, aguardando
   confirmação um de cada vez, conforme o processo acordado.
+- **2026-09-04 (mesmo dia, rodada seguinte)** — Executados os gaps que já
+  estavam claros o suficiente pra construir sem nova decisão de negócio:
+  cadastro de ata com múltiplos itens (Tela 2, verificado ao vivo com 3
+  itens numa mesma ata) e sinalização de atas PNCP incompletas no painel
+  admin (Tela 4). Dois gaps ficaram explicitamente parados aguardando
+  decisão do usuário, por dependerem de escolha que não é só código:
+  upload de documento (Tela 2 — precisa escolher provedor de
+  armazenamento) e filtro "precisa da sua ação" (Tela 3 — precisa decidir
+  se é só rótulo informativo ou trava de verdade em
+  `avancarEstagioAdesao`).
