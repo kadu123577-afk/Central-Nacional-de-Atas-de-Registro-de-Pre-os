@@ -13,7 +13,7 @@ export function Logo({
   tom?: "claro" | "escuro";
   altura?: number;
 }) {
-  const cor = tom === "claro" ? "#9ef01a" : "#0d2420";
+  const cor = tom === "claro" ? "var(--cor-marca-clara)" : "#0d2420";
   const corTexto = tom === "claro" ? "var(--cor-texto)" : "#0d2420";
 
   return (
