@@ -15,10 +15,9 @@ export interface EstadoAvancoEstagio {
  * Move a adesão para o próximo estágio da esteira.
  *
  * Fornecedor dono da ata ou órgão que pediu a adesão podem avançar — ainda
- * não há papel de consultor comercial no sistema (isso é trabalho do
- * Sprint 6, quando o painel administrativo existir), então por ora
- * qualquer um dos dois lados envolvidos pode empurrar o pedido adiante,
- * com o histórico registrando exatamente quem fez cada mudança.
+ * não há papel de consultor comercial no sistema, então por ora qualquer
+ * um dos dois lados envolvidos pode empurrar o pedido adiante, com o
+ * histórico registrando exatamente quem fez cada mudança.
  */
 export async function avancarEstagioAdesao(
   _estadoAnterior: EstadoAvancoEstagio,
@@ -66,8 +65,8 @@ export async function avancarEstagioAdesao(
     }),
   ];
 
-  // Sprint 8: ao chegar em EMPENHADA, a cobrança nasce sozinha — já
-  // dividida entre Tech 10 e a desenvolvedora, conforme o plano comercial.
+  // Sprint 8: ao chegar em EMPENHADA, a cobrança nasce sozinha — o
+  // "contas a receber" da Tech 10 junto ao fornecedor.
   if (proximo === "EMPENHADA") {
     const faturamento = calcularFaturamento(
       adesao.quantidadeSolicitada,
@@ -80,8 +79,6 @@ export async function avancarEstagioAdesao(
           valorContrato: faturamento.valorContrato,
           percentualTaxa: faturamento.percentualTaxa,
           valorTaxaIntermediacao: faturamento.valorTaxaIntermediacao,
-          valorTech10: faturamento.valorTech10,
-          valorDesenvolvedora: faturamento.valorDesenvolvedora,
         },
       }),
     );

@@ -1,26 +1,21 @@
 /**
  * Motor de cálculo da cobrança gerada quando uma adesão chega em EMPENHADA
- * (Sprint 8) — ver plano de gestão comercial da Tech 10 Digital.
+ * (Sprint 8) — o "contas a receber" da Tech 10.
  *
- * A divisão 95%/5% entre Tech 10 e a empresa desenvolvedora é uma regra de
- * negócio fixa do plano ("Participação de 5% nos Resultados Diretos").
+ * A taxa de intermediação é de 5% sobre o valor do contrato (confirmado
+ * pela Tech 10), configurável via TAXA_INTERMEDIACAO_PERCENTUAL caso mude.
  *
- * O percentual da taxa de intermediação em si — o que o fornecedor paga
- * sobre o valor do contrato — não veio definido em nenhum documento do
- * plano; fica configurável via TAXA_INTERMEDIACAO_PERCENTUAL (padrão 3%,
- * um placeholder até a Tech 10 confirmar o percentual comercial real).
+ * O repasse à empresa desenvolvedora é um acerto privado entre a Tech 10 e
+ * a desenvolvedora, fora da plataforma — este motor não calcula nem
+ * registra esse repasse. O valor aqui é sempre o total devido à Tech 10.
  */
 
-export const PERCENTUAL_REPASSE_DESENVOLVEDORA = 0.05;
-export const PERCENTUAL_TECH10 = 1 - PERCENTUAL_REPASSE_DESENVOLVEDORA;
-export const PERCENTUAL_TAXA_INTERMEDIACAO_PADRAO = 0.03;
+export const PERCENTUAL_TAXA_INTERMEDIACAO_PADRAO = 0.05;
 
 export interface Faturamento {
   valorContrato: number;
   percentualTaxa: number;
   valorTaxaIntermediacao: number;
-  valorTech10: number;
-  valorDesenvolvedora: number;
 }
 
 function arredondar(valor: number): number {
@@ -39,16 +34,10 @@ export function calcularFaturamento(
 ): Faturamento {
   const valorContrato = arredondar(quantidadeSolicitada * valorUnitario);
   const valorTaxaIntermediacao = arredondar(valorContrato * percentualTaxa);
-  const valorDesenvolvedora = arredondar(
-    valorTaxaIntermediacao * PERCENTUAL_REPASSE_DESENVOLVEDORA,
-  );
-  const valorTech10 = arredondar(valorTaxaIntermediacao - valorDesenvolvedora);
 
   return {
     valorContrato,
     percentualTaxa,
     valorTaxaIntermediacao,
-    valorTech10,
-    valorDesenvolvedora,
   };
 }

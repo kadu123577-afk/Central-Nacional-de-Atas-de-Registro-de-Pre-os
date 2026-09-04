@@ -108,25 +108,19 @@ export default async function DetalheAdesaoPage({
                 R$ {Number(adesao.faturamento.valorContrato).toFixed(2)}
               </dd>
             </div>
-            <div className="flex justify-between">
+            <div className="flex justify-between border-t border-neutral-100 pt-2">
               <dt className="text-neutral-600">
-                Taxa de intermediação — cobrada do fornecedor (
+                Taxa de intermediação (
                 {(Number(adesao.faturamento.percentualTaxa) * 100).toFixed(1)}%)
               </dt>
               <dd className="font-medium tabular-nums">
                 R$ {Number(adesao.faturamento.valorTaxaIntermediacao).toFixed(2)}
               </dd>
             </div>
-            <div className="flex justify-between border-t border-neutral-100 pt-2">
-              <dt className="text-neutral-600">Tech 10 (95%)</dt>
-              <dd className="tabular-nums">
-                R$ {Number(adesao.faturamento.valorTech10).toFixed(2)}
-              </dd>
-            </div>
             <div className="flex justify-between">
-              <dt className="text-neutral-600">Desenvolvedora (5%)</dt>
+              <dt className="text-neutral-600">Status</dt>
               <dd className="tabular-nums">
-                R$ {Number(adesao.faturamento.valorDesenvolvedora).toFixed(2)}
+                {adesao.faturamento.pago ? "Recebido" : "A receber"}
               </dd>
             </div>
           </dl>

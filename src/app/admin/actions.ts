@@ -65,3 +65,29 @@ export async function rejeitarAta(formData: FormData): Promise<void> {
   revalidatePath("/admin");
   revalidatePath("/catalogo");
 }
+
+export async function marcarFaturamentoComoPago(formData: FormData): Promise<void> {
+  await exigirAdmin();
+  const faturamentoId = String(formData.get("faturamentoId") ?? "");
+  if (!faturamentoId) return;
+
+  await prisma.faturamento.update({
+    where: { id: faturamentoId },
+    data: { pago: true, pagoEm: new Date() },
+  });
+  revalidatePath("/admin/faturamento");
+  revalidatePath("/admin");
+}
+
+export async function marcarFaturamentoComoPendente(formData: FormData): Promise<void> {
+  await exigirAdmin();
+  const faturamentoId = String(formData.get("faturamentoId") ?? "");
+  if (!faturamentoId) return;
+
+  await prisma.faturamento.update({
+    where: { id: faturamentoId },
+    data: { pago: false, pagoEm: null },
+  });
+  revalidatePath("/admin/faturamento");
+  revalidatePath("/admin");
+}

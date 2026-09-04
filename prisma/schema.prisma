@@ -166,22 +166,25 @@ model AdesaoHistorico {
 }
 
 // Gerada automaticamente quando a adesão chega em EMPENHADA (Sprint 8) —
-// já nasce com a divisão 95%/5% entre Tech 10 e a desenvolvedora prevista
-// no plano de gestão comercial.
+// é o "contas a receber" da Tech 10.
 //
 // Cobrada exclusivamente do fornecedor (Ata.fornecedor) — o órgão público
 // nunca é parte nem paga nada nesta cobrança. É um contrato civil privado
 // entre a Tech 10 e o fornecedor, separado do instrumento de licitação;
 // nenhuma cláusula da ata ou do edital condiciona a adesão a este valor.
+//
+// O repasse à empresa desenvolvedora é um acerto privado entre a Tech 10 e
+// a desenvolvedora, fora da plataforma — não é calculado nem registrado
+// aqui. Este valor é sempre o total devido à Tech 10.
 model Faturamento {
-  id                    String   @id @default(cuid())
-  adesaoId              String   @unique
-  valorContrato         Decimal  @db.Decimal(14, 2)
-  percentualTaxa        Decimal  @db.Decimal(5, 4)
-  valorTaxaIntermediacao Decimal @db.Decimal(14, 2)
-  valorTech10           Decimal  @db.Decimal(14, 2)
-  valorDesenvolvedora   Decimal  @db.Decimal(14, 2)
-  criadoEm              DateTime @default(now())
+  id                     String    @id @default(cuid())
+  adesaoId               String    @unique
+  valorContrato          Decimal   @db.Decimal(14, 2)
+  percentualTaxa         Decimal   @db.Decimal(5, 4)
+  valorTaxaIntermediacao Decimal   @db.Decimal(14, 2)
+  pago                   Boolean   @default(false)
+  pagoEm                 DateTime?
+  criadoEm               DateTime  @default(now())
 
   adesao Adesao @relation(fields: [adesaoId], references: [id])
 

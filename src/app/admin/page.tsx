@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { adminIdLogado } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -38,14 +39,12 @@ export default async function PainelAdminPage() {
     0,
   );
 
-  const receitaTotalIntermediacao = faturamentos.reduce(
-    (total, f) => total + Number(f.valorTaxaIntermediacao),
-    0,
-  );
-  const repasseTotalDesenvolvedora = faturamentos.reduce(
-    (total, f) => total + Number(f.valorDesenvolvedora),
-    0,
-  );
+  const totalAReceber = faturamentos
+    .filter((f) => !f.pago)
+    .reduce((total, f) => total + Number(f.valorTaxaIntermediacao), 0);
+  const totalRecebido = faturamentos
+    .filter((f) => f.pago)
+    .reduce((total, f) => total + Number(f.valorTaxaIntermediacao), 0);
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-10">
@@ -63,17 +62,16 @@ export default async function PainelAdminPage() {
         <Metrica rotulo="Saldo total disponível" valor={saldoTotalDisponivel} />
         <Metrica rotulo="Pedidos em andamento" valor={pedidosEmAndamento} />
         <Metrica rotulo="Contratos faturados" valor={pedidosFaturados} />
-        <Metrica
-          rotulo="Receita de intermediação"
-          valor={receitaTotalIntermediacao}
-          prefixo="R$ "
-        />
-        <Metrica
-          rotulo="Repasse à desenvolvedora (5%)"
-          valor={repasseTotalDesenvolvedora}
-          prefixo="R$ "
-        />
+        <Metrica rotulo="Total a receber" valor={totalAReceber} prefixo="R$ " />
+        <Metrica rotulo="Total recebido" valor={totalRecebido} prefixo="R$ " />
       </div>
+
+      <Link
+        href="/admin/faturamento"
+        className="mt-4 inline-block rounded-md border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-800"
+      >
+        Ver contas a receber →
+      </Link>
 
       <section className="mt-10">
         <h2 className="text-lg font-medium">Atas aguardando moderação</h2>
