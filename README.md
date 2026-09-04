@@ -1,36 +1,137 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Central Nacional de Atas de Registro de Preços
 
-## Getting Started
+Plataforma que conecta atas de registro de preços vigentes a órgãos públicos que
+querem aderir a elas, com a trava de adesão do art. 86 da Lei 14.133/2021, catálogo
+público, painéis de fornecedor/órgão/admin, rastreador do PNCP e faturamento
+automático.
 
-First, run the development server:
+Este guia é pra rodar o projeto **na sua máquina**, com um banco Postgres local.
+Cada desenvolvedor roda sua própria cópia — os dados **não** são compartilhados
+entre máquinas diferentes até existir um banco compartilhado (Supabase, ver
+"Próximos passos" no fim).
+
+## Pré-requisitos
+
+- **Node.js 20 ou mais recente** ([nodejs.org](https://nodejs.org))
+- **PostgreSQL** rodando localmente — duas opções, escolha uma:
+  - **Docker** (mais simples, funciona igual em qualquer sistema operacional):
+    [docker.com/get-started](https://www.docker.com/get-started/)
+  - **Postgres instalado direto na máquina**: [Postgres.app](https://postgresapp.com/)
+    no Mac, `apt install postgresql` no Linux, ou o instalador oficial no Windows
+- **Git**
+
+## Passo a passo
+
+### 1. Clonar o repositório
+
+```bash
+git clone https://github.com/kadu123577-afk/Central-Nacional-de-Atas-de-Registro-de-Pre-os.git
+cd Central-Nacional-de-Atas-de-Registro-de-Pre-os
+git checkout claude/new-session-is28el
+```
+
+### 2. Instalar as dependências
+
+```bash
+npm install
+```
+
+### 3. Subir um Postgres local
+
+**Opção A — Docker (recomendado):**
+
+```bash
+docker run --name central-atas-db \
+  -e POSTGRES_PASSWORD=localdev \
+  -e POSTGRES_DB=central_atas \
+  -p 5432:5432 \
+  -d postgres:16
+```
+
+Isso cria o banco `central_atas` já pronto, rodando na porta padrão 5432. Da
+próxima vez que for trabalhar, basta `docker start central-atas-db` (não precisa
+rodar o `docker run` de novo).
+
+**Opção B — Postgres instalado na máquina:** crie um banco vazio chamado
+`central_atas` (`createdb central_atas` ou pelo Postgres.app/pgAdmin).
+
+### 4. Configurar as variáveis de ambiente
+
+```bash
+cp .env.example .env
+```
+
+Abra o `.env` e ajuste:
+
+- `DATABASE_URL` — se usou a Opção A (Docker) acima, deixe exatamente:
+  ```
+  DATABASE_URL="postgresql://postgres:localdev@localhost:5432/central_atas?schema=public"
+  ```
+  Se usou a Opção B, ajuste usuário/senha/porta pro que você configurou.
+- `SESSION_SECRET` — gere uma string aleatória com:
+  ```bash
+  node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+  ```
+  e cole o resultado.
+
+As outras variáveis (`CRON_SECRET`, `PNCP_ACCESS_TOKEN`, `TAXA_INTERMEDIACAO_PERCENTUAL`)
+podem ficar em branco por enquanto — só são necessárias em produção ou pra usar o
+rastreador do PNCP com chave de API.
+
+### 5. Rodar as migrações do banco
+
+```bash
+npx prisma migrate dev
+```
+
+Isso cria todas as tabelas no seu banco local. Na primeira vez ele também gera o
+Prisma Client automaticamente.
+
+### 6. Criar o usuário administrador
+
+Sem isso não dá pra entrar no painel `/admin`:
+
+```bash
+ADMIN_EMAIL="seu-email@tech10.com.br" ADMIN_SENHA="escolha-uma-senha-com-8-caracteres" npm run seed:admin
+```
+
+> **Windows (PowerShell):** essa sintaxe de variável antes do comando não funciona
+> no PowerShell nativo. Use o Git Bash (instalado junto com o Git para Windows) ou
+> rode assim no PowerShell:
+> ```powershell
+> $env:ADMIN_EMAIL="seu-email@tech10.com.br"; $env:ADMIN_SENHA="escolha-uma-senha-com-8-caracteres"; npm run seed:admin
+> ```
+
+### 7. Rodar o site
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Abra [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Rodando os testes
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run test
+```
 
-## Learn More
+## Cada desenvolvedor no seu próprio banco
 
-To learn more about Next.js, take a look at the following resources:
+Se você e outro dev rodarem cada um na sua máquina, cada um vai ter seu próprio
+banco local (passo 3), então uma ata que você cadastrar na sua máquina **não**
+aparece na máquina do outro dev — são bancos diferentes. Isso é esperado em
+desenvolvimento local. Quando o banco do Supabase existir (produção), todo mundo
+passa a apontar pro mesmo lugar.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Próximos passos (pra virar site de verdade, no ar, com um banco só)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. Criar conta no [Supabase](https://supabase.com) (Postgres gerenciado) e trocar o
+   `DATABASE_URL` de produção pra apontar pra lá.
+2. Conectar o repositório à [Vercel](https://vercel.com) pra deploy automático a
+   cada push.
+3. Registrar o domínio `.com.br` no [Registro.br](https://registro.br) e apontar
+   pra Vercel.
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Essas contas não são criadas por aqui — precisam ser feitas por vocês diretamente
+nesses serviços.
