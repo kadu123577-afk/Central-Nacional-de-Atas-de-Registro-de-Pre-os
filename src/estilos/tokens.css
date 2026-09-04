@@ -1,0 +1,48 @@
+/**
+ * Tokens visuais da Central Nacional de Atas — identidade Tech 10.
+ * Extraído do material de marca da Tech 10 (fundo escuro teal-black,
+ * acento verde). Nenhum componente escreve hex direto — todos leem daqui.
+ *
+ * Todo par texto/fundo abaixo foi conferido com a fórmula de contraste
+ * WCAG (mínimo 4.5:1) — ver /tmp/contraste.js usado durante o design.
+ */
+
+:root {
+  /* Superfícies — do mais escuro (fundo) ao mais claro (hover) */
+  --cor-fundo: #071a17;
+  --cor-superficie: #0d2420;
+  --cor-superficie-2: #123028;
+  --cor-borda: #1c3d35;
+  --cor-borda-forte: #2a5c4c;
+
+  /* Texto — três níveis de ênfase, nunca mais que isso */
+  --cor-texto: #eef6f1;
+  --cor-texto-2: #aec4bc;
+  --cor-texto-3: #87a599;
+
+  /* Marca — verde Tech 10. Estrutural: título, botão principal, item de
+     navegação ativo. NUNCA usada pra indicar erro/risco. */
+  --cor-marca-clara: #9ef01a;
+  --cor-marca: #39b54a;
+  --cor-marca-escura: #1f7a37;
+  --cor-marca-fundo: rgba(57, 181, 74, 0.14);
+
+  /* Severidade — a ÚNICA família de cor que significa "atenção" */
+  --cor-atencao: #e0a835;
+  --cor-atencao-fundo: rgba(224, 168, 53, 0.14);
+  --cor-alerta: #e0752e;
+  --cor-alerta-fundo: rgba(224, 117, 46, 0.14);
+  --cor-critico: #f4655a;
+  --cor-critico-fundo: rgba(244, 101, 90, 0.14);
+
+  --raio: 6px;
+  --grade: 4px;
+
+  --fonte-marca: var(--font-poppins), ui-sans-serif, sans-serif;
+  --fonte-interface: var(--font-plex-sans), ui-sans-serif, sans-serif;
+  --fonte-numero: var(--font-plex-mono), ui-monospace, monospace;
+}
+
+/* A paleta inteira é dark-first — é a identidade real da marca, não uma
+   adaptação de tema. Impressão (@media print) redefine os tokens pra
+   preto/branco/cinza em globals.css, separadamente. */

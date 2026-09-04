@@ -3,6 +3,12 @@ import { fornecedorIdLogado } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { saldoAgregadoDisponivel, limitePorOrgao } from "@/lib/saldo";
 import { logoutFornecedor } from "./actions";
+import { AppShell } from "@/components/ui/app-shell";
+import { Secao } from "@/components/ui/secao";
+import { Badge } from "@/components/ui/badge";
+import { Numero } from "@/components/ui/valores";
+import { VazioComAcao } from "@/components/ui/vazio-com-acao";
+import { tomStatusAta } from "@/lib/severidade";
 
 export const dynamic = "force-dynamic";
 
@@ -27,66 +33,82 @@ export default async function PainelFornecedorPage() {
   }
 
   return (
-    <main className="mx-auto max-w-4xl px-6 py-10">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">Minhas atas</h1>
-          <p className="mt-1 text-sm text-neutral-600">{fornecedor.razaoSocial}</p>
-        </div>
+    <AppShell
+      area="Fornecedor"
+      itens={[{ rotulo: "Minhas atas", href: "/fornecedor" }]}
+      rodape={
         <form action={logoutFornecedor}>
-          <button type="submit" className="text-sm text-neutral-500 underline">
+          <button type="submit" className="botao-atas link">
             Sair
           </button>
         </form>
+      }
+    >
+      <div>
+        <h1 className="marca text-2xl" style={{ color: "var(--cor-texto)" }}>
+          Minhas atas
+        </h1>
+        <p className="mt-1 text-sm" style={{ color: "var(--cor-texto-2)" }}>
+          {fornecedor.razaoSocial}
+        </p>
       </div>
 
       {fornecedor.atas.length === 0 ? (
-        <p className="mt-8 text-sm text-neutral-600">
-          Você ainda não tem nenhuma ata cadastrada.
-        </p>
+        <VazioComAcao
+          titulo="Nenhuma ata ainda"
+          descricao="Suas atas cadastradas na Central de Atas vão aparecer aqui."
+        />
       ) : (
-        <ul className="mt-8 space-y-6">
+        <ul className="flex flex-col gap-4">
           {fornecedor.atas.map((ata) => (
-            <li key={ata.id} className="rounded-lg border border-neutral-200 p-5">
-              <div className="flex items-baseline justify-between">
-                <h2 className="font-medium">Ata {ata.numero}</h2>
-                <span className="text-xs uppercase tracking-wide text-neutral-500">
-                  {ata.status}
-                </span>
-              </div>
-              <p className="mt-1 text-sm text-neutral-600">{ata.objeto}</p>
+            <Secao
+              key={ata.id}
+              titulo={`Ata ${ata.numero}`}
+              acao={<Badge tom={tomStatusAta(ata.status)}>{ata.status}</Badge>}
+            >
+              <p className="text-sm" style={{ color: "var(--cor-texto-2)" }}>
+                {ata.objeto}
+              </p>
 
-              <table className="mt-4 w-full text-left text-sm">
-                <thead>
-                  <tr className="border-b border-neutral-200 text-xs uppercase text-neutral-500">
-                    <th className="py-1 pr-4">Item</th>
-                    <th className="py-1 pr-4">Registrado</th>
-                    <th className="py-1 pr-4">Limite por órgão</th>
-                    <th className="py-1 pr-4">Saldo disponível</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {ata.itens.map((item) => (
-                    <tr key={item.id} className="border-b border-neutral-100 last:border-0">
-                      <td className="py-2 pr-4">{item.descricao}</td>
-                      <td className="py-2 pr-4">
-                        {item.quantidadeRegistrada} {item.unidade}
-                      </td>
-                      <td className="py-2 pr-4">{limitePorOrgao(item.quantidadeRegistrada)}</td>
-                      <td className="py-2 pr-4">
-                        {saldoAgregadoDisponivel(
-                          item.quantidadeRegistrada,
-                          item.saldo?.quantidadeConsumida ?? 0,
-                        )}
-                      </td>
+              <div className="mt-4 overflow-x-auto">
+                <table className="tabela-atas">
+                  <thead>
+                    <tr>
+                      <th>Item</th>
+                      <th>Registrado</th>
+                      <th>Limite por órgão</th>
+                      <th>Saldo disponível</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </li>
+                  </thead>
+                  <tbody>
+                    {ata.itens.map((item) => (
+                      <tr key={item.id}>
+                        <td>{item.descricao}</td>
+                        <td>
+                          <Numero>
+                            {item.quantidadeRegistrada} {item.unidade}
+                          </Numero>
+                        </td>
+                        <td>
+                          <Numero>{limitePorOrgao(item.quantidadeRegistrada)}</Numero>
+                        </td>
+                        <td>
+                          <Numero>
+                            {saldoAgregadoDisponivel(
+                              item.quantidadeRegistrada,
+                              item.saldo?.quantidadeConsumida ?? 0,
+                            )}
+                          </Numero>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Secao>
           ))}
         </ul>
       )}
-    </main>
+    </AppShell>
   );
 }

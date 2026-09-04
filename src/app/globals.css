@@ -1,26 +1,222 @@
 @import "tailwindcss";
-
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@import "../estilos/tokens.css";
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-fundo: var(--cor-fundo);
+  --color-superficie: var(--cor-superficie);
+  --color-texto: var(--cor-texto);
+  --font-sans: var(--fonte-interface);
+  --font-mono: var(--fonte-numero);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  color-scheme: dark;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--cor-fundo);
+  color: var(--cor-texto);
+  font-family: var(--fonte-interface);
+}
+
+::selection {
+  background: var(--cor-marca);
+  color: var(--cor-fundo);
+}
+
+/* ---- tipografia de papel fixo ---- */
+
+.marca {
+  font-family: var(--fonte-marca);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  text-wrap: balance;
+}
+
+.eyebrow {
+  font-family: var(--fonte-marca);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 11px;
+  color: var(--cor-texto-2);
+}
+
+.numero {
+  font-family: var(--fonte-numero);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* ---- painel (card base) ---- */
+
+.painel {
+  background: var(--cor-superficie);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio);
+}
+
+/* ---- tabela ---- */
+
+.tabela-atas {
+  width: 100%;
+  text-align: left;
+  font-size: 13.5px;
+  border-collapse: collapse;
+}
+.tabela-atas thead th {
+  font-family: var(--fonte-marca);
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--cor-texto-3);
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--cor-borda);
+  text-align: left;
+}
+.tabela-atas tbody td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--cor-borda);
+  color: var(--cor-texto-2);
+}
+.tabela-atas tbody tr:nth-child(even) {
+  background: var(--cor-superficie-2);
+}
+.tabela-atas tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* ---- campo e botão ---- */
+
+.campo-atas {
+  width: 100%;
+  background: var(--cor-superficie);
+  border: 1px solid var(--cor-borda-forte);
+  border-radius: var(--raio);
+  padding: 9px 12px;
+  font-size: 14px;
+  color: var(--cor-texto);
+  font-family: var(--fonte-interface);
+}
+.campo-atas::placeholder {
+  color: var(--cor-texto-3);
+}
+.campo-atas:focus {
+  outline: none;
+  border-color: var(--cor-marca);
+}
+
+.botao-atas {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: var(--fonte-marca);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 12px;
+  padding: 10px 20px;
+  border-radius: var(--raio);
+  border: 1px solid var(--cor-marca);
+  background: var(--cor-marca);
+  color: var(--cor-fundo);
+  transition: background-color 150ms ease-out, opacity 150ms ease-out;
+  cursor: pointer;
+}
+.botao-atas:hover:not(:disabled) {
+  background: var(--cor-marca-escura);
+  border-color: var(--cor-marca-escura);
+}
+.botao-atas:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.botao-atas.secundario {
+  background: transparent;
+  color: var(--cor-texto-2);
+  border-color: var(--cor-borda-forte);
+}
+.botao-atas.secundario:hover:not(:disabled) {
+  background: var(--cor-superficie-2);
+  border-color: var(--cor-texto-3);
+}
+.botao-atas.critico {
+  background: transparent;
+  color: var(--cor-critico);
+  border-color: var(--cor-critico);
+}
+.botao-atas.critico:hover:not(:disabled) {
+  background: var(--cor-critico-fundo);
+}
+.botao-atas.link {
+  background: transparent;
+  border-color: transparent;
+  color: var(--cor-texto-2);
+  text-transform: none;
+  letter-spacing: normal;
+  font-family: var(--fonte-interface);
+  font-weight: 500;
+  padding: 4px 0;
+  text-decoration: underline;
+}
+.botao-atas.link:hover:not(:disabled) {
+  color: var(--cor-texto);
+  background: transparent;
+}
+
+/* ---- impressão ---- */
+
+.somente-impressao,
+.timbre-impressao,
+.rodape-impressao {
+  display: none;
+}
+
+@media print {
+  .sem-impressao,
+  nav,
+  aside {
+    display: none !important;
+  }
+  .somente-impressao,
+  .timbre-impressao,
+  .rodape-impressao {
+    display: block !important;
+  }
+
+  :root {
+    --cor-fundo: #ffffff;
+    --cor-superficie: #ffffff;
+    --cor-superficie-2: #f2f2f2;
+    --cor-borda: #999999;
+    --cor-borda-forte: #666666;
+    --cor-texto: #000000;
+    --cor-texto-2: #333333;
+    --cor-texto-3: #555555;
+    --cor-marca: #000000;
+    --cor-marca-clara: #000000;
+    --cor-marca-escura: #000000;
+    --cor-atencao: #000000;
+    --cor-atencao-fundo: #e5e5e5;
+    --cor-alerta: #000000;
+    --cor-alerta-fundo: #e5e5e5;
+    --cor-critico: #000000;
+    --cor-critico-fundo: #e5e5e5;
+  }
+
+  body {
+    background: #ffffff;
+  }
+
+  .painel {
+    border: 1px solid #999999;
+    break-inside: avoid;
+  }
+
+  @page {
+    margin: 14mm 12mm 16mm;
+  }
 }

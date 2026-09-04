@@ -9,16 +9,21 @@ export function BotaoAvancar({ adesaoId }: { adesaoId: string }) {
   const [estado, formAction, pendente] = useActionState(avancarEstagioAdesao, estadoInicial);
 
   return (
-    <form action={formAction} className="space-y-2">
+    <form action={formAction} className="flex flex-col gap-2">
       <input type="hidden" name="adesaoId" value={adesaoId} />
       {estado.erro && (
-        <p className="rounded-md bg-red-50 px-4 py-3 text-sm text-red-700">{estado.erro}</p>
+        <p
+          className="rounded-[var(--raio)] border px-4 py-3 text-sm"
+          style={{
+            borderColor: "var(--cor-critico)",
+            background: "var(--cor-critico-fundo)",
+            color: "var(--cor-critico)",
+          }}
+        >
+          {estado.erro}
+        </p>
       )}
-      <button
-        type="submit"
-        disabled={pendente}
-        className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-      >
+      <button type="submit" disabled={pendente} className="botao-atas self-start">
         {pendente ? "Avançando..." : "Avançar para o próximo estágio"}
       </button>
     </form>

@@ -34,9 +34,16 @@ export function AvisoCookies() {
   if (!visivel) return null;
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-50 border-t border-neutral-200 bg-white px-6 py-4 shadow-[0_-4px_16px_rgba(0,0,0,0.08)]">
+    <div
+      className="sem-impressao fixed inset-x-0 bottom-0 z-50 border-t px-6 py-4"
+      style={{
+        borderColor: "var(--cor-borda)",
+        background: "var(--cor-superficie)",
+        boxShadow: "0 -4px 16px rgba(0,0,0,0.3)",
+      }}
+    >
       <div className="mx-auto flex max-w-4xl flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm text-neutral-600">
+        <p className="text-sm" style={{ color: "var(--cor-texto-2)" }}>
           Usamos apenas cookies estritamente necessários para manter sua sessão de login. Não
           usamos cookies de rastreamento ou publicidade.{" "}
           <Link href="/politica-privacidade" className="underline">
@@ -44,11 +51,7 @@ export function AvisoCookies() {
           </Link>
           .
         </p>
-        <button
-          type="button"
-          onClick={fechar}
-          className="shrink-0 rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white"
-        >
+        <button type="button" onClick={fechar} className="botao-atas shrink-0">
           Entendi
         </button>
       </div>

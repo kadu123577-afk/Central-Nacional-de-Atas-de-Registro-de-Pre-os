@@ -3,8 +3,20 @@ import { redirect } from "next/navigation";
 import { adminIdLogado } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { marcarFaturamentoComoPago, marcarFaturamentoComoPendente } from "../actions";
+import { AppShell } from "@/components/ui/app-shell";
+import { CartaoIndicador } from "@/components/ui/cartao-indicador";
+import { Badge } from "@/components/ui/badge";
+import { Cifra } from "@/components/ui/valores";
+import { VazioComAcao } from "@/components/ui/vazio-com-acao";
+import { tomFaturamento } from "@/lib/severidade";
+import { logoutAdmin } from "../actions";
 
 export const dynamic = "force-dynamic";
+
+const NAV_ADMIN = [
+  { rotulo: "Painel", href: "/admin" },
+  { rotulo: "Contas a receber", href: "/admin/faturamento" },
+];
 
 export default async function FaturamentoAdminPage() {
   const adminId = await adminIdLogado();
@@ -29,78 +41,87 @@ export default async function FaturamentoAdminPage() {
     .reduce((total, f) => total + Number(f.valorTaxaIntermediacao), 0);
 
   return (
-    <main className="mx-auto max-w-4xl px-6 py-10">
+    <AppShell
+      area="Administrativo"
+      itens={NAV_ADMIN}
+      rodape={
+        <form action={logoutAdmin}>
+          <button type="submit" className="botao-atas link">
+            Sair
+          </button>
+        </form>
+      }
+    >
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Contas a receber</h1>
-          <p className="mt-1 text-sm text-neutral-600">
+          <h1 className="marca text-2xl" style={{ color: "var(--cor-texto)" }}>
+            Contas a receber
+          </h1>
+          <p className="mt-1 text-sm" style={{ color: "var(--cor-texto-2)" }}>
             Taxa de intermediação devida por cada fornecedor, por adesão empenhada.
           </p>
         </div>
-        <Link href="/admin" className="text-sm text-neutral-500 underline">
+        <Link href="/admin" className="botao-atas link">
           ← Painel
         </Link>
       </div>
 
-      <div className="mt-6 rounded-lg border border-neutral-200 p-4">
-        <p className="text-2xl font-semibold tabular-nums">R$ {totalAReceber.toFixed(2)}</p>
-        <p className="mt-1 text-xs uppercase tracking-wide text-neutral-500">
-          Total em aberto
-        </p>
+      <div className="grid grid-cols-2 gap-3">
+        <CartaoIndicador
+          rotulo="Total em aberto"
+          valor={<Cifra valor={totalAReceber} />}
+          tom={totalAReceber > 0 ? "atencao" : "neutro"}
+        />
       </div>
 
       {faturamentos.length === 0 ? (
-        <p className="mt-8 text-sm text-neutral-600">Nenhuma cobrança gerada ainda.</p>
+        <VazioComAcao
+          titulo="Nenhuma cobrança gerada ainda"
+          descricao="Cobranças nascem sozinhas quando um pedido de adesão chega em Empenhada."
+        />
       ) : (
-        <div className="mt-8 overflow-x-auto">
-          <table className="w-full text-left text-sm">
+        <div className="painel overflow-x-auto p-1">
+          <table className="tabela-atas">
             <thead>
-              <tr className="border-b border-neutral-200 text-xs uppercase text-neutral-500">
-                <th className="py-2 pr-4">Ata</th>
-                <th className="py-2 pr-4">Fornecedor</th>
-                <th className="py-2 pr-4">Órgão aderente</th>
-                <th className="py-2 pr-4">Valor do contrato</th>
-                <th className="py-2 pr-4">A receber</th>
-                <th className="py-2 pr-4">Status</th>
-                <th className="py-2 pr-4"></th>
+              <tr>
+                <th>Ata</th>
+                <th>Fornecedor</th>
+                <th>Órgão aderente</th>
+                <th>Valor do contrato</th>
+                <th>A receber</th>
+                <th>Status</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
               {faturamentos.map((f) => (
-                <tr key={f.id} className="border-b border-neutral-100 last:border-0">
-                  <td className="py-2 pr-4">
+                <tr key={f.id}>
+                  <td>
                     <Link href={`/adesoes/${f.adesaoId}`} className="underline">
                       {f.adesao.item.ata.numero}
                     </Link>
                   </td>
-                  <td className="py-2 pr-4">{f.adesao.item.ata.fornecedor.razaoSocial}</td>
-                  <td className="py-2 pr-4">
+                  <td>{f.adesao.item.ata.fornecedor.razaoSocial}</td>
+                  <td>
                     {f.adesao.orgaoAderente.nome} ({f.adesao.orgaoAderente.uf})
                   </td>
-                  <td className="py-2 pr-4 tabular-nums">
-                    R$ {Number(f.valorContrato).toFixed(2)}
+                  <td>
+                    <Cifra valor={f.valorContrato} />
                   </td>
-                  <td className="py-2 pr-4 font-medium tabular-nums">
-                    R$ {Number(f.valorTaxaIntermediacao).toFixed(2)}
+                  <td className="font-medium" style={{ color: "var(--cor-texto)" }}>
+                    <Cifra valor={f.valorTaxaIntermediacao} />
                   </td>
-                  <td className="py-2 pr-4">
-                    <span
-                      className={
-                        "rounded-full px-2 py-0.5 text-xs font-medium " +
-                        (f.pago
-                          ? "bg-green-50 text-green-700"
-                          : "bg-amber-50 text-amber-700")
-                      }
-                    >
+                  <td>
+                    <Badge tom={tomFaturamento(f.pago)}>
                       {f.pago ? "Recebido" : "A receber"}
-                    </span>
+                    </Badge>
                   </td>
-                  <td className="py-2 pr-4">
+                  <td>
                     <form
                       action={f.pago ? marcarFaturamentoComoPendente : marcarFaturamentoComoPago}
                     >
                       <input type="hidden" name="faturamentoId" value={f.id} />
-                      <button type="submit" className="text-xs underline">
+                      <button type="submit" className="botao-atas link">
                         {f.pago ? "Marcar como pendente" : "Marcar como recebido"}
                       </button>
                     </form>
@@ -111,6 +132,6 @@ export default async function FaturamentoAdminPage() {
           </table>
         </div>
       )}
-    </main>
+    </AppShell>
   );
 }

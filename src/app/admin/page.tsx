@@ -1,11 +1,20 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { adminIdLogado } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { saldoAgregadoDisponivel } from "@/lib/saldo";
 import { aprovarAta, logoutAdmin, rejeitarAta } from "./actions";
+import { AppShell } from "@/components/ui/app-shell";
+import { Secao } from "@/components/ui/secao";
+import { CartaoIndicador } from "@/components/ui/cartao-indicador";
+import { Cifra } from "@/components/ui/valores";
+import { VazioComAcao } from "@/components/ui/vazio-com-acao";
 
 export const dynamic = "force-dynamic";
+
+const NAV_ADMIN = [
+  { rotulo: "Painel", href: "/admin" },
+  { rotulo: "Contas a receber", href: "/admin/faturamento" },
+];
 
 export default async function PainelAdminPage() {
   const adminId = await adminIdLogado();
@@ -47,52 +56,66 @@ export default async function PainelAdminPage() {
     .reduce((total, f) => total + Number(f.valorTaxaIntermediacao), 0);
 
   return (
-    <main className="mx-auto max-w-4xl px-6 py-10">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Painel administrativo</h1>
+    <AppShell
+      area="Administrativo"
+      itens={NAV_ADMIN}
+      rodape={
         <form action={logoutAdmin}>
-          <button type="submit" className="text-sm text-neutral-500 underline">
+          <button type="submit" className="botao-atas link">
             Sair
           </button>
         </form>
+      }
+    >
+      <h1 className="marca text-2xl" style={{ color: "var(--cor-texto)" }}>
+        Painel administrativo
+      </h1>
+
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <CartaoIndicador rotulo="Atas aprovadas" valor={totalAtas} />
+        <CartaoIndicador rotulo="Saldo total disponível" valor={saldoTotalDisponivel} />
+        <CartaoIndicador
+          rotulo="Pedidos em andamento"
+          valor={pedidosEmAndamento}
+          tom={pedidosEmAndamento > 0 ? "atencao" : "neutro"}
+        />
+        <CartaoIndicador rotulo="Contratos faturados" valor={pedidosFaturados} tom="marca" />
+        <CartaoIndicador
+          rotulo="Total a receber"
+          valor={<Cifra valor={totalAReceber} />}
+          tom={totalAReceber > 0 ? "atencao" : "neutro"}
+        />
+        <CartaoIndicador rotulo="Total recebido" valor={<Cifra valor={totalRecebido} />} />
       </div>
 
-      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Metrica rotulo="Atas aprovadas" valor={totalAtas} />
-        <Metrica rotulo="Saldo total disponível" valor={saldoTotalDisponivel} />
-        <Metrica rotulo="Pedidos em andamento" valor={pedidosEmAndamento} />
-        <Metrica rotulo="Contratos faturados" valor={pedidosFaturados} />
-        <Metrica rotulo="Total a receber" valor={totalAReceber} prefixo="R$ " />
-        <Metrica rotulo="Total recebido" valor={totalRecebido} prefixo="R$ " />
-      </div>
-
-      <Link
-        href="/admin/faturamento"
-        className="mt-4 inline-block rounded-md border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-800"
-      >
-        Ver contas a receber →
-      </Link>
-
-      <section className="mt-10">
-        <h2 className="text-lg font-medium">Atas aguardando moderação</h2>
-        <p className="mt-1 text-sm text-neutral-600">
+      <Secao titulo="Atas aguardando moderação">
+        <p className="text-sm" style={{ color: "var(--cor-texto-2)" }}>
           Uma ata só aparece no catálogo público depois de aprovada aqui.
         </p>
 
         {atasPendentes.length === 0 ? (
-          <p className="mt-6 text-sm text-neutral-600">Nenhuma ata pendente no momento.</p>
+          <div className="mt-4">
+            <VazioComAcao
+              titulo="Nada pendente"
+              descricao="Nenhuma ata aguardando moderação no momento."
+            />
+          </div>
         ) : (
-          <ul className="mt-6 space-y-4">
+          <ul className="mt-4 flex flex-col gap-4">
             {atasPendentes.map((ata) => (
-              <li key={ata.id} className="rounded-lg border border-neutral-200 p-5">
+              <li key={ata.id} className="painel p-4">
                 <div className="flex items-baseline justify-between">
-                  <h3 className="font-medium">Ata {ata.numero}</h3>
-                  <span className="text-xs uppercase tracking-wide text-neutral-500">
+                  <h3 className="font-medium" style={{ color: "var(--cor-texto)" }}>
+                    Ata {ata.numero}
+                  </h3>
+                  <span className="eyebrow">
                     {ata.origem === "PNCP" ? "Importada do PNCP" : "Cadastro manual"}
                   </span>
                 </div>
-                <p className="mt-1 text-sm text-neutral-600">{ata.objeto}</p>
-                <p className="mt-1 text-xs text-neutral-500">
+                <p className="mt-1 text-sm" style={{ color: "var(--cor-texto-2)" }}>
+                  {ata.objeto}
+                </p>
+                <p className="mt-1 text-xs" style={{ color: "var(--cor-texto-3)" }}>
                   {ata.fornecedor.razaoSocial} · Órgão gerenciador: {ata.orgaoGerenciador.nome} (
                   {ata.orgaoGerenciador.uf}) · {ata.itens.length}{" "}
                   {ata.itens.length === 1 ? "item" : "itens"}
@@ -101,19 +124,13 @@ export default async function PainelAdminPage() {
                 <div className="mt-3 flex gap-2">
                   <form action={aprovarAta}>
                     <input type="hidden" name="ataId" value={ata.id} />
-                    <button
-                      type="submit"
-                      className="rounded-md bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white"
-                    >
+                    <button type="submit" className="botao-atas">
                       Aprovar
                     </button>
                   </form>
                   <form action={rejeitarAta}>
                     <input type="hidden" name="ataId" value={ata.id} />
-                    <button
-                      type="submit"
-                      className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm font-medium text-neutral-800"
-                    >
+                    <button type="submit" className="botao-atas critico">
                       Rejeitar
                     </button>
                   </form>
@@ -122,27 +139,7 @@ export default async function PainelAdminPage() {
             ))}
           </ul>
         )}
-      </section>
-    </main>
-  );
-}
-
-function Metrica({
-  rotulo,
-  valor,
-  prefixo,
-}: {
-  rotulo: string;
-  valor: number;
-  prefixo?: string;
-}) {
-  return (
-    <div className="rounded-lg border border-neutral-200 p-4">
-      <p className="text-2xl font-semibold tabular-nums">
-        {prefixo}
-        {prefixo ? valor.toFixed(2) : valor}
-      </p>
-      <p className="mt-1 text-xs uppercase tracking-wide text-neutral-500">{rotulo}</p>
-    </div>
+      </Secao>
+    </AppShell>
   );
 }
