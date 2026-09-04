@@ -141,14 +141,75 @@ aparece na máquina do outro dev — são bancos diferentes. Isso é esperado em
 desenvolvimento local. Quando o banco do Supabase existir (produção), todo mundo
 passa a apontar pro mesmo lugar.
 
-## Próximos passos (pra virar site de verdade, no ar, com um banco só)
+## Deploy em produção (site de verdade, no ar, com um banco só)
 
-1. Criar conta no [Supabase](https://supabase.com) (Postgres gerenciado) e trocar o
-   `DATABASE_URL` de produção pra apontar pra lá.
-2. Conectar o repositório à [Vercel](https://vercel.com) pra deploy automático a
-   cada push.
-3. Registrar o domínio `.com.br` no [Registro.br](https://registro.br) e apontar
-   pra Vercel.
+O código já está pronto pra isso — o que falta é só a criação de contas em
+serviços externos, que precisa ser feita por vocês diretamente (não é algo que
+se resolve neste repositório). Passo a passo, na ordem:
 
-Essas contas não são criadas por aqui — precisam ser feitas por vocês diretamente
-nesses serviços.
+### 1. Banco de dados
+
+Criar conta no [Supabase](https://supabase.com) (ou Neon, ou RDS — qualquer
+Postgres gerenciado) e copiar a string de conexão de lá. É o valor que vai virar
+o `DATABASE_URL` de produção — **diferente** do `.env` local de cada
+desenvolvedor.
+
+### 2. Deploy
+
+Conectar o repositório à [Vercel](https://vercel.com) (Import Project → escolher
+este repo → branch `claude/new-session-is28el` ou a que for a branch principal
+na hora do deploy). A Vercel detecta que é Next.js sozinha.
+
+Configurar, no painel do projeto na Vercel (Settings → Environment Variables),
+as mesmas variáveis do `.env.example`, com valores de produção:
+
+- `DATABASE_URL` — a string do Supabase do passo 1.
+- `SESSION_SECRET` — gerar uma nova, só pra produção (nunca reusar a de
+  desenvolvimento):
+  ```bash
+  node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+  ```
+- `CRON_SECRET` — gerar do mesmo jeito. A Vercel já envia esse valor sozinha no
+  cron do rastreador do PNCP (`vercel.json`) assim que a variável existir no
+  projeto — não precisa configurar mais nada além de criar a variável.
+- `PNCP_ACCESS_TOKEN` — opcional, mas sem ele o rastreador importa a ata do PNCP
+  sem itens nem fornecedor (ela cai pendente, com o selo "PNCP incompleta" no
+  painel admin, esperando alguém completar manualmente em
+  `/admin/atas/[id]/completar`). Se a Tech 10 tiver esse token de acesso à API
+  de órgãos do PNCP, vale configurar.
+- `TAXA_INTERMEDIACAO_PERCENTUAL` — só se o percentual for diferente de 5%.
+
+### 3. Primeira execução no banco novo
+
+Depois do primeiro deploy (ou antes, rodando local apontando pro banco de
+produção — cuidado pra não confundir com o banco de dev):
+
+```bash
+DATABASE_URL="<a string do Supabase>" npx prisma migrate deploy
+DATABASE_URL="<a string do Supabase>" ADMIN_EMAIL="seu-email@tech10.com.br" ADMIN_SENHA="senha-forte-aqui" npx tsx prisma/seed-admin.ts
+```
+
+**Nunca rode `npm run seed` (o dataset de demonstração) contra o banco de
+produção** — ele cria fornecedores/órgãos fictícios (`... Demo LTDA`) que
+apareceriam de verdade no catálogo público. Esse comando é só pra ambiente de
+desenvolvimento/demonstração.
+
+### 4. Domínio
+
+Registrar um `.com.br` no [Registro.br](https://registro.br) e apontar pra
+Vercel (Settings → Domains, a própria Vercel mostra os registros DNS exatos
+pra configurar no Registro.br).
+
+### O que ainda não dá pra fazer, mesmo depois desses 4 passos
+
+- **Notificação por e-mail** — nenhum evento do sistema envia e-mail hoje.
+  Falta escolher um provedor (Resend, SendGrid, SES) antes de integrar.
+- **Cobrança automática da taxa de 5%** — hoje o admin marca "pago" manualmente
+  em `/admin/faturamento`; não há gateway de pagamento (boleto/Pix/cartão)
+  integrado.
+- **§§6º e 7º do art. 86 da Lei 14.133/2021** (exceções ao teto de 200% de
+  adesão) — exige um campo novo no banco, que por sua vez exige decidir como o
+  sistema vai identificar esses dois casos específicos.
+
+Esses três itens estão detalhados, com o porquê de cada um, no
+`ESCOPO-DO-PROJETO.md`.
