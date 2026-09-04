@@ -12,6 +12,9 @@ export function Rodape() {
       >
         <p>Central Nacional de Atas de Registro de Preços — Tech 10 Digital</p>
         <nav className="flex gap-4">
+          <Link href="/ajuda" className="underline">
+            Central de Ajuda
+          </Link>
           <Link href="/politica-privacidade" className="underline">
             Política de Privacidade
           </Link>

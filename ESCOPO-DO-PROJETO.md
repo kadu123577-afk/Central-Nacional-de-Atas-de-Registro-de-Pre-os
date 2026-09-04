@@ -331,6 +331,8 @@ até agora já aplicados.
 | `/admin` | Painel — aprovar/rejeitar atas pendentes | ✅ Completo |
 | `/admin/faturamento` | Contas a receber (taxa de intermediação) — marcar como recebido | ✅ Completo (feedback visual imediato adicionado em rodada anterior) |
 | `/admin/usuarios` | Gestão de usuários — ativar/desativar fornecedor e órgão | ✅ Completo |
+| `/admin/atas/[ataId]/completar` | Completar ata PNCP incompleta (fornecedor real + itens) | ✅ Completo |
+| `/admin/perfil` | Perfil — trocar senha | ✅ Completo |
 | `/atas` | Cadastro/listagem interna completa de atas (todo status) | ✅ Completo — **agora atrás de login de admin** (corrigido em 2026-09-04, ver §2.4 item 3) |
 
 ### 5.2 Requisitos confirmados e já aplicados
@@ -340,10 +342,15 @@ até agora já aplicados.
   `00000000000000`) ou sem nenhum item enriquecido agora aparecem com um
   selo "PNCP incompleta" e vêm primeiro na fila de "Atas aguardando
   moderação" em `/admin`, em vez de se perderem misturadas com o resto.
-  **Ainda não construído:** uma tela de edição pra de fato completar essas
-  atas (informar o fornecedor certo, adicionar os itens) — hoje o admin só
-  vê o alerta, mas precisa aprovar/rejeitar como estão ou completar por
-  fora do sistema.
+- **Completar ata PNCP incompleta** (2026-09-04) — botão "Completar" nas
+  atas sinalizadas leva a `/admin/atas/[ataId]/completar`. Confirmar
+  fornecedor faz upsert de um fornecedor real por CNPJ e reaponta só
+  aquela ata pra ele — **não edita o fornecedor-placeholder em si**
+  (`CNPJ 00000000000000`), porque ele é compartilhado por qualquer outra
+  ata PNCP ainda sem fornecedor confirmado; editar em cima dele mudaria
+  o fornecedor de todas as outras. Adicionar item cria um item por vez
+  (formulário mais simples que o do fornecedor, que aceita N de uma vez —
+  aqui o volume típico é baixo, completar uma ata específica).
 - **Gestão de usuários** (2026-09-04) — `/admin/usuarios` lista todo
   fornecedor e órgão com um badge Ativo/Desativado e um botão de
   alternar. Desativar bloqueia login (checado em `loginFornecedor` e
@@ -362,15 +369,31 @@ até agora já aplicados.
 
 ## 6. Telas transversais — faltam em qualquer perfil
 
-Levantadas na primeira rodada de gap-analysis, nenhuma confirmada como
-prioridade ainda:
+Levantadas na primeira rodada de gap-analysis. Status em 2026-09-04:
 
-- **Perfil/configurações** (trocar senha, dados de contato) — não existe
-  pra nenhum dos 4 perfis.
-- **404 customizado** — hoje é o padrão do Next.js.
-- **Notificação por e-mail** — nenhum evento do sistema (ata aprovada,
-  pedido de adesão recebido, mudança de estágio) dispara e-mail hoje.
-- **Central de ajuda / FAQ** — não existe.
+- **Perfil/configurações** (2026-09-04) ✅ — `/fornecedor/perfil`,
+  `/orgao/perfil`, `/admin/perfil` mostram os dados cadastrais (leitura)
+  e um formulário de troca de senha (`FormularioTrocarSenha`,
+  componente único reaproveitado pelos 3 perfis — só a server action
+  muda). Exige a senha atual correta antes de trocar. Verificado ao vivo
+  com Playwright, inclusive o ciclo completo: senha errada recusada,
+  senha certa trocada, login com a nova senha funcionando.
+  **Não incluído:** edição de dados cadastrais (razão social, CNPJ,
+  etc.) — só troca de senha por ora.
+- **404 customizado** (2026-09-04) ✅ — `src/app/not-found.tsx`, no
+  mesmo estilo visual do resto do site, com link pra home e catálogo.
+- **Central de ajuda / FAQ** (2026-09-04) ✅ — `/ajuda`, com perguntas
+  sobre carona, limites de 50%/200%, elegibilidade por esfera, a taxa de
+  5% e como cadastrar uma ata. Linkada no rodapé do site inteiro.
+- **Notificação por e-mail** — **não construído.** Nenhum evento do
+  sistema (ata aprovada, pedido de adesão recebido, mudança de estágio)
+  dispara e-mail hoje. Não é uma questão de código simples: exige
+  escolher um provedor de envio de e-mail (Resend, SendGrid, SES, etc.)
+  e as credenciais correspondentes, que não temos configuradas — mesma
+  natureza da decisão de upload de documento (§3.2), mas aqui não dava
+  pra contornar guardando algo no próprio banco (e-mail é uma chamada de
+  API externa de verdade, não um arquivo). Aguardando decisão de qual
+  provedor usar antes de implementar.
 
 ---
 
@@ -444,3 +467,13 @@ prioridade ainda:
   a qualquer esfera; só federal continua restrito, só a ata federal).
   11 testes ajustados, todos passando. Seed não precisou mudar de dado,
   só de comentário.
+- **2026-09-04 (mesmo dia, "termina o projeto")** — Fechado tudo que era
+  possível fechar sem inventar regra de negócio: perfil/troca de senha
+  pros 3 perfis autenticados, 404 customizado, central de ajuda/FAQ, e a
+  tela de completar ata PNCP incompleta (fornecedor real + itens) no
+  admin. `npm run build` (produção) rodado com sucesso, todas as rotas
+  novas compilando. Dois itens ficaram de fora, sinalizados e não
+  escondidos: notificação por e-mail (precisa de provedor de e-mail com
+  credencial que não temos) e §§6º/7º da Lei 14.133/2021 (exceções ao
+  teto de 200%, precisam de campo novo no schema que exige decisão de
+  negócio primeiro — ver §1.2).

@@ -6,9 +6,11 @@ import {
   criarSessaoOrgao,
   encerrarSessaoOrgao,
   hashSenha,
+  orgaoIdLogado,
   verificarSenha,
 } from "@/lib/auth";
 import { esferaValida } from "@/lib/esferas";
+import type { EstadoTrocarSenha } from "@/components/ui/formulario-trocar-senha";
 
 export interface EstadoFormularioOrgao {
   erro?: string;
@@ -83,4 +85,39 @@ export async function loginOrgao(
 export async function logoutOrgao(): Promise<void> {
   await encerrarSessaoOrgao();
   redirect("/orgao/login");
+}
+
+export async function trocarSenhaOrgao(
+  _estadoAnterior: EstadoTrocarSenha,
+  formData: FormData,
+): Promise<EstadoTrocarSenha> {
+  const orgaoId = await orgaoIdLogado();
+  if (!orgaoId) {
+    redirect("/orgao/login");
+  }
+
+  const senhaAtual = String(formData.get("senhaAtual") ?? "");
+  const senhaNova = String(formData.get("senhaNova") ?? "");
+  const confirmacao = String(formData.get("confirmacaoSenhaNova") ?? "");
+
+  if (senhaNova.length < 8) {
+    return { erro: "A nova senha precisa ter ao menos 8 caracteres." };
+  }
+  if (senhaNova !== confirmacao) {
+    return { erro: "A confirmação não bate com a nova senha." };
+  }
+
+  const orgao = await prisma.orgao.findUnique({ where: { id: orgaoId } });
+  if (!orgao?.senhaHash) {
+    return { erro: "Conta inválida." };
+  }
+
+  const senhaAtualCorreta = await verificarSenha(senhaAtual, orgao.senhaHash);
+  if (!senhaAtualCorreta) {
+    return { erro: "Senha atual incorreta." };
+  }
+
+  const senhaHash = await hashSenha(senhaNova);
+  await prisma.orgao.update({ where: { id: orgaoId }, data: { senhaHash } });
+  return { sucesso: true };
 }

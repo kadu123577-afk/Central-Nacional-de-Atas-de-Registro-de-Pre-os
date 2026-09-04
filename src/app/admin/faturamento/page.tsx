@@ -15,6 +15,7 @@ const NAV_ADMIN = [
   { rotulo: "Painel", href: "/admin" },
   { rotulo: "Contas a receber", href: "/admin/faturamento" },
   { rotulo: "Usuários", href: "/admin/usuarios" },
+  { rotulo: "Perfil", href: "/admin/perfil" },
 ];
 
 export default async function FaturamentoAdminPage() {

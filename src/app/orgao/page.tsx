@@ -41,6 +41,7 @@ export default async function PainelOrgaoPage() {
       itens={[
         { rotulo: "Meus pedidos", href: "/orgao" },
         { rotulo: "Catálogo", href: "/catalogo" },
+        { rotulo: "Perfil", href: "/orgao/perfil" },
       ]}
       rodape={
         <form action={logoutOrgao}>

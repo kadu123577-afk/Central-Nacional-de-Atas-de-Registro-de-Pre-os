@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { adminIdLogado } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -30,6 +31,7 @@ const NAV_ADMIN = [
   { rotulo: "Painel", href: "/admin" },
   { rotulo: "Contas a receber", href: "/admin/faturamento" },
   { rotulo: "Usuários", href: "/admin/usuarios" },
+  { rotulo: "Perfil", href: "/admin/perfil" },
 ];
 
 export default async function PainelAdminPage() {
@@ -164,6 +166,11 @@ export default async function PainelAdminPage() {
                 ))}
 
                 <div className="mt-3 flex gap-2">
+                  {ataPncpIncompleta(ata) && (
+                    <Link href={`/admin/atas/${ata.id}/completar`} className="botao-atas secundario">
+                      Completar
+                    </Link>
+                  )}
                   <form action={aprovarAta}>
                     <input type="hidden" name="ataId" value={ata.id} />
                     <button type="submit" className="botao-atas">

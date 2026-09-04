@@ -5,9 +5,11 @@ import { prisma } from "@/lib/prisma";
 import {
   criarSessaoFornecedor,
   encerrarSessaoFornecedor,
+  fornecedorIdLogado,
   hashSenha,
   verificarSenha,
 } from "@/lib/auth";
+import type { EstadoTrocarSenha } from "@/components/ui/formulario-trocar-senha";
 
 export interface EstadoLoginFornecedor {
   erro?: string;
@@ -90,4 +92,39 @@ export async function loginFornecedor(
 export async function logoutFornecedor(): Promise<void> {
   await encerrarSessaoFornecedor();
   redirect("/fornecedor/login");
+}
+
+export async function trocarSenhaFornecedor(
+  _estadoAnterior: EstadoTrocarSenha,
+  formData: FormData,
+): Promise<EstadoTrocarSenha> {
+  const fornecedorId = await fornecedorIdLogado();
+  if (!fornecedorId) {
+    redirect("/fornecedor/login");
+  }
+
+  const senhaAtual = String(formData.get("senhaAtual") ?? "");
+  const senhaNova = String(formData.get("senhaNova") ?? "");
+  const confirmacao = String(formData.get("confirmacaoSenhaNova") ?? "");
+
+  if (senhaNova.length < 8) {
+    return { erro: "A nova senha precisa ter ao menos 8 caracteres." };
+  }
+  if (senhaNova !== confirmacao) {
+    return { erro: "A confirmação não bate com a nova senha." };
+  }
+
+  const fornecedor = await prisma.fornecedor.findUnique({ where: { id: fornecedorId } });
+  if (!fornecedor?.senhaHash) {
+    return { erro: "Conta inválida." };
+  }
+
+  const senhaAtualCorreta = await verificarSenha(senhaAtual, fornecedor.senhaHash);
+  if (!senhaAtualCorreta) {
+    return { erro: "Senha atual incorreta." };
+  }
+
+  const senhaHash = await hashSenha(senhaNova);
+  await prisma.fornecedor.update({ where: { id: fornecedorId }, data: { senhaHash } });
+  return { sucesso: true };
 }

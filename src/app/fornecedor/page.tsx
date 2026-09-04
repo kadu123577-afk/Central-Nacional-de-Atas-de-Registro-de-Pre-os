@@ -40,6 +40,7 @@ export default async function PainelFornecedorPage() {
         { rotulo: "Minhas atas", href: "/fornecedor" },
         { rotulo: "Nova ata", href: "/fornecedor/atas/nova" },
         { rotulo: "Pedidos recebidos", href: "/fornecedor/adesoes" },
+        { rotulo: "Perfil", href: "/fornecedor/perfil" },
       ]}
       rodape={
         <form action={logoutFornecedor}>
