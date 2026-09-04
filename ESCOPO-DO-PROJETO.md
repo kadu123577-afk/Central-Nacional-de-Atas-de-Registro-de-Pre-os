@@ -477,3 +477,15 @@ Levantadas na primeira rodada de gap-analysis. Status em 2026-09-04:
   credencial que não temos) e §§6º/7º da Lei 14.133/2021 (exceções ao
   teto de 200%, precisam de campo novo no schema que exige decisão de
   negócio primeiro — ver §1.2).
+- **2026-09-04 (mesmo dia, "o que falta pra rodar")** — Verificado que o
+  banco de dados aplica as 10 migrations do zero, num Postgres vazio,
+  sem erro, e que o schema resultante bate exatamente com
+  `prisma/schema.prisma` (`prisma migrate diff` vazio) — confirma que um
+  banco de produção novo (Supabase etc.) vai funcionar de primeira.
+  Confirmado também que `/api/rastreador-pncp` já está protegido pelo
+  `CRON_SECRET`. `README.md` ganhou um passo a passo real de deploy em
+  produção (variáveis de ambiente, migrations, criação do admin,
+  alerta de nunca rodar o seed de demonstração em produção), no lugar
+  dos 3 bullets soltos que existiam antes. Fica só faltando o que
+  depende de contas externas (Supabase, Vercel, Registro.br, e as duas
+  decisões de negócio já registradas acima).
