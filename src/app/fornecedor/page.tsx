@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { fornecedorIdLogado } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -35,7 +36,11 @@ export default async function PainelFornecedorPage() {
   return (
     <AppShell
       area="Fornecedor"
-      itens={[{ rotulo: "Minhas atas", href: "/fornecedor" }]}
+      itens={[
+        { rotulo: "Minhas atas", href: "/fornecedor" },
+        { rotulo: "Nova ata", href: "/fornecedor/atas/nova" },
+        { rotulo: "Pedidos recebidos", href: "/fornecedor/adesoes" },
+      ]}
       rodape={
         <form action={logoutFornecedor}>
           <button type="submit" className="botao-atas link">
@@ -44,19 +49,29 @@ export default async function PainelFornecedorPage() {
         </form>
       }
     >
-      <div>
-        <h1 className="marca text-2xl" style={{ color: "var(--cor-texto)" }}>
-          Minhas atas
-        </h1>
-        <p className="mt-1 text-sm" style={{ color: "var(--cor-texto-2)" }}>
-          {fornecedor.razaoSocial}
-        </p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="marca text-2xl" style={{ color: "var(--cor-texto)" }}>
+            Minhas atas
+          </h1>
+          <p className="mt-1 text-sm" style={{ color: "var(--cor-texto-2)" }}>
+            {fornecedor.razaoSocial}
+          </p>
+        </div>
+        <Link href="/fornecedor/atas/nova" className="botao-atas">
+          Nova ata
+        </Link>
       </div>
 
       {fornecedor.atas.length === 0 ? (
         <VazioComAcao
           titulo="Nenhuma ata ainda"
-          descricao="Suas atas cadastradas na Central de Atas vão aparecer aqui."
+          descricao="Cadastre sua primeira ata pra ela aparecer aqui."
+          acao={
+            <Link href="/fornecedor/atas/nova" className="botao-atas">
+              Cadastrar ata
+            </Link>
+          }
         />
       ) : (
         <ul className="flex flex-col gap-4">

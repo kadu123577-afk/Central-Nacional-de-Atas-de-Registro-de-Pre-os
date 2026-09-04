@@ -1,4 +1,6 @@
 import type { Tom } from "@/components/ui/badge";
+import type { EstagioAdesao } from "@/generated/prisma/enums";
+import { estagioConcluido } from "@/lib/adesao";
 
 /**
  * Única fonte de verdade pra "qual cor esse status de negócio recebe".
@@ -13,4 +15,8 @@ export function tomStatusAta(status: "PENDENTE" | "APROVADA" | "REJEITADA"): Tom
 
 export function tomFaturamento(pago: boolean): Tom {
   return pago ? "neutro" : "atencao";
+}
+
+export function tomEstagioAdesao(estagio: EstagioAdesao): Tom {
+  return estagioConcluido(estagio) ? "neutro" : "atencao";
 }
