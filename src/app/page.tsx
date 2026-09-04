@@ -10,31 +10,32 @@ import { VazioComAcao } from "@/components/ui/vazio-com-acao";
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
+  // isSeed: false — a home pública só mostra dado real; o catálogo (tela
+  // de trabalho) continua vendo os itens de demonstração normalmente.
   const contagens = await Promise.all(
     CATEGORIAS_ATAS.map(async (c) => ({
       ...c,
       total: await prisma.item.count({
-        where: { categoria: c.rotulo, ata: { status: "APROVADA" } },
+        where: { categoria: c.rotulo, ata: { status: "APROVADA" }, isSeed: false },
       }),
     })),
   );
 
   const totalGeral = contagens.reduce((soma, c) => soma + c.total, 0);
+  const contagensOrdenadas = [...contagens].sort((a, b) => b.total - a.total);
   const categoriasParaExibir = contagens.some((c) => c.total > 0)
-    ? contagens.filter((c) => c.total > 0)
-    : contagens;
+    ? contagensOrdenadas.filter((c) => c.total > 0)
+    : contagensOrdenadas;
+  const [destaque, ...resto] = categoriasParaExibir;
 
-  const categoriasEmDestaque = [...contagens]
-    .sort((a, b) => b.total - a.total)
-    .slice(0, 2)
-    .filter((c) => c.total > 0);
+  const categoriasEmDestaque = contagensOrdenadas.slice(0, 2).filter((c) => c.total > 0);
 
   const secoesDestaque = await Promise.all(
     categoriasEmDestaque.map(async (c) => ({
       categoria: c,
       itens: await prisma.item.findMany({
-        where: { categoria: c.rotulo, ata: { status: "APROVADA" } },
-        include: { ata: { include: { orgaoGerenciador: true } } },
+        where: { categoria: c.rotulo, ata: { status: "APROVADA" }, isSeed: false },
+        include: { ata: { include: { fornecedor: true, orgaoGerenciador: true } } },
         take: 4,
         orderBy: { descricao: "asc" },
       }),
@@ -54,18 +55,27 @@ export default async function Home() {
         ) : (
           <>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {categoriasParaExibir.map((c, indice) => (
+              {destaque && (
+                <Link
+                  key={destaque.slug}
+                  href={`/catalogo?categoria=${encodeURIComponent(destaque.rotulo)}`}
+                  className="painel relative flex min-h-72 flex-col justify-end p-5 transition-colors hover:border-[var(--cor-borda-forte)] lg:col-span-2 lg:row-span-2"
+                >
+                  <span className="marca text-2xl" style={{ color: "var(--cor-texto)" }}>
+                    {destaque.rotulo}
+                  </span>
+                  <span className="eyebrow mt-2">
+                    {destaque.total} {destaque.total === 1 ? "item" : "itens"} disponíveis
+                  </span>
+                </Link>
+              )}
+              {resto.map((c) => (
                 <Link
                   key={c.slug}
                   href={`/catalogo?categoria=${encodeURIComponent(c.rotulo)}`}
-                  className={`painel relative flex min-h-32 flex-col justify-end p-5 transition-colors hover:border-[var(--cor-borda-forte)] ${
-                    indice === 0 ? "lg:col-span-2 lg:row-span-2 lg:min-h-72" : ""
-                  }`}
+                  className="painel relative flex min-h-32 flex-col justify-end p-5 transition-colors hover:border-[var(--cor-borda-forte)]"
                 >
-                  <span
-                    className={`marca ${indice === 0 ? "text-2xl" : "text-base"}`}
-                    style={{ color: "var(--cor-texto)" }}
-                  >
+                  <span className="marca text-base" style={{ color: "var(--cor-texto)" }}>
                     {c.rotulo}
                   </span>
                   <span className="eyebrow mt-2">
@@ -93,6 +103,9 @@ export default async function Home() {
                     <div key={item.id} className="painel p-4">
                       <p className="text-sm font-medium" style={{ color: "var(--cor-texto)" }}>
                         {item.descricao}
+                      </p>
+                      <p className="mt-1 text-xs" style={{ color: "var(--cor-texto-3)" }}>
+                        {item.ata.fornecedor.razaoSocial}
                       </p>
                       <div className="mt-2 flex items-center justify-between">
                         <Badge tom="neutro">{item.ata.orgaoGerenciador.uf}</Badge>

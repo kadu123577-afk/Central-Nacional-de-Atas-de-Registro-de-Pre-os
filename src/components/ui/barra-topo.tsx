@@ -21,66 +21,82 @@ export function BarraTopo() {
 
   return (
     <header
-      className="sticky top-0 z-50 flex items-center gap-4 border-b px-6 py-3"
+      className="sticky top-0 z-50 flex flex-wrap items-center gap-3 border-b px-6 py-3"
       style={{
         background: "color-mix(in srgb, var(--cor-fundo) 85%, transparent)",
         backdropFilter: "blur(8px)",
         borderColor: "var(--cor-borda)",
       }}
     >
-      <Logo altura={26} />
+      <div className="order-1 shrink-0">
+        <Logo altura={26} />
+      </div>
 
-      <nav className="flex flex-1 gap-4 overflow-x-auto">
-        {CATEGORIAS_ATAS.map((c) => (
-          <Link
-            key={c.slug}
-            href={`/catalogo?categoria=${encodeURIComponent(c.rotulo)}`}
-            className="eyebrow whitespace-nowrap"
-            style={{ color: "var(--cor-texto-2)" }}
+      {/* Categorias — segunda linha no mobile (não disputa espaço com a
+          busca), volta pra mesma linha a partir de md. */}
+      <div className="relative order-3 w-full min-w-0 md:order-2 md:w-auto md:flex-1">
+        <nav className="flex gap-4 overflow-x-auto pr-8">
+          {CATEGORIAS_ATAS.map((c) => (
+            <Link
+              key={c.slug}
+              href={`/catalogo?categoria=${encodeURIComponent(c.rotulo)}`}
+              className="eyebrow whitespace-nowrap"
+              style={{ color: "var(--cor-texto-2)" }}
+            >
+              {c.rotuloCurto ?? c.rotulo}
+            </Link>
+          ))}
+        </nav>
+        {/* degradê indicando que dá pra rolar mais, em vez de cortar a palavra */}
+        <div
+          className="pointer-events-none absolute right-0 top-0 h-full"
+          style={{
+            width: "32px",
+            background: "linear-gradient(to right, transparent, var(--cor-fundo))",
+          }}
+        />
+      </div>
+
+      <div className="order-2 ml-auto flex items-center gap-2 md:order-3 md:ml-0">
+        <form action="/catalogo" method="GET" className="flex items-center gap-2">
+          <input name="q" placeholder="Buscar item..." className="campo-atas w-40 md:w-56" />
+        </form>
+
+        <div ref={menuRef} className="relative">
+          <button
+            type="button"
+            onClick={() => setMenuAberto((aberto) => !aberto)}
+            className="botao-atas secundario px-3 py-2"
+            aria-label="Menu de acesso"
           >
-            {c.rotulo}
-          </Link>
-        ))}
-      </nav>
-
-      <form action="/catalogo" method="GET" className="flex items-center gap-2">
-        <input name="q" placeholder="Buscar item..." className="campo-atas w-40 md:w-56" />
-      </form>
-
-      <div ref={menuRef} className="relative">
-        <button
-          type="button"
-          onClick={() => setMenuAberto((aberto) => !aberto)}
-          className="botao-atas secundario px-3 py-2"
-          aria-label="Menu de acesso"
-        >
-          ⋯
-        </button>
-        {menuAberto && (
-          <div className="painel absolute right-0 top-full mt-2 flex w-56 flex-col gap-1 p-2">
-            <Link
-              href="/fornecedor/login"
-              className="rounded-[var(--raio)] px-3 py-2 text-sm"
-              style={{ color: "var(--cor-texto-2)" }}
-            >
-              Painel do fornecedor
-            </Link>
-            <Link
-              href="/atas"
-              className="rounded-[var(--raio)] px-3 py-2 text-sm"
-              style={{ color: "var(--cor-texto-2)" }}
-            >
-              Cadastro interno de atas
-            </Link>
-            <Link
-              href="/admin/login"
-              className="rounded-[var(--raio)] px-3 py-2 text-sm"
-              style={{ color: "var(--cor-texto-2)" }}
-            >
-              Painel administrativo
-            </Link>
-          </div>
-        )}
+            ⋯
+          </button>
+          {menuAberto && (
+            <div className="painel absolute right-0 top-full mt-2 flex w-56 flex-col gap-1 p-2">
+              <Link
+                href="/fornecedor/login"
+                className="rounded-[var(--raio)] px-3 py-2 text-sm"
+                style={{ color: "var(--cor-texto-2)" }}
+              >
+                Painel do fornecedor
+              </Link>
+              <Link
+                href="/atas"
+                className="rounded-[var(--raio)] px-3 py-2 text-sm"
+                style={{ color: "var(--cor-texto-2)" }}
+              >
+                Cadastro interno de atas
+              </Link>
+              <Link
+                href="/admin/login"
+                className="rounded-[var(--raio)] px-3 py-2 text-sm"
+                style={{ color: "var(--cor-texto-2)" }}
+              >
+                Painel administrativo
+              </Link>
+            </div>
+          )}
+        </div>
       </div>
     </header>
   );
