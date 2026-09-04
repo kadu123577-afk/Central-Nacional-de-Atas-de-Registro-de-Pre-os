@@ -145,14 +145,20 @@ passa a apontar pro mesmo lugar.
 
 O código já está pronto pra isso — o que falta é só a criação de contas em
 serviços externos, que precisa ser feita por vocês diretamente (não é algo que
-se resolve neste repositório). Passo a passo, na ordem:
+se resolve neste repositório). Decisão já fechada (2026-09-04): banco no
+Supabase, aplicação na Vercel, domínio `.com.br` comprado onde for mais
+conveniente (ex.: Hostinger) e apontado pra Vercel — domínio e hospedagem são
+escolhas independentes, o registrador do domínio não precisa ter nenhuma
+relação com quem hospeda o site. Passo a passo, na ordem:
 
 ### 1. Banco de dados
 
-Criar conta no [Supabase](https://supabase.com) (ou Neon, ou RDS — qualquer
-Postgres gerenciado) e copiar a string de conexão de lá. É o valor que vai virar
-o `DATABASE_URL` de produção — **diferente** do `.env` local de cada
-desenvolvedor.
+Criar conta no [Supabase](https://supabase.com) e copiar a string de conexão de
+lá. É o valor que vai virar o `DATABASE_URL` de produção — **diferente** do
+`.env` local de cada desenvolvedor. Escolhido em vez de uma alternativa
+autoadministrada (ex.: Postgres numa VPS) porque já cuida sozinho de backup e
+atualização de segurança do banco — importante num sistema que lida com
+faturamento de verdade e nenhuma equipe de infraestrutura dedicada.
 
 ### 2. Deploy
 
@@ -196,9 +202,12 @@ desenvolvimento/demonstração.
 
 ### 4. Domínio
 
-Registrar um `.com.br` no [Registro.br](https://registro.br) e apontar pra
-Vercel (Settings → Domains, a própria Vercel mostra os registros DNS exatos
-pra configurar no Registro.br).
+Registrar um `.com.br` — pode ser direto no [Registro.br](https://registro.br)
+ou por uma revendedora credenciada como a [Hostinger](https://www.hostinger.com/tld/com-br-domain)
+(mais barata, mesma validade) — e apontar pra Vercel (Settings → Domains, a
+própria Vercel mostra os registros DNS exatos pra configurar). Onde o domínio
+foi comprado não tem nenhum efeito sobre o site em si — é só o endereço; quem
+efetivamente serve o site continua sendo a Vercel.
 
 ### O que ainda não dá pra fazer, mesmo depois desses 4 passos
 

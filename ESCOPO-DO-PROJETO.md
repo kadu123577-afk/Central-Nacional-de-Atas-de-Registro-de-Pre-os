@@ -489,3 +489,17 @@ Levantadas na primeira rodada de gap-analysis. Status em 2026-09-04:
   dos 3 bullets soltos que existiam antes. Fica só faltando o que
   depende de contas externas (Supabase, Vercel, Registro.br, e as duas
   decisões de negócio já registradas acima).
+- **2026-09-04 (mesmo dia, decisão de infraestrutura fechada)** —
+  Avaliada a Hostinger como alternativa a Vercel/Supabase. Decisão:
+  **banco no Supabase, aplicação na Vercel, domínio `.com.br` comprado
+  onde for mais conveniente (Hostinger inclusive) e apontado pra
+  Vercel**. Motivo de descartar a rota "Hostinger completo" (app +
+  banco autoadministrado em VPS): os planos gerenciados de Node.js da
+  Hostinger não incluem Postgres gerenciado — banco em VPS exigiria a
+  equipe cuidar sozinha de backup e atualização de segurança, risco
+  desnecessário num sistema que fatura de verdade e não tem equipe de
+  infraestrutura dedicada. Confirmado que domínio e hospedagem são
+  decisões independentes: comprar o `.com.br` na Hostinger não impede
+  (nem tem relação com) hospedar o site na Vercel. `README.md`
+  atualizado pra registrar essa decisão como definitiva, não mais como
+  opção em aberto.
