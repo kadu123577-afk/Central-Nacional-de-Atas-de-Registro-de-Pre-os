@@ -487,6 +487,44 @@ até agora já aplicados.
   - Verificado ao vivo com Playwright: criar entidade → criar contato →
     registrar interação → catálogo de fornecedores → filtro esfera+órgão
     em `/atas`, tudo funcionando, sem erro de console.
+- **Lote 1 do levantamento de municípios (2026-09-05)** — "a gente já vai
+  entregar o sistema alimentado" (não é o parceiro nem o município que
+  cadastra). Consultada ao vivo a API de dados agregados do IBGE (tabela
+  6579, população estimada) pra Goiás, Tocantins, Mato Grosso, Mato
+  Grosso do Sul, Bahia, Pará, Amazonas, Maranhão, Piauí, Minas Gerais e
+  Paraná — critério de porte "nem astronômico nem minúsculo": população
+  estimada 2026 entre 15.000 e 250.000 habitantes, capitais excluídas
+  (tratadas à parte). Resultado: **1.073 municípios** (pedido foi ~1.000;
+  ficou um pouco acima pra manter representação de todos os 11 estados —
+  Tocantins, o mais esparsamente povoado, só tem 14 municípios nessa
+  faixa). Nota lateral: o Brasil tem 5.571 municípios (confirmado ao vivo
+  via IBGE), não 5.246 como mencionado — número certo registrado aqui pra
+  referência futura.
+  - Novo campo `EntidadeAlvo.codigoIbgeMunicipio` (único, migração
+    `20260905190000_codigo_ibge_municipio`) — chave de upsert segura pra
+    rodar levantamentos futuros (lote 2, lote 3...) sem duplicar
+    município já cadastrado.
+  - `prisma/data/municipios-alvo-lote1.json` (dado bruto) +
+    `prisma/seed-municipios-alvo.ts` (`npm run seed:municipios-alvo`) —
+    script idempotente, cada município vira uma `EntidadeAlvo` tipo
+    "municipal", **sem nenhum contato ainda** — prefeito/secretários são
+    o que o time comercial levanta rodada a rodada em
+    `/admin/entidades/[id]`. Verificado ao vivo: os 1.073 já aparecem em
+    `/admin/entidades?tipo=municipal`; rodar o script duas vezes não
+    duplica nada (1073 criados → 0 criados/1073 já existiam).
+  - Planilha de entrega gerada (`Levantamento-Municipios-Lote1.xlsx`,
+    fora do repositório) com aba de metodologia + lista completa, pra
+    revisão e distribuição pro time comercial.
+  - **Não construído ainda, proposto como próxima decisão**: o "agente"
+    de levantamento automático (pesquisar na internet e já preencher
+    prefeito/secretário/contato de cada município) mencionado pelo
+    usuário. Não construído sem antes decidir: (a) como a pesquisa entra
+    — via Claude API com busca na web, integrada a um botão em
+    `/admin/entidades/[id]`; (b) revisão humana obrigatória antes de
+    salvar um contato (risco real de dado errado sobre uma pessoa de
+    verdade, diferente de dado de ata/licitação); (c) custo de API por
+    consulta. Fica registrado como decisão pendente, não como gap
+    esquecido.
 
 ---
 

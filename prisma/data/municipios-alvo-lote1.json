@@ -1,0 +1,6440 @@
+[
+  {
+    "uf": "AM",
+    "municipio": "Alvarães",
+    "codigo_ibge": "1300029",
+    "populacao_2026": 16938
+  },
+  {
+    "uf": "AM",
+    "municipio": "Anori",
+    "codigo_ibge": "1300102",
+    "populacao_2026": 18135
+  },
+  {
+    "uf": "AM",
+    "municipio": "Apuí",
+    "codigo_ibge": "1300144",
+    "populacao_2026": 21971
+  },
+  {
+    "uf": "AM",
+    "municipio": "Atalaia do Norte",
+    "codigo_ibge": "1300201",
+    "populacao_2026": 15920
+  },
+  {
+    "uf": "AM",
+    "municipio": "Autazes",
+    "codigo_ibge": "1300300",
+    "populacao_2026": 46641
+  },
+  {
+    "uf": "AM",
+    "municipio": "Barcelos",
+    "codigo_ibge": "1300409",
+    "populacao_2026": 17805
+  },
+  {
+    "uf": "AM",
+    "municipio": "Barreirinha",
+    "codigo_ibge": "1300508",
+    "populacao_2026": 34025
+  },
+  {
+    "uf": "AM",
+    "municipio": "Benjamin Constant",
+    "codigo_ibge": "1300607",
+    "populacao_2026": 41261
+  },
+  {
+    "uf": "AM",
+    "municipio": "Beruri",
+    "codigo_ibge": "1300631",
+    "populacao_2026": 22842
+  },
+  {
+    "uf": "AM",
+    "municipio": "Boa Vista do Ramos",
+    "codigo_ibge": "1300680",
+    "populacao_2026": 27052
+  },
+  {
+    "uf": "AM",
+    "municipio": "Boca do Acre",
+    "codigo_ibge": "1300706",
+    "populacao_2026": 39176
+  },
+  {
+    "uf": "AM",
+    "municipio": "Borba",
+    "codigo_ibge": "1300805",
+    "populacao_2026": 34836
+  },
+  {
+    "uf": "AM",
+    "municipio": "Canutama",
+    "codigo_ibge": "1300904",
+    "populacao_2026": 18327
+  },
+  {
+    "uf": "AM",
+    "municipio": "Carauari",
+    "codigo_ibge": "1301001",
+    "populacao_2026": 31383
+  },
+  {
+    "uf": "AM",
+    "municipio": "Careiro",
+    "codigo_ibge": "1301100",
+    "populacao_2026": 32289
+  },
+  {
+    "uf": "AM",
+    "municipio": "Careiro da Várzea",
+    "codigo_ibge": "1301159",
+    "populacao_2026": 20081
+  },
+  {
+    "uf": "AM",
+    "municipio": "Coari",
+    "codigo_ibge": "1301209",
+    "populacao_2026": 73403
+  },
+  {
+    "uf": "AM",
+    "municipio": "Codajás",
+    "codigo_ibge": "1301308",
+    "populacao_2026": 24627
+  },
+  {
+    "uf": "AM",
+    "municipio": "Eirunepé",
+    "codigo_ibge": "1301407",
+    "populacao_2026": 36027
+  },
+  {
+    "uf": "AM",
+    "municipio": "Envira",
+    "codigo_ibge": "1301506",
+    "populacao_2026": 18062
+  },
+  {
+    "uf": "AM",
+    "municipio": "Fonte Boa",
+    "codigo_ibge": "1301605",
+    "populacao_2026": 28491
+  },
+  {
+    "uf": "AM",
+    "municipio": "Humaitá",
+    "codigo_ibge": "1301704",
+    "populacao_2026": 64390
+  },
+  {
+    "uf": "AM",
+    "municipio": "Ipixuna",
+    "codigo_ibge": "1301803",
+    "populacao_2026": 25792
+  },
+  {
+    "uf": "AM",
+    "municipio": "Iranduba",
+    "codigo_ibge": "1301852",
+    "populacao_2026": 70248
+  },
+  {
+    "uf": "AM",
+    "municipio": "Itacoatiara",
+    "codigo_ibge": "1301902",
+    "populacao_2026": 115218
+  },
+  {
+    "uf": "AM",
+    "municipio": "Jutaí",
+    "codigo_ibge": "1302306",
+    "populacao_2026": 28712
+  },
+  {
+    "uf": "AM",
+    "municipio": "Lábrea",
+    "codigo_ibge": "1302405",
+    "populacao_2026": 50040
+  },
+  {
+    "uf": "AM",
+    "municipio": "Manacapuru",
+    "codigo_ibge": "1302504",
+    "populacao_2026": 113042
+  },
+  {
+    "uf": "AM",
+    "municipio": "Manaquiri",
+    "codigo_ibge": "1302553",
+    "populacao_2026": 15902
+  },
+  {
+    "uf": "AM",
+    "municipio": "Manicoré",
+    "codigo_ibge": "1302702",
+    "populacao_2026": 58557
+  },
+  {
+    "uf": "AM",
+    "municipio": "Maraã",
+    "codigo_ibge": "1302801",
+    "populacao_2026": 15716
+  },
+  {
+    "uf": "AM",
+    "municipio": "Maués",
+    "codigo_ibge": "1302900",
+    "populacao_2026": 67021
+  },
+  {
+    "uf": "AM",
+    "municipio": "Nhamundá",
+    "codigo_ibge": "1303007",
+    "populacao_2026": 21394
+  },
+  {
+    "uf": "AM",
+    "municipio": "Nova Olinda do Norte",
+    "codigo_ibge": "1303106",
+    "populacao_2026": 27965
+  },
+  {
+    "uf": "AM",
+    "municipio": "Novo Airão",
+    "codigo_ibge": "1303205",
+    "populacao_2026": 16648
+  },
+  {
+    "uf": "AM",
+    "municipio": "Novo Aripuanã",
+    "codigo_ibge": "1303304",
+    "populacao_2026": 25506
+  },
+  {
+    "uf": "AM",
+    "municipio": "Parintins",
+    "codigo_ibge": "1303403",
+    "populacao_2026": 101754
+  },
+  {
+    "uf": "AM",
+    "municipio": "Pauini",
+    "codigo_ibge": "1303502",
+    "populacao_2026": 20330
+  },
+  {
+    "uf": "AM",
+    "municipio": "Presidente Figueiredo",
+    "codigo_ibge": "1303536",
+    "populacao_2026": 33580
+  },
+  {
+    "uf": "AM",
+    "municipio": "Rio Preto da Eva",
+    "codigo_ibge": "1303569",
+    "populacao_2026": 25342
+  },
+  {
+    "uf": "AM",
+    "municipio": "Santo Antônio do Içá",
+    "codigo_ibge": "1303700",
+    "populacao_2026": 30987
+  },
+  {
+    "uf": "AM",
+    "municipio": "São Gabriel da Cachoeira",
+    "codigo_ibge": "1303809",
+    "populacao_2026": 58359
+  },
+  {
+    "uf": "AM",
+    "municipio": "São Paulo de Olivença",
+    "codigo_ibge": "1303908",
+    "populacao_2026": 35619
+  },
+  {
+    "uf": "AM",
+    "municipio": "Tabatinga",
+    "codigo_ibge": "1304062",
+    "populacao_2026": 74384
+  },
+  {
+    "uf": "AM",
+    "municipio": "Tapauá",
+    "codigo_ibge": "1304104",
+    "populacao_2026": 20849
+  },
+  {
+    "uf": "AM",
+    "municipio": "Tefé",
+    "codigo_ibge": "1304203",
+    "populacao_2026": 81046
+  },
+  {
+    "uf": "AM",
+    "municipio": "Tonantins",
+    "codigo_ibge": "1304237",
+    "populacao_2026": 20417
+  },
+  {
+    "uf": "AM",
+    "municipio": "Uarini",
+    "codigo_ibge": "1304260",
+    "populacao_2026": 15815
+  },
+  {
+    "uf": "AM",
+    "municipio": "Urucará",
+    "codigo_ibge": "1304302",
+    "populacao_2026": 19738
+  },
+  {
+    "uf": "AM",
+    "municipio": "Urucurituba",
+    "codigo_ibge": "1304401",
+    "populacao_2026": 26373
+  },
+  {
+    "uf": "BA",
+    "municipio": "Abaré",
+    "codigo_ibge": "2900207",
+    "populacao_2026": 18303
+  },
+  {
+    "uf": "BA",
+    "municipio": "Alagoinhas",
+    "codigo_ibge": "2900702",
+    "populacao_2026": 161682
+  },
+  {
+    "uf": "BA",
+    "municipio": "Alcobaça",
+    "codigo_ibge": "2900801",
+    "populacao_2026": 25769
+  },
+  {
+    "uf": "BA",
+    "municipio": "Amargosa",
+    "codigo_ibge": "2901007",
+    "populacao_2026": 38656
+  },
+  {
+    "uf": "BA",
+    "municipio": "Amélia Rodrigues",
+    "codigo_ibge": "2901106",
+    "populacao_2026": 24814
+  },
+  {
+    "uf": "BA",
+    "municipio": "América Dourada",
+    "codigo_ibge": "2901155",
+    "populacao_2026": 15566
+  },
+  {
+    "uf": "BA",
+    "municipio": "Anagé",
+    "codigo_ibge": "2901205",
+    "populacao_2026": 26772
+  },
+  {
+    "uf": "BA",
+    "municipio": "Andorinha",
+    "codigo_ibge": "2901353",
+    "populacao_2026": 15496
+  },
+  {
+    "uf": "BA",
+    "municipio": "Aporá",
+    "codigo_ibge": "2901908",
+    "populacao_2026": 16344
+  },
+  {
+    "uf": "BA",
+    "municipio": "Araci",
+    "codigo_ibge": "2902104",
+    "populacao_2026": 50282
+  },
+  {
+    "uf": "BA",
+    "municipio": "Baixa Grande",
+    "codigo_ibge": "2902609",
+    "populacao_2026": 18579
+  },
+  {
+    "uf": "BA",
+    "municipio": "Barra",
+    "codigo_ibge": "2902708",
+    "populacao_2026": 53745
+  },
+  {
+    "uf": "BA",
+    "municipio": "Barra da Estiva",
+    "codigo_ibge": "2902807",
+    "populacao_2026": 27890
+  },
+  {
+    "uf": "BA",
+    "municipio": "Barra do Choça",
+    "codigo_ibge": "2902906",
+    "populacao_2026": 38671
+  },
+  {
+    "uf": "BA",
+    "municipio": "Barreiras",
+    "codigo_ibge": "2903201",
+    "populacao_2026": 172521
+  },
+  {
+    "uf": "BA",
+    "municipio": "Barrocas",
+    "codigo_ibge": "2903276",
+    "populacao_2026": 15814
+  },
+  {
+    "uf": "BA",
+    "municipio": "Belmonte",
+    "codigo_ibge": "2903409",
+    "populacao_2026": 20490
+  },
+  {
+    "uf": "BA",
+    "municipio": "Belo Campo",
+    "codigo_ibge": "2903508",
+    "populacao_2026": 19104
+  },
+  {
+    "uf": "BA",
+    "municipio": "Biritinga",
+    "codigo_ibge": "2903607",
+    "populacao_2026": 15599
+  },
+  {
+    "uf": "BA",
+    "municipio": "Boa Vista do Tupim",
+    "codigo_ibge": "2903805",
+    "populacao_2026": 17221
+  },
+  {
+    "uf": "BA",
+    "municipio": "Bom Jesus da Lapa",
+    "codigo_ibge": "2903904",
+    "populacao_2026": 68869
+  },
+  {
+    "uf": "BA",
+    "municipio": "Bonito",
+    "codigo_ibge": "2904050",
+    "populacao_2026": 16453
+  },
+  {
+    "uf": "BA",
+    "municipio": "Boquira",
+    "codigo_ibge": "2904100",
+    "populacao_2026": 19723
+  },
+  {
+    "uf": "BA",
+    "municipio": "Brumado",
+    "codigo_ibge": "2904605",
+    "populacao_2026": 74617
+  },
+  {
+    "uf": "BA",
+    "municipio": "Buritirama",
+    "codigo_ibge": "2904753",
+    "populacao_2026": 20230
+  },
+  {
+    "uf": "BA",
+    "municipio": "Cabaceiras do Paraguaçu",
+    "codigo_ibge": "2904852",
+    "populacao_2026": 17009
+  },
+  {
+    "uf": "BA",
+    "municipio": "Cachoeira",
+    "codigo_ibge": "2904902",
+    "populacao_2026": 30450
+  },
+  {
+    "uf": "BA",
+    "municipio": "Caculé",
+    "codigo_ibge": "2905008",
+    "populacao_2026": 23336
+  },
+  {
+    "uf": "BA",
+    "municipio": "Caetité",
+    "codigo_ibge": "2905206",
+    "populacao_2026": 54852
+  },
+  {
+    "uf": "BA",
+    "municipio": "Cafarnaum",
+    "codigo_ibge": "2905305",
+    "populacao_2026": 18073
+  },
+  {
+    "uf": "BA",
+    "municipio": "Cairu",
+    "codigo_ibge": "2905404",
+    "populacao_2026": 18662
+  },
+  {
+    "uf": "BA",
+    "municipio": "Camacan",
+    "codigo_ibge": "2905602",
+    "populacao_2026": 22239
+  },
+  {
+    "uf": "BA",
+    "municipio": "Camamu",
+    "codigo_ibge": "2905800",
+    "populacao_2026": 31621
+  },
+  {
+    "uf": "BA",
+    "municipio": "Campo Alegre de Lourdes",
+    "codigo_ibge": "2905909",
+    "populacao_2026": 32613
+  },
+  {
+    "uf": "BA",
+    "municipio": "Campo Formoso",
+    "codigo_ibge": "2906006",
+    "populacao_2026": 75311
+  },
+  {
+    "uf": "BA",
+    "municipio": "Canarana",
+    "codigo_ibge": "2906204",
+    "populacao_2026": 25024
+  },
+  {
+    "uf": "BA",
+    "municipio": "Canavieiras",
+    "codigo_ibge": "2906303",
+    "populacao_2026": 34437
+  },
+  {
+    "uf": "BA",
+    "municipio": "Candeias",
+    "codigo_ibge": "2906501",
+    "populacao_2026": 74645
+  },
+  {
+    "uf": "BA",
+    "municipio": "Cansanção",
+    "codigo_ibge": "2906808",
+    "populacao_2026": 39878
+  },
+  {
+    "uf": "BA",
+    "municipio": "Canudos",
+    "codigo_ibge": "2906824",
+    "populacao_2026": 16722
+  },
+  {
+    "uf": "BA",
+    "municipio": "Capim Grosso",
+    "codigo_ibge": "2906873",
+    "populacao_2026": 35627
+  },
+  {
+    "uf": "BA",
+    "municipio": "Caravelas",
+    "codigo_ibge": "2906907",
+    "populacao_2026": 21719
+  },
+  {
+    "uf": "BA",
+    "municipio": "Carinhanha",
+    "codigo_ibge": "2907103",
+    "populacao_2026": 30498
+  },
+  {
+    "uf": "BA",
+    "municipio": "Casa Nova",
+    "codigo_ibge": "2907202",
+    "populacao_2026": 76416
+  },
+  {
+    "uf": "BA",
+    "municipio": "Castro Alves",
+    "codigo_ibge": "2907301",
+    "populacao_2026": 25468
+  },
+  {
+    "uf": "BA",
+    "municipio": "Catu",
+    "codigo_ibge": "2907509",
+    "populacao_2026": 50068
+  },
+  {
+    "uf": "BA",
+    "municipio": "Central",
+    "codigo_ibge": "2907608",
+    "populacao_2026": 16844
+  },
+  {
+    "uf": "BA",
+    "municipio": "Cipó",
+    "codigo_ibge": "2907905",
+    "populacao_2026": 17910
+  },
+  {
+    "uf": "BA",
+    "municipio": "Coaraci",
+    "codigo_ibge": "2908002",
+    "populacao_2026": 17460
+  },
+  {
+    "uf": "BA",
+    "municipio": "Cocos",
+    "codigo_ibge": "2908101",
+    "populacao_2026": 19926
+  },
+  {
+    "uf": "BA",
+    "municipio": "Conceição da Feira",
+    "codigo_ibge": "2908200",
+    "populacao_2026": 21556
+  },
+  {
+    "uf": "BA",
+    "municipio": "Conceição do Almeida",
+    "codigo_ibge": "2908309",
+    "populacao_2026": 16087
+  },
+  {
+    "uf": "BA",
+    "municipio": "Conceição do Coité",
+    "codigo_ibge": "2908408",
+    "populacao_2026": 71860
+  },
+  {
+    "uf": "BA",
+    "municipio": "Conceição do Jacuípe",
+    "codigo_ibge": "2908507",
+    "populacao_2026": 37816
+  },
+  {
+    "uf": "BA",
+    "municipio": "Conde",
+    "codigo_ibge": "2908606",
+    "populacao_2026": 24484
+  },
+  {
+    "uf": "BA",
+    "municipio": "Condeúba",
+    "codigo_ibge": "2908705",
+    "populacao_2026": 17563
+  },
+  {
+    "uf": "BA",
+    "municipio": "Coração de Maria",
+    "codigo_ibge": "2908903",
+    "populacao_2026": 28544
+  },
+  {
+    "uf": "BA",
+    "municipio": "Coronel João Sá",
+    "codigo_ibge": "2909208",
+    "populacao_2026": 17602
+  },
+  {
+    "uf": "BA",
+    "municipio": "Correntina",
+    "codigo_ibge": "2909307",
+    "populacao_2026": 34347
+  },
+  {
+    "uf": "BA",
+    "municipio": "Crisópolis",
+    "codigo_ibge": "2909604",
+    "populacao_2026": 20348
+  },
+  {
+    "uf": "BA",
+    "municipio": "Cruz das Almas",
+    "codigo_ibge": "2909802",
+    "populacao_2026": 63437
+  },
+  {
+    "uf": "BA",
+    "municipio": "Curaçá",
+    "codigo_ibge": "2909901",
+    "populacao_2026": 36220
+  },
+  {
+    "uf": "BA",
+    "municipio": "Cândido Sales",
+    "codigo_ibge": "2906709",
+    "populacao_2026": 26472
+  },
+  {
+    "uf": "BA",
+    "municipio": "Cícero Dantas",
+    "codigo_ibge": "2907806",
+    "populacao_2026": 32314
+  },
+  {
+    "uf": "BA",
+    "municipio": "Dias d'Ávila",
+    "codigo_ibge": "2910057",
+    "populacao_2026": 75516
+  },
+  {
+    "uf": "BA",
+    "municipio": "Encruzilhada",
+    "codigo_ibge": "2910404",
+    "populacao_2026": 19373
+  },
+  {
+    "uf": "BA",
+    "municipio": "Entre Rios",
+    "codigo_ibge": "2910503",
+    "populacao_2026": 39880
+  },
+  {
+    "uf": "BA",
+    "municipio": "Esplanada",
+    "codigo_ibge": "2910602",
+    "populacao_2026": 34179
+  },
+  {
+    "uf": "BA",
+    "municipio": "Euclides da Cunha",
+    "codigo_ibge": "2910701",
+    "populacao_2026": 64969
+  },
+  {
+    "uf": "BA",
+    "municipio": "Eunápolis",
+    "codigo_ibge": "2910727",
+    "populacao_2026": 121577
+  },
+  {
+    "uf": "BA",
+    "municipio": "Filadélfia",
+    "codigo_ibge": "2910859",
+    "populacao_2026": 18694
+  },
+  {
+    "uf": "BA",
+    "municipio": "Formosa do Rio Preto",
+    "codigo_ibge": "2911105",
+    "populacao_2026": 27700
+  },
+  {
+    "uf": "BA",
+    "municipio": "Fátima",
+    "codigo_ibge": "2910750",
+    "populacao_2026": 18489
+  },
+  {
+    "uf": "BA",
+    "municipio": "Gandu",
+    "codigo_ibge": "2911204",
+    "populacao_2026": 34154
+  },
+  {
+    "uf": "BA",
+    "municipio": "Glória",
+    "codigo_ibge": "2911402",
+    "populacao_2026": 16139
+  },
+  {
+    "uf": "BA",
+    "municipio": "Governador Mangabeira",
+    "codigo_ibge": "2911600",
+    "populacao_2026": 21387
+  },
+  {
+    "uf": "BA",
+    "municipio": "Guanambi",
+    "codigo_ibge": "2911709",
+    "populacao_2026": 93873
+  },
+  {
+    "uf": "BA",
+    "municipio": "Guaratinga",
+    "codigo_ibge": "2911808",
+    "populacao_2026": 19360
+  },
+  {
+    "uf": "BA",
+    "municipio": "Iaçu",
+    "codigo_ibge": "2911907",
+    "populacao_2026": 25299
+  },
+  {
+    "uf": "BA",
+    "municipio": "Ibicaraí",
+    "codigo_ibge": "2912103",
+    "populacao_2026": 22067
+  },
+  {
+    "uf": "BA",
+    "municipio": "Ibicoara",
+    "codigo_ibge": "2912202",
+    "populacao_2026": 21952
+  },
+  {
+    "uf": "BA",
+    "municipio": "Ibipeba",
+    "codigo_ibge": "2912400",
+    "populacao_2026": 17139
+  },
+  {
+    "uf": "BA",
+    "municipio": "Ibirapitanga",
+    "codigo_ibge": "2912707",
+    "populacao_2026": 27029
+  },
+  {
+    "uf": "BA",
+    "municipio": "Ibirataia",
+    "codigo_ibge": "2912905",
+    "populacao_2026": 19379
+  },
+  {
+    "uf": "BA",
+    "municipio": "Ibitiara",
+    "codigo_ibge": "2913002",
+    "populacao_2026": 15036
+  },
+  {
+    "uf": "BA",
+    "municipio": "Ibititá",
+    "codigo_ibge": "2913101",
+    "populacao_2026": 17525
+  },
+  {
+    "uf": "BA",
+    "municipio": "Ibotirama",
+    "codigo_ibge": "2913200",
+    "populacao_2026": 27771
+  },
+  {
+    "uf": "BA",
+    "municipio": "Igaporã",
+    "codigo_ibge": "2913408",
+    "populacao_2026": 16088
+  },
+  {
+    "uf": "BA",
+    "municipio": "Iguaí",
+    "codigo_ibge": "2913507",
+    "populacao_2026": 21677
+  },
+  {
+    "uf": "BA",
+    "municipio": "Ilhéus",
+    "codigo_ibge": "2913606",
+    "populacao_2026": 189259
+  },
+  {
+    "uf": "BA",
+    "municipio": "Inhambupe",
+    "codigo_ibge": "2913705",
+    "populacao_2026": 35384
+  },
+  {
+    "uf": "BA",
+    "municipio": "Ipiaú",
+    "codigo_ibge": "2913903",
+    "populacao_2026": 42359
+  },
+  {
+    "uf": "BA",
+    "municipio": "Ipirá",
+    "codigo_ibge": "2914000",
+    "populacao_2026": 59183
+  },
+  {
+    "uf": "BA",
+    "municipio": "Iraquara",
+    "codigo_ibge": "2914406",
+    "populacao_2026": 24901
+  },
+  {
+    "uf": "BA",
+    "municipio": "Irará",
+    "codigo_ibge": "2914505",
+    "populacao_2026": 29630
+  },
+  {
+    "uf": "BA",
+    "municipio": "Irecê",
+    "codigo_ibge": "2914604",
+    "populacao_2026": 79105
+  },
+  {
+    "uf": "BA",
+    "municipio": "Itabela",
+    "codigo_ibge": "2914653",
+    "populacao_2026": 29589
+  },
+  {
+    "uf": "BA",
+    "municipio": "Itaberaba",
+    "codigo_ibge": "2914703",
+    "populacao_2026": 68590
+  },
+  {
+    "uf": "BA",
+    "municipio": "Itabuna",
+    "codigo_ibge": "2914802",
+    "populacao_2026": 196041
+  },
+  {
+    "uf": "BA",
+    "municipio": "Itacaré",
+    "codigo_ibge": "2914901",
+    "populacao_2026": 29641
+  },
+  {
+    "uf": "BA",
+    "municipio": "Itagibá",
+    "codigo_ibge": "2915205",
+    "populacao_2026": 15692
+  },
+  {
+    "uf": "BA",
+    "municipio": "Itajuípe",
+    "codigo_ibge": "2915502",
+    "populacao_2026": 19138
+  },
+  {
+    "uf": "BA",
+    "municipio": "Itamaraju",
+    "codigo_ibge": "2915601",
+    "populacao_2026": 61947
+  },
+  {
+    "uf": "BA",
+    "municipio": "Itambé",
+    "codigo_ibge": "2915809",
+    "populacao_2026": 24912
+  },
+  {
+    "uf": "BA",
+    "municipio": "Itanhém",
+    "codigo_ibge": "2916005",
+    "populacao_2026": 18172
+  },
+  {
+    "uf": "BA",
+    "municipio": "Itaparica",
+    "codigo_ibge": "2916104",
+    "populacao_2026": 20339
+  },
+  {
+    "uf": "BA",
+    "municipio": "Itapetinga",
+    "codigo_ibge": "2916401",
+    "populacao_2026": 68714
+  },
+  {
+    "uf": "BA",
+    "municipio": "Itapicuru",
+    "codigo_ibge": "2916500",
+    "populacao_2026": 33311
+  },
+  {
+    "uf": "BA",
+    "municipio": "Itarantim",
+    "codigo_ibge": "2916807",
+    "populacao_2026": 17456
+  },
+  {
+    "uf": "BA",
+    "municipio": "Itatim",
+    "codigo_ibge": "2916856",
+    "populacao_2026": 16526
+  },
+  {
+    "uf": "BA",
+    "municipio": "Itiúba",
+    "codigo_ibge": "2917003",
+    "populacao_2026": 35489
+  },
+  {
+    "uf": "BA",
+    "municipio": "Itororó",
+    "codigo_ibge": "2917102",
+    "populacao_2026": 16920
+  },
+  {
+    "uf": "BA",
+    "municipio": "Ituaçu",
+    "codigo_ibge": "2917201",
+    "populacao_2026": 18519
+  },
+  {
+    "uf": "BA",
+    "municipio": "Ituberá",
+    "codigo_ibge": "2917300",
+    "populacao_2026": 22022
+  },
+  {
+    "uf": "BA",
+    "municipio": "Jacobina",
+    "codigo_ibge": "2917508",
+    "populacao_2026": 87121
+  },
+  {
+    "uf": "BA",
+    "municipio": "Jaguaquara",
+    "codigo_ibge": "2917607",
+    "populacao_2026": 47519
+  },
+  {
+    "uf": "BA",
+    "municipio": "Jaguarari",
+    "codigo_ibge": "2917706",
+    "populacao_2026": 34609
+  },
+  {
+    "uf": "BA",
+    "municipio": "Jaguaripe",
+    "codigo_ibge": "2917805",
+    "populacao_2026": 18395
+  },
+  {
+    "uf": "BA",
+    "municipio": "Jequié",
+    "codigo_ibge": "2918001",
+    "populacao_2026": 169623
+  },
+  {
+    "uf": "BA",
+    "municipio": "Jeremoabo",
+    "codigo_ibge": "2918100",
+    "populacao_2026": 39573
+  },
+  {
+    "uf": "BA",
+    "municipio": "João Dourado",
+    "codigo_ibge": "2918357",
+    "populacao_2026": 25976
+  },
+  {
+    "uf": "BA",
+    "municipio": "Jussara",
+    "codigo_ibge": "2918506",
+    "populacao_2026": 17053
+  },
+  {
+    "uf": "BA",
+    "municipio": "Laje",
+    "codigo_ibge": "2918803",
+    "populacao_2026": 21706
+  },
+  {
+    "uf": "BA",
+    "municipio": "Lapão",
+    "codigo_ibge": "2919157",
+    "populacao_2026": 27025
+  },
+  {
+    "uf": "BA",
+    "municipio": "Lauro de Freitas",
+    "codigo_ibge": "2919207",
+    "populacao_2026": 221023
+  },
+  {
+    "uf": "BA",
+    "municipio": "Livramento de Nossa Senhora",
+    "codigo_ibge": "2919504",
+    "populacao_2026": 46476
+  },
+  {
+    "uf": "BA",
+    "municipio": "Luís Eduardo Magalhães",
+    "codigo_ibge": "2919553",
+    "populacao_2026": 119947
+  },
+  {
+    "uf": "BA",
+    "municipio": "Macarani",
+    "codigo_ibge": "2919702",
+    "populacao_2026": 22924
+  },
+  {
+    "uf": "BA",
+    "municipio": "Macaúbas",
+    "codigo_ibge": "2919801",
+    "populacao_2026": 43587
+  },
+  {
+    "uf": "BA",
+    "municipio": "Madre de Deus",
+    "codigo_ibge": "2919926",
+    "populacao_2026": 19271
+  },
+  {
+    "uf": "BA",
+    "municipio": "Mairi",
+    "codigo_ibge": "2920106",
+    "populacao_2026": 18102
+  },
+  {
+    "uf": "BA",
+    "municipio": "Malhada",
+    "codigo_ibge": "2920205",
+    "populacao_2026": 15796
+  },
+  {
+    "uf": "BA",
+    "municipio": "Maracás",
+    "codigo_ibge": "2920502",
+    "populacao_2026": 29450
+  },
+  {
+    "uf": "BA",
+    "municipio": "Maragogipe",
+    "codigo_ibge": "2920601",
+    "populacao_2026": 36875
+  },
+  {
+    "uf": "BA",
+    "municipio": "Maraú",
+    "codigo_ibge": "2920700",
+    "populacao_2026": 25965
+  },
+  {
+    "uf": "BA",
+    "municipio": "Mata de São João",
+    "codigo_ibge": "2921005",
+    "populacao_2026": 45073
+  },
+  {
+    "uf": "BA",
+    "municipio": "Medeiros Neto",
+    "codigo_ibge": "2921104",
+    "populacao_2026": 22524
+  },
+  {
+    "uf": "BA",
+    "municipio": "Miguel Calmon",
+    "codigo_ibge": "2921203",
+    "populacao_2026": 25213
+  },
+  {
+    "uf": "BA",
+    "municipio": "Mirangaba",
+    "codigo_ibge": "2921401",
+    "populacao_2026": 16150
+  },
+  {
+    "uf": "BA",
+    "municipio": "Monte Santo",
+    "codigo_ibge": "2921500",
+    "populacao_2026": 49793
+  },
+  {
+    "uf": "BA",
+    "municipio": "Morro do Chapéu",
+    "codigo_ibge": "2921708",
+    "populacao_2026": 35245
+  },
+  {
+    "uf": "BA",
+    "municipio": "Mucuri",
+    "codigo_ibge": "2922003",
+    "populacao_2026": 40213
+  },
+  {
+    "uf": "BA",
+    "municipio": "Mundo Novo",
+    "codigo_ibge": "2922102",
+    "populacao_2026": 16997
+  },
+  {
+    "uf": "BA",
+    "municipio": "Muritiba",
+    "codigo_ibge": "2922300",
+    "populacao_2026": 30210
+  },
+  {
+    "uf": "BA",
+    "municipio": "Mutuípe",
+    "codigo_ibge": "2922409",
+    "populacao_2026": 20569
+  },
+  {
+    "uf": "BA",
+    "municipio": "Nazaré",
+    "codigo_ibge": "2922508",
+    "populacao_2026": 28450
+  },
+  {
+    "uf": "BA",
+    "municipio": "Nordestina",
+    "codigo_ibge": "2922656",
+    "populacao_2026": 19903
+  },
+  {
+    "uf": "BA",
+    "municipio": "Nova Soure",
+    "codigo_ibge": "2922904",
+    "populacao_2026": 24828
+  },
+  {
+    "uf": "BA",
+    "municipio": "Nova Viçosa",
+    "codigo_ibge": "2923001",
+    "populacao_2026": 41699
+  },
+  {
+    "uf": "BA",
+    "municipio": "Olindina",
+    "codigo_ibge": "2923100",
+    "populacao_2026": 22838
+  },
+  {
+    "uf": "BA",
+    "municipio": "Oliveira dos Brejinhos",
+    "codigo_ibge": "2923209",
+    "populacao_2026": 21315
+  },
+  {
+    "uf": "BA",
+    "municipio": "Ourolândia",
+    "codigo_ibge": "2923357",
+    "populacao_2026": 20236
+  },
+  {
+    "uf": "BA",
+    "municipio": "Palmas de Monte Alto",
+    "codigo_ibge": "2923407",
+    "populacao_2026": 20656
+  },
+  {
+    "uf": "BA",
+    "municipio": "Paramirim",
+    "codigo_ibge": "2923605",
+    "populacao_2026": 21104
+  },
+  {
+    "uf": "BA",
+    "municipio": "Paratinga",
+    "codigo_ibge": "2923704",
+    "populacao_2026": 30689
+  },
+  {
+    "uf": "BA",
+    "municipio": "Paripiranga",
+    "codigo_ibge": "2923803",
+    "populacao_2026": 27854
+  },
+  {
+    "uf": "BA",
+    "municipio": "Paulo Afonso",
+    "codigo_ibge": "2924009",
+    "populacao_2026": 119686
+  },
+  {
+    "uf": "BA",
+    "municipio": "Piatã",
+    "codigo_ibge": "2924306",
+    "populacao_2026": 21010
+  },
+  {
+    "uf": "BA",
+    "municipio": "Pilão Arcado",
+    "codigo_ibge": "2924405",
+    "populacao_2026": 37493
+  },
+  {
+    "uf": "BA",
+    "municipio": "Pindaí",
+    "codigo_ibge": "2924504",
+    "populacao_2026": 15106
+  },
+  {
+    "uf": "BA",
+    "municipio": "Pindobaçu",
+    "codigo_ibge": "2924603",
+    "populacao_2026": 19579
+  },
+  {
+    "uf": "BA",
+    "municipio": "Piritiba",
+    "codigo_ibge": "2924801",
+    "populacao_2026": 17569
+  },
+  {
+    "uf": "BA",
+    "municipio": "Planalto",
+    "codigo_ibge": "2925006",
+    "populacao_2026": 24018
+  },
+  {
+    "uf": "BA",
+    "municipio": "Pojuca",
+    "codigo_ibge": "2925204",
+    "populacao_2026": 33541
+  },
+  {
+    "uf": "BA",
+    "municipio": "Ponto Novo",
+    "codigo_ibge": "2925253",
+    "populacao_2026": 18848
+  },
+  {
+    "uf": "BA",
+    "municipio": "Porto Seguro",
+    "codigo_ibge": "2925303",
+    "populacao_2026": 184087
+  },
+  {
+    "uf": "BA",
+    "municipio": "Poções",
+    "codigo_ibge": "2925105",
+    "populacao_2026": 50893
+  },
+  {
+    "uf": "BA",
+    "municipio": "Prado",
+    "codigo_ibge": "2925501",
+    "populacao_2026": 37733
+  },
+  {
+    "uf": "BA",
+    "municipio": "Presidente Dutra",
+    "codigo_ibge": "2925600",
+    "populacao_2026": 15702
+  },
+  {
+    "uf": "BA",
+    "municipio": "Presidente Tancredo Neves",
+    "codigo_ibge": "2925758",
+    "populacao_2026": 29622
+  },
+  {
+    "uf": "BA",
+    "municipio": "Queimadas",
+    "codigo_ibge": "2925808",
+    "populacao_2026": 27490
+  },
+  {
+    "uf": "BA",
+    "municipio": "Quijingue",
+    "codigo_ibge": "2925907",
+    "populacao_2026": 26431
+  },
+  {
+    "uf": "BA",
+    "municipio": "Rafael Jambeiro",
+    "codigo_ibge": "2925956",
+    "populacao_2026": 20023
+  },
+  {
+    "uf": "BA",
+    "municipio": "Remanso",
+    "codigo_ibge": "2926004",
+    "populacao_2026": 42957
+  },
+  {
+    "uf": "BA",
+    "municipio": "Riacho de Santana",
+    "codigo_ibge": "2926400",
+    "populacao_2026": 32032
+  },
+  {
+    "uf": "BA",
+    "municipio": "Riachão das Neves",
+    "codigo_ibge": "2926202",
+    "populacao_2026": 22352
+  },
+  {
+    "uf": "BA",
+    "municipio": "Riachão do Jacuípe",
+    "codigo_ibge": "2926301",
+    "populacao_2026": 35251
+  },
+  {
+    "uf": "BA",
+    "municipio": "Ribeira do Pombal",
+    "codigo_ibge": "2926608",
+    "populacao_2026": 56449
+  },
+  {
+    "uf": "BA",
+    "municipio": "Rio Real",
+    "codigo_ibge": "2927002",
+    "populacao_2026": 36938
+  },
+  {
+    "uf": "BA",
+    "municipio": "Ruy Barbosa",
+    "codigo_ibge": "2927200",
+    "populacao_2026": 29575
+  },
+  {
+    "uf": "BA",
+    "municipio": "Salinas da Margarida",
+    "codigo_ibge": "2927309",
+    "populacao_2026": 15685
+  },
+  {
+    "uf": "BA",
+    "municipio": "Santa Brígida",
+    "codigo_ibge": "2927606",
+    "populacao_2026": 15411
+  },
+  {
+    "uf": "BA",
+    "municipio": "Santa Bárbara",
+    "codigo_ibge": "2927507",
+    "populacao_2026": 21845
+  },
+  {
+    "uf": "BA",
+    "municipio": "Santa Cruz Cabrália",
+    "codigo_ibge": "2927705",
+    "populacao_2026": 31148
+  },
+  {
+    "uf": "BA",
+    "municipio": "Santa Maria da Vitória",
+    "codigo_ibge": "2928109",
+    "populacao_2026": 40486
+  },
+  {
+    "uf": "BA",
+    "municipio": "Santa Rita de Cássia",
+    "codigo_ibge": "2928406",
+    "populacao_2026": 28932
+  },
+  {
+    "uf": "BA",
+    "municipio": "Santaluz",
+    "codigo_ibge": "2928000",
+    "populacao_2026": 40196
+  },
+  {
+    "uf": "BA",
+    "municipio": "Santana",
+    "codigo_ibge": "2928208",
+    "populacao_2026": 25531
+  },
+  {
+    "uf": "BA",
+    "municipio": "Santo Amaro",
+    "codigo_ibge": "2928604",
+    "populacao_2026": 58384
+  },
+  {
+    "uf": "BA",
+    "municipio": "Santo Antônio de Jesus",
+    "codigo_ibge": "2928703",
+    "populacao_2026": 110268
+  },
+  {
+    "uf": "BA",
+    "municipio": "Santo Estêvão",
+    "codigo_ibge": "2928802",
+    "populacao_2026": 55333
+  },
+  {
+    "uf": "BA",
+    "municipio": "Sapeaçu",
+    "codigo_ibge": "2929602",
+    "populacao_2026": 18699
+  },
+  {
+    "uf": "BA",
+    "municipio": "Seabra",
+    "codigo_ibge": "2929909",
+    "populacao_2026": 48894
+  },
+  {
+    "uf": "BA",
+    "municipio": "Senhor do Bonfim",
+    "codigo_ibge": "2930105",
+    "populacao_2026": 78193
+  },
+  {
+    "uf": "BA",
+    "municipio": "Sento Sé",
+    "codigo_ibge": "2930204",
+    "populacao_2026": 40310
+  },
+  {
+    "uf": "BA",
+    "municipio": "Serra Dourada",
+    "codigo_ibge": "2930303",
+    "populacao_2026": 17558
+  },
+  {
+    "uf": "BA",
+    "municipio": "Serra Preta",
+    "codigo_ibge": "2930402",
+    "populacao_2026": 18818
+  },
+  {
+    "uf": "BA",
+    "municipio": "Serra do Ramalho",
+    "codigo_ibge": "2930154",
+    "populacao_2026": 36517
+  },
+  {
+    "uf": "BA",
+    "municipio": "Serrinha",
+    "codigo_ibge": "2930501",
+    "populacao_2026": 84928
+  },
+  {
+    "uf": "BA",
+    "municipio": "Simões Filho",
+    "codigo_ibge": "2930709",
+    "populacao_2026": 120429
+  },
+  {
+    "uf": "BA",
+    "municipio": "Sobradinho",
+    "codigo_ibge": "2930774",
+    "populacao_2026": 27222
+  },
+  {
+    "uf": "BA",
+    "municipio": "Souto Soares",
+    "codigo_ibge": "2930808",
+    "populacao_2026": 17777
+  },
+  {
+    "uf": "BA",
+    "municipio": "Sátiro Dias",
+    "codigo_ibge": "2929701",
+    "populacao_2026": 16468
+  },
+  {
+    "uf": "BA",
+    "municipio": "São Desidério",
+    "codigo_ibge": "2928901",
+    "populacao_2026": 35161
+  },
+  {
+    "uf": "BA",
+    "municipio": "São Felipe",
+    "codigo_ibge": "2929107",
+    "populacao_2026": 20927
+  },
+  {
+    "uf": "BA",
+    "municipio": "São Francisco do Conde",
+    "codigo_ibge": "2929206",
+    "populacao_2026": 41272
+  },
+  {
+    "uf": "BA",
+    "municipio": "São Félix do Coribe",
+    "codigo_ibge": "2929057",
+    "populacao_2026": 15816
+  },
+  {
+    "uf": "BA",
+    "municipio": "São Gabriel",
+    "codigo_ibge": "2929255",
+    "populacao_2026": 19246
+  },
+  {
+    "uf": "BA",
+    "municipio": "São Gonçalo dos Campos",
+    "codigo_ibge": "2929305",
+    "populacao_2026": 42409
+  },
+  {
+    "uf": "BA",
+    "municipio": "São Sebastião do Passé",
+    "codigo_ibge": "2929503",
+    "populacao_2026": 42951
+  },
+  {
+    "uf": "BA",
+    "municipio": "Tanhaçu",
+    "codigo_ibge": "2931004",
+    "populacao_2026": 21828
+  },
+  {
+    "uf": "BA",
+    "municipio": "Tanque Novo",
+    "codigo_ibge": "2931053",
+    "populacao_2026": 17815
+  },
+  {
+    "uf": "BA",
+    "municipio": "Taperoá",
+    "codigo_ibge": "2931202",
+    "populacao_2026": 18542
+  },
+  {
+    "uf": "BA",
+    "municipio": "Tapiramutá",
+    "codigo_ibge": "2931301",
+    "populacao_2026": 16200
+  },
+  {
+    "uf": "BA",
+    "municipio": "Teixeira de Freitas",
+    "codigo_ibge": "2931350",
+    "populacao_2026": 154114
+  },
+  {
+    "uf": "BA",
+    "municipio": "Teofilândia",
+    "codigo_ibge": "2931509",
+    "populacao_2026": 21824
+  },
+  {
+    "uf": "BA",
+    "municipio": "Teolândia",
+    "codigo_ibge": "2931608",
+    "populacao_2026": 15809
+  },
+  {
+    "uf": "BA",
+    "municipio": "Tremedal",
+    "codigo_ibge": "2931806",
+    "populacao_2026": 16604
+  },
+  {
+    "uf": "BA",
+    "municipio": "Tucano",
+    "codigo_ibge": "2931905",
+    "populacao_2026": 51067
+  },
+  {
+    "uf": "BA",
+    "municipio": "Uauá",
+    "codigo_ibge": "2932002",
+    "populacao_2026": 25457
+  },
+  {
+    "uf": "BA",
+    "municipio": "Ubaitaba",
+    "codigo_ibge": "2932200",
+    "populacao_2026": 17797
+  },
+  {
+    "uf": "BA",
+    "municipio": "Ubatã",
+    "codigo_ibge": "2932309",
+    "populacao_2026": 15605
+  },
+  {
+    "uf": "BA",
+    "municipio": "Ubaíra",
+    "codigo_ibge": "2932101",
+    "populacao_2026": 19118
+  },
+  {
+    "uf": "BA",
+    "municipio": "Una",
+    "codigo_ibge": "2932507",
+    "populacao_2026": 18117
+  },
+  {
+    "uf": "BA",
+    "municipio": "Urandi",
+    "codigo_ibge": "2932606",
+    "populacao_2026": 15759
+  },
+  {
+    "uf": "BA",
+    "municipio": "Uruçuca",
+    "codigo_ibge": "2932705",
+    "populacao_2026": 22178
+  },
+  {
+    "uf": "BA",
+    "municipio": "Utinga",
+    "codigo_ibge": "2932804",
+    "populacao_2026": 16603
+  },
+  {
+    "uf": "BA",
+    "municipio": "Valente",
+    "codigo_ibge": "2933000",
+    "populacao_2026": 25138
+  },
+  {
+    "uf": "BA",
+    "municipio": "Valença",
+    "codigo_ibge": "2932903",
+    "populacao_2026": 90075
+  },
+  {
+    "uf": "BA",
+    "municipio": "Vera Cruz",
+    "codigo_ibge": "2933208",
+    "populacao_2026": 45386
+  },
+  {
+    "uf": "BA",
+    "municipio": "Wenceslau Guimarães",
+    "codigo_ibge": "2933505",
+    "populacao_2026": 25835
+  },
+  {
+    "uf": "BA",
+    "municipio": "Xique-Xique",
+    "codigo_ibge": "2933604",
+    "populacao_2026": 47056
+  },
+  {
+    "uf": "GO",
+    "municipio": "Abadia de Goiás",
+    "codigo_ibge": "5200050",
+    "populacao_2026": 22918
+  },
+  {
+    "uf": "GO",
+    "municipio": "Abadiânia",
+    "codigo_ibge": "5200100",
+    "populacao_2026": 17835
+  },
+  {
+    "uf": "GO",
+    "municipio": "Acreúna",
+    "codigo_ibge": "5200134",
+    "populacao_2026": 22161
+  },
+  {
+    "uf": "GO",
+    "municipio": "Alexânia",
+    "codigo_ibge": "5200308",
+    "populacao_2026": 28474
+  },
+  {
+    "uf": "GO",
+    "municipio": "Anicuns",
+    "codigo_ibge": "5201306",
+    "populacao_2026": 18172
+  },
+  {
+    "uf": "GO",
+    "municipio": "Aragarças",
+    "codigo_ibge": "5201702",
+    "populacao_2026": 18599
+  },
+  {
+    "uf": "GO",
+    "municipio": "Bela Vista de Goiás",
+    "codigo_ibge": "5203302",
+    "populacao_2026": 38010
+  },
+  {
+    "uf": "GO",
+    "municipio": "Bom Jesus de Goiás",
+    "codigo_ibge": "5203500",
+    "populacao_2026": 25145
+  },
+  {
+    "uf": "GO",
+    "municipio": "Caiapônia",
+    "codigo_ibge": "5204409",
+    "populacao_2026": 16602
+  },
+  {
+    "uf": "GO",
+    "municipio": "Caldas Novas",
+    "codigo_ibge": "5204508",
+    "populacao_2026": 108805
+  },
+  {
+    "uf": "GO",
+    "municipio": "Campos Belos",
+    "codigo_ibge": "5204904",
+    "populacao_2026": 18196
+  },
+  {
+    "uf": "GO",
+    "municipio": "Catalão",
+    "codigo_ibge": "5205109",
+    "populacao_2026": 124683
+  },
+  {
+    "uf": "GO",
+    "municipio": "Ceres",
+    "codigo_ibge": "5205406",
+    "populacao_2026": 22655
+  },
+  {
+    "uf": "GO",
+    "municipio": "Cidade Ocidental",
+    "codigo_ibge": "5205497",
+    "populacao_2026": 104114
+  },
+  {
+    "uf": "GO",
+    "municipio": "Cocalzinho de Goiás",
+    "codigo_ibge": "5205513",
+    "populacao_2026": 27741
+  },
+  {
+    "uf": "GO",
+    "municipio": "Cristalina",
+    "codigo_ibge": "5206206",
+    "populacao_2026": 67922
+  },
+  {
+    "uf": "GO",
+    "municipio": "Crixás",
+    "codigo_ibge": "5206404",
+    "populacao_2026": 17616
+  },
+  {
+    "uf": "GO",
+    "municipio": "Formosa",
+    "codigo_ibge": "5208004",
+    "populacao_2026": 122613
+  },
+  {
+    "uf": "GO",
+    "municipio": "Goianira",
+    "codigo_ibge": "5208806",
+    "populacao_2026": 84170
+  },
+  {
+    "uf": "GO",
+    "municipio": "Goianésia",
+    "codigo_ibge": "5208608",
+    "populacao_2026": 78980
+  },
+  {
+    "uf": "GO",
+    "municipio": "Goiatuba",
+    "codigo_ibge": "5209101",
+    "populacao_2026": 37187
+  },
+  {
+    "uf": "GO",
+    "municipio": "Goiás",
+    "codigo_ibge": "5208905",
+    "populacao_2026": 24113
+  },
+  {
+    "uf": "GO",
+    "municipio": "Guapó",
+    "codigo_ibge": "5209200",
+    "populacao_2026": 21373
+  },
+  {
+    "uf": "GO",
+    "municipio": "Hidrolândia",
+    "codigo_ibge": "5209705",
+    "populacao_2026": 31328
+  },
+  {
+    "uf": "GO",
+    "municipio": "Indiara",
+    "codigo_ibge": "5209952",
+    "populacao_2026": 18217
+  },
+  {
+    "uf": "GO",
+    "municipio": "Inhumas",
+    "codigo_ibge": "5210000",
+    "populacao_2026": 54133
+  },
+  {
+    "uf": "GO",
+    "municipio": "Ipameri",
+    "codigo_ibge": "5210109",
+    "populacao_2026": 26282
+  },
+  {
+    "uf": "GO",
+    "municipio": "Iporá",
+    "codigo_ibge": "5210208",
+    "populacao_2026": 37575
+  },
+  {
+    "uf": "GO",
+    "municipio": "Itaberaí",
+    "codigo_ibge": "5210406",
+    "populacao_2026": 48247
+  },
+  {
+    "uf": "GO",
+    "municipio": "Itapaci",
+    "codigo_ibge": "5210901",
+    "populacao_2026": 22068
+  },
+  {
+    "uf": "GO",
+    "municipio": "Itapuranga",
+    "codigo_ibge": "5211206",
+    "populacao_2026": 26532
+  },
+  {
+    "uf": "GO",
+    "municipio": "Itumbiara",
+    "codigo_ibge": "5211503",
+    "populacao_2026": 114331
+  },
+  {
+    "uf": "GO",
+    "municipio": "Jaraguá",
+    "codigo_ibge": "5211800",
+    "populacao_2026": 46835
+  },
+  {
+    "uf": "GO",
+    "municipio": "Jataí",
+    "codigo_ibge": "5211909",
+    "populacao_2026": 112835
+  },
+  {
+    "uf": "GO",
+    "municipio": "Jussara",
+    "codigo_ibge": "5212204",
+    "populacao_2026": 19949
+  },
+  {
+    "uf": "GO",
+    "municipio": "Luziânia",
+    "codigo_ibge": "5212501",
+    "populacao_2026": 223596
+  },
+  {
+    "uf": "GO",
+    "municipio": "Minaçu",
+    "codigo_ibge": "5213087",
+    "populacao_2026": 26301
+  },
+  {
+    "uf": "GO",
+    "municipio": "Mineiros",
+    "codigo_ibge": "5213103",
+    "populacao_2026": 76188
+  },
+  {
+    "uf": "GO",
+    "municipio": "Morrinhos",
+    "codigo_ibge": "5213806",
+    "populacao_2026": 54995
+  },
+  {
+    "uf": "GO",
+    "municipio": "Mozarlândia",
+    "codigo_ibge": "5214002",
+    "populacao_2026": 15287
+  },
+  {
+    "uf": "GO",
+    "municipio": "Nerópolis",
+    "codigo_ibge": "5214507",
+    "populacao_2026": 34826
+  },
+  {
+    "uf": "GO",
+    "municipio": "Niquelândia",
+    "codigo_ibge": "5214606",
+    "populacao_2026": 33329
+  },
+  {
+    "uf": "GO",
+    "municipio": "Novo Gama",
+    "codigo_ibge": "5215231",
+    "populacao_2026": 108219
+  },
+  {
+    "uf": "GO",
+    "municipio": "Orizona",
+    "codigo_ibge": "5215306",
+    "populacao_2026": 17177
+  },
+  {
+    "uf": "GO",
+    "municipio": "Padre Bernardo",
+    "codigo_ibge": "5215603",
+    "populacao_2026": 37709
+  },
+  {
+    "uf": "GO",
+    "municipio": "Palmeiras de Goiás",
+    "codigo_ibge": "5215702",
+    "populacao_2026": 34985
+  },
+  {
+    "uf": "GO",
+    "municipio": "Piracanjuba",
+    "codigo_ibge": "5217104",
+    "populacao_2026": 25436
+  },
+  {
+    "uf": "GO",
+    "municipio": "Pirenópolis",
+    "codigo_ibge": "5217302",
+    "populacao_2026": 28292
+  },
+  {
+    "uf": "GO",
+    "municipio": "Pires do Rio",
+    "codigo_ibge": "5217401",
+    "populacao_2026": 33974
+  },
+  {
+    "uf": "GO",
+    "municipio": "Planaltina",
+    "codigo_ibge": "5217609",
+    "populacao_2026": 113950
+  },
+  {
+    "uf": "GO",
+    "municipio": "Pontalina",
+    "codigo_ibge": "5217708",
+    "populacao_2026": 18838
+  },
+  {
+    "uf": "GO",
+    "municipio": "Porangatu",
+    "codigo_ibge": "5218003",
+    "populacao_2026": 45620
+  },
+  {
+    "uf": "GO",
+    "municipio": "Posse",
+    "codigo_ibge": "5218300",
+    "populacao_2026": 36517
+  },
+  {
+    "uf": "GO",
+    "municipio": "Quirinópolis",
+    "codigo_ibge": "5218508",
+    "populacao_2026": 50665
+  },
+  {
+    "uf": "GO",
+    "municipio": "Rio Verde",
+    "codigo_ibge": "5218805",
+    "populacao_2026": 244881
+  },
+  {
+    "uf": "GO",
+    "municipio": "Rubiataba",
+    "codigo_ibge": "5218904",
+    "populacao_2026": 20239
+  },
+  {
+    "uf": "GO",
+    "municipio": "Santa Helena de Goiás",
+    "codigo_ibge": "5219308",
+    "populacao_2026": 39719
+  },
+  {
+    "uf": "GO",
+    "municipio": "Santo Antônio do Descoberto",
+    "codigo_ibge": "5219753",
+    "populacao_2026": 75814
+  },
+  {
+    "uf": "GO",
+    "municipio": "Senador Canedo",
+    "codigo_ibge": "5220454",
+    "populacao_2026": 180111
+  },
+  {
+    "uf": "GO",
+    "municipio": "Silvânia",
+    "codigo_ibge": "5220603",
+    "populacao_2026": 23356
+  },
+  {
+    "uf": "GO",
+    "municipio": "São João d'Aliança",
+    "codigo_ibge": "5220009",
+    "populacao_2026": 15290
+  },
+  {
+    "uf": "GO",
+    "municipio": "São Luís de Montes Belos",
+    "codigo_ibge": "5220108",
+    "populacao_2026": 35539
+  },
+  {
+    "uf": "GO",
+    "municipio": "São Miguel do Araguaia",
+    "codigo_ibge": "5220207",
+    "populacao_2026": 22001
+  },
+  {
+    "uf": "GO",
+    "municipio": "São Simão",
+    "codigo_ibge": "5220405",
+    "populacao_2026": 17167
+  },
+  {
+    "uf": "GO",
+    "municipio": "Trindade",
+    "codigo_ibge": "5221403",
+    "populacao_2026": 156197
+  },
+  {
+    "uf": "GO",
+    "municipio": "Uruaçu",
+    "codigo_ibge": "5221601",
+    "populacao_2026": 44907
+  },
+  {
+    "uf": "GO",
+    "municipio": "Valparaíso de Goiás",
+    "codigo_ibge": "5221858",
+    "populacao_2026": 223210
+  },
+  {
+    "uf": "GO",
+    "municipio": "Vianópolis",
+    "codigo_ibge": "5222005",
+    "populacao_2026": 15808
+  },
+  {
+    "uf": "GO",
+    "municipio": "Águas Lindas de Goiás",
+    "codigo_ibge": "5200258",
+    "populacao_2026": 249978
+  },
+  {
+    "uf": "MA",
+    "municipio": "Alcântara",
+    "codigo_ibge": "2100204",
+    "populacao_2026": 18675
+  },
+  {
+    "uf": "MA",
+    "municipio": "Aldeias Altas",
+    "codigo_ibge": "2100303",
+    "populacao_2026": 23772
+  },
+  {
+    "uf": "MA",
+    "municipio": "Alto Alegre do Maranhão",
+    "codigo_ibge": "2100436",
+    "populacao_2026": 24515
+  },
+  {
+    "uf": "MA",
+    "municipio": "Alto Alegre do Pindaré",
+    "codigo_ibge": "2100477",
+    "populacao_2026": 26241
+  },
+  {
+    "uf": "MA",
+    "municipio": "Amarante do Maranhão",
+    "codigo_ibge": "2100600",
+    "populacao_2026": 38337
+  },
+  {
+    "uf": "MA",
+    "municipio": "Anajatuba",
+    "codigo_ibge": "2100709",
+    "populacao_2026": 26275
+  },
+  {
+    "uf": "MA",
+    "municipio": "Apicum-Açu",
+    "codigo_ibge": "2100832",
+    "populacao_2026": 17693
+  },
+  {
+    "uf": "MA",
+    "municipio": "Araioses",
+    "codigo_ibge": "2100907",
+    "populacao_2026": 40190
+  },
+  {
+    "uf": "MA",
+    "municipio": "Arame",
+    "codigo_ibge": "2100956",
+    "populacao_2026": 27782
+  },
+  {
+    "uf": "MA",
+    "municipio": "Arari",
+    "codigo_ibge": "2101004",
+    "populacao_2026": 30585
+  },
+  {
+    "uf": "MA",
+    "municipio": "Açailândia",
+    "codigo_ibge": "2100055",
+    "populacao_2026": 110703
+  },
+  {
+    "uf": "MA",
+    "municipio": "Bacabal",
+    "codigo_ibge": "2101202",
+    "populacao_2026": 107874
+  },
+  {
+    "uf": "MA",
+    "municipio": "Bacabeira",
+    "codigo_ibge": "2101251",
+    "populacao_2026": 17498
+  },
+  {
+    "uf": "MA",
+    "municipio": "Bacuri",
+    "codigo_ibge": "2101301",
+    "populacao_2026": 16957
+  },
+  {
+    "uf": "MA",
+    "municipio": "Balsas",
+    "codigo_ibge": "2101400",
+    "populacao_2026": 106332
+  },
+  {
+    "uf": "MA",
+    "municipio": "Barra do Corda",
+    "codigo_ibge": "2101608",
+    "populacao_2026": 87830
+  },
+  {
+    "uf": "MA",
+    "municipio": "Barreirinhas",
+    "codigo_ibge": "2101707",
+    "populacao_2026": 68439
+  },
+  {
+    "uf": "MA",
+    "municipio": "Barão de Grajaú",
+    "codigo_ibge": "2101509",
+    "populacao_2026": 19524
+  },
+  {
+    "uf": "MA",
+    "municipio": "Bequimão",
+    "codigo_ibge": "2101905",
+    "populacao_2026": 19955
+  },
+  {
+    "uf": "MA",
+    "municipio": "Bom Jardim",
+    "codigo_ibge": "2102002",
+    "populacao_2026": 33850
+  },
+  {
+    "uf": "MA",
+    "municipio": "Bom Jesus das Selvas",
+    "codigo_ibge": "2102036",
+    "populacao_2026": 29620
+  },
+  {
+    "uf": "MA",
+    "municipio": "Brejo",
+    "codigo_ibge": "2102101",
+    "populacao_2026": 35382
+  },
+  {
+    "uf": "MA",
+    "municipio": "Buriti",
+    "codigo_ibge": "2102200",
+    "populacao_2026": 30925
+  },
+  {
+    "uf": "MA",
+    "municipio": "Buriti Bravo",
+    "codigo_ibge": "2102309",
+    "populacao_2026": 22937
+  },
+  {
+    "uf": "MA",
+    "municipio": "Buriticupu",
+    "codigo_ibge": "2102325",
+    "populacao_2026": 56590
+  },
+  {
+    "uf": "MA",
+    "municipio": "Cajari",
+    "codigo_ibge": "2102507",
+    "populacao_2026": 16652
+  },
+  {
+    "uf": "MA",
+    "municipio": "Cantanhede",
+    "codigo_ibge": "2102705",
+    "populacao_2026": 25131
+  },
+  {
+    "uf": "MA",
+    "municipio": "Carolina",
+    "codigo_ibge": "2102804",
+    "populacao_2026": 24630
+  },
+  {
+    "uf": "MA",
+    "municipio": "Carutapera",
+    "codigo_ibge": "2102903",
+    "populacao_2026": 24950
+  },
+  {
+    "uf": "MA",
+    "municipio": "Caxias",
+    "codigo_ibge": "2103000",
+    "populacao_2026": 163650
+  },
+  {
+    "uf": "MA",
+    "municipio": "Centro Novo do Maranhão",
+    "codigo_ibge": "2103174",
+    "populacao_2026": 16432
+  },
+  {
+    "uf": "MA",
+    "municipio": "Chapadinha",
+    "codigo_ibge": "2103208",
+    "populacao_2026": 84564
+  },
+  {
+    "uf": "MA",
+    "municipio": "Codó",
+    "codigo_ibge": "2103307",
+    "populacao_2026": 118272
+  },
+  {
+    "uf": "MA",
+    "municipio": "Coelho Neto",
+    "codigo_ibge": "2103406",
+    "populacao_2026": 42774
+  },
+  {
+    "uf": "MA",
+    "municipio": "Colinas",
+    "codigo_ibge": "2103505",
+    "populacao_2026": 41826
+  },
+  {
+    "uf": "MA",
+    "municipio": "Conceição do Lago-Açu",
+    "codigo_ibge": "2103554",
+    "populacao_2026": 15291
+  },
+  {
+    "uf": "MA",
+    "municipio": "Coroatá",
+    "codigo_ibge": "2103604",
+    "populacao_2026": 61324
+  },
+  {
+    "uf": "MA",
+    "municipio": "Cururupu",
+    "codigo_ibge": "2103703",
+    "populacao_2026": 32598
+  },
+  {
+    "uf": "MA",
+    "municipio": "Cândido Mendes",
+    "codigo_ibge": "2102606",
+    "populacao_2026": 20464
+  },
+  {
+    "uf": "MA",
+    "municipio": "Dom Pedro",
+    "codigo_ibge": "2103802",
+    "populacao_2026": 23607
+  },
+  {
+    "uf": "MA",
+    "municipio": "Esperantinópolis",
+    "codigo_ibge": "2104008",
+    "populacao_2026": 18743
+  },
+  {
+    "uf": "MA",
+    "municipio": "Estreito",
+    "codigo_ibge": "2104057",
+    "populacao_2026": 34293
+  },
+  {
+    "uf": "MA",
+    "municipio": "Formosa da Serra Negra",
+    "codigo_ibge": "2104099",
+    "populacao_2026": 18164
+  },
+  {
+    "uf": "MA",
+    "municipio": "Fortuna",
+    "codigo_ibge": "2104206",
+    "populacao_2026": 17348
+  },
+  {
+    "uf": "MA",
+    "municipio": "Gonçalves Dias",
+    "codigo_ibge": "2104404",
+    "populacao_2026": 17580
+  },
+  {
+    "uf": "MA",
+    "municipio": "Governador Edison Lobão",
+    "codigo_ibge": "2104552",
+    "populacao_2026": 19010
+  },
+  {
+    "uf": "MA",
+    "municipio": "Governador Nunes Freire",
+    "codigo_ibge": "2104677",
+    "populacao_2026": 23493
+  },
+  {
+    "uf": "MA",
+    "municipio": "Grajaú",
+    "codigo_ibge": "2104800",
+    "populacao_2026": 75281
+  },
+  {
+    "uf": "MA",
+    "municipio": "Humberto de Campos",
+    "codigo_ibge": "2105005",
+    "populacao_2026": 26552
+  },
+  {
+    "uf": "MA",
+    "municipio": "Icatu",
+    "codigo_ibge": "2105104",
+    "populacao_2026": 25332
+  },
+  {
+    "uf": "MA",
+    "municipio": "Itapecuru Mirim",
+    "codigo_ibge": "2105401",
+    "populacao_2026": 62260
+  },
+  {
+    "uf": "MA",
+    "municipio": "Itinga do Maranhão",
+    "codigo_ibge": "2105427",
+    "populacao_2026": 22863
+  },
+  {
+    "uf": "MA",
+    "municipio": "Jenipapo dos Vieiras",
+    "codigo_ibge": "2105476",
+    "populacao_2026": 17555
+  },
+  {
+    "uf": "MA",
+    "municipio": "Joselândia",
+    "codigo_ibge": "2105609",
+    "populacao_2026": 15221
+  },
+  {
+    "uf": "MA",
+    "municipio": "João Lisboa",
+    "codigo_ibge": "2105500",
+    "populacao_2026": 25331
+  },
+  {
+    "uf": "MA",
+    "municipio": "Lago Verde",
+    "codigo_ibge": "2105906",
+    "populacao_2026": 15062
+  },
+  {
+    "uf": "MA",
+    "municipio": "Lago da Pedra",
+    "codigo_ibge": "2105708",
+    "populacao_2026": 45857
+  },
+  {
+    "uf": "MA",
+    "municipio": "Maracaçumé",
+    "codigo_ibge": "2106326",
+    "populacao_2026": 21768
+  },
+  {
+    "uf": "MA",
+    "municipio": "Mata Roma",
+    "codigo_ibge": "2106409",
+    "populacao_2026": 17618
+  },
+  {
+    "uf": "MA",
+    "municipio": "Matinha",
+    "codigo_ibge": "2106508",
+    "populacao_2026": 22549
+  },
+  {
+    "uf": "MA",
+    "municipio": "Matões",
+    "codigo_ibge": "2106607",
+    "populacao_2026": 33350
+  },
+  {
+    "uf": "MA",
+    "municipio": "Matões do Norte",
+    "codigo_ibge": "2106631",
+    "populacao_2026": 18087
+  },
+  {
+    "uf": "MA",
+    "municipio": "Mirador",
+    "codigo_ibge": "2106706",
+    "populacao_2026": 21552
+  },
+  {
+    "uf": "MA",
+    "municipio": "Miranda do Norte",
+    "codigo_ibge": "2106755",
+    "populacao_2026": 24371
+  },
+  {
+    "uf": "MA",
+    "municipio": "Monção",
+    "codigo_ibge": "2106904",
+    "populacao_2026": 28526
+  },
+  {
+    "uf": "MA",
+    "municipio": "Morros",
+    "codigo_ibge": "2107100",
+    "populacao_2026": 19033
+  },
+  {
+    "uf": "MA",
+    "municipio": "Olho d'Água das Cunhãs",
+    "codigo_ibge": "2107407",
+    "populacao_2026": 18281
+  },
+  {
+    "uf": "MA",
+    "municipio": "Palmeirândia",
+    "codigo_ibge": "2107605",
+    "populacao_2026": 21702
+  },
+  {
+    "uf": "MA",
+    "municipio": "Paraibano",
+    "codigo_ibge": "2107704",
+    "populacao_2026": 18564
+  },
+  {
+    "uf": "MA",
+    "municipio": "Parnarama",
+    "codigo_ibge": "2107803",
+    "populacao_2026": 32212
+  },
+  {
+    "uf": "MA",
+    "municipio": "Passagem Franca",
+    "codigo_ibge": "2107902",
+    "populacao_2026": 17590
+  },
+  {
+    "uf": "MA",
+    "municipio": "Pastos Bons",
+    "codigo_ibge": "2108009",
+    "populacao_2026": 19284
+  },
+  {
+    "uf": "MA",
+    "municipio": "Paulino Neves",
+    "codigo_ibge": "2108058",
+    "populacao_2026": 17625
+  },
+  {
+    "uf": "MA",
+    "municipio": "Paulo Ramos",
+    "codigo_ibge": "2108108",
+    "populacao_2026": 20803
+  },
+  {
+    "uf": "MA",
+    "municipio": "Paço do Lumiar",
+    "codigo_ibge": "2107506",
+    "populacao_2026": 153903
+  },
+  {
+    "uf": "MA",
+    "municipio": "Pedreiras",
+    "codigo_ibge": "2108207",
+    "populacao_2026": 38239
+  },
+  {
+    "uf": "MA",
+    "municipio": "Pedro do Rosário",
+    "codigo_ibge": "2108256",
+    "populacao_2026": 24989
+  },
+  {
+    "uf": "MA",
+    "municipio": "Penalva",
+    "codigo_ibge": "2108306",
+    "populacao_2026": 33463
+  },
+  {
+    "uf": "MA",
+    "municipio": "Peritoró",
+    "codigo_ibge": "2108454",
+    "populacao_2026": 20896
+  },
+  {
+    "uf": "MA",
+    "municipio": "Pindaré-Mirim",
+    "codigo_ibge": "2108504",
+    "populacao_2026": 32560
+  },
+  {
+    "uf": "MA",
+    "municipio": "Pinheiro",
+    "codigo_ibge": "2108603",
+    "populacao_2026": 88241
+  },
+  {
+    "uf": "MA",
+    "municipio": "Pio XII",
+    "codigo_ibge": "2108702",
+    "populacao_2026": 22378
+  },
+  {
+    "uf": "MA",
+    "municipio": "Pirapemas",
+    "codigo_ibge": "2108801",
+    "populacao_2026": 18143
+  },
+  {
+    "uf": "MA",
+    "municipio": "Porto Franco",
+    "codigo_ibge": "2109007",
+    "populacao_2026": 24618
+  },
+  {
+    "uf": "MA",
+    "municipio": "Poção de Pedras",
+    "codigo_ibge": "2108900",
+    "populacao_2026": 17351
+  },
+  {
+    "uf": "MA",
+    "municipio": "Presidente Dutra",
+    "codigo_ibge": "2109106",
+    "populacao_2026": 46631
+  },
+  {
+    "uf": "MA",
+    "municipio": "Presidente Sarney",
+    "codigo_ibge": "2109270",
+    "populacao_2026": 17936
+  },
+  {
+    "uf": "MA",
+    "municipio": "Raposa",
+    "codigo_ibge": "2109452",
+    "populacao_2026": 32246
+  },
+  {
+    "uf": "MA",
+    "municipio": "Riachão",
+    "codigo_ibge": "2109502",
+    "populacao_2026": 22776
+  },
+  {
+    "uf": "MA",
+    "municipio": "Rosário",
+    "codigo_ibge": "2109601",
+    "populacao_2026": 39759
+  },
+  {
+    "uf": "MA",
+    "municipio": "Santa Helena",
+    "codigo_ibge": "2109809",
+    "populacao_2026": 43278
+  },
+  {
+    "uf": "MA",
+    "municipio": "Santa Inês",
+    "codigo_ibge": "2109908",
+    "populacao_2026": 88320
+  },
+  {
+    "uf": "MA",
+    "municipio": "Santa Luzia",
+    "codigo_ibge": "2110005",
+    "populacao_2026": 58667
+  },
+  {
+    "uf": "MA",
+    "municipio": "Santa Luzia do Paruá",
+    "codigo_ibge": "2110039",
+    "populacao_2026": 24907
+  },
+  {
+    "uf": "MA",
+    "municipio": "Santa Quitéria do Maranhão",
+    "codigo_ibge": "2110104",
+    "populacao_2026": 24501
+  },
+  {
+    "uf": "MA",
+    "municipio": "Santa Rita",
+    "codigo_ibge": "2110203",
+    "populacao_2026": 38625
+  },
+  {
+    "uf": "MA",
+    "municipio": "Senador La Rocque",
+    "codigo_ibge": "2111763",
+    "populacao_2026": 15052
+  },
+  {
+    "uf": "MA",
+    "municipio": "São Benedito do Rio Preto",
+    "codigo_ibge": "2110401",
+    "populacao_2026": 18825
+  },
+  {
+    "uf": "MA",
+    "municipio": "São Bento",
+    "codigo_ibge": "2110500",
+    "populacao_2026": 48280
+  },
+  {
+    "uf": "MA",
+    "municipio": "São Bernardo",
+    "codigo_ibge": "2110609",
+    "populacao_2026": 27930
+  },
+  {
+    "uf": "MA",
+    "municipio": "São Domingos do Maranhão",
+    "codigo_ibge": "2110708",
+    "populacao_2026": 35269
+  },
+  {
+    "uf": "MA",
+    "municipio": "São João Batista",
+    "codigo_ibge": "2111003",
+    "populacao_2026": 18871
+  },
+  {
+    "uf": "MA",
+    "municipio": "São João do Soter",
+    "codigo_ibge": "2111078",
+    "populacao_2026": 17252
+  },
+  {
+    "uf": "MA",
+    "municipio": "São João dos Patos",
+    "codigo_ibge": "2111102",
+    "populacao_2026": 25926
+  },
+  {
+    "uf": "MA",
+    "municipio": "São Luís Gonzaga do Maranhão",
+    "codigo_ibge": "2111409",
+    "populacao_2026": 18097
+  },
+  {
+    "uf": "MA",
+    "municipio": "São Mateus do Maranhão",
+    "codigo_ibge": "2111508",
+    "populacao_2026": 40191
+  },
+  {
+    "uf": "MA",
+    "municipio": "São Raimundo das Mangabeiras",
+    "codigo_ibge": "2111607",
+    "populacao_2026": 19184
+  },
+  {
+    "uf": "MA",
+    "municipio": "São Vicente Ferrer",
+    "codigo_ibge": "2111706",
+    "populacao_2026": 19848
+  },
+  {
+    "uf": "MA",
+    "municipio": "Sítio Novo",
+    "codigo_ibge": "2111805",
+    "populacao_2026": 17470
+  },
+  {
+    "uf": "MA",
+    "municipio": "Timbiras",
+    "codigo_ibge": "2112100",
+    "populacao_2026": 27314
+  },
+  {
+    "uf": "MA",
+    "municipio": "Timon",
+    "codigo_ibge": "2112209",
+    "populacao_2026": 183123
+  },
+  {
+    "uf": "MA",
+    "municipio": "Trizidela do Vale",
+    "codigo_ibge": "2112233",
+    "populacao_2026": 23137
+  },
+  {
+    "uf": "MA",
+    "municipio": "Tuntum",
+    "codigo_ibge": "2112308",
+    "populacao_2026": 37331
+  },
+  {
+    "uf": "MA",
+    "municipio": "Turiaçu",
+    "codigo_ibge": "2112407",
+    "populacao_2026": 39070
+  },
+  {
+    "uf": "MA",
+    "municipio": "Turilândia",
+    "codigo_ibge": "2112456",
+    "populacao_2026": 33383
+  },
+  {
+    "uf": "MA",
+    "municipio": "Tutóia",
+    "codigo_ibge": "2112506",
+    "populacao_2026": 55107
+  },
+  {
+    "uf": "MA",
+    "municipio": "Urbano Santos",
+    "codigo_ibge": "2112605",
+    "populacao_2026": 34216
+  },
+  {
+    "uf": "MA",
+    "municipio": "Vargem Grande",
+    "codigo_ibge": "2112704",
+    "populacao_2026": 44359
+  },
+  {
+    "uf": "MA",
+    "municipio": "Viana",
+    "codigo_ibge": "2112803",
+    "populacao_2026": 53229
+  },
+  {
+    "uf": "MA",
+    "municipio": "Vitorino Freire",
+    "codigo_ibge": "2113009",
+    "populacao_2026": 31933
+  },
+  {
+    "uf": "MA",
+    "municipio": "Vitória do Mearim",
+    "codigo_ibge": "2112902",
+    "populacao_2026": 31866
+  },
+  {
+    "uf": "MA",
+    "municipio": "Zé Doca",
+    "codigo_ibge": "2114007",
+    "populacao_2026": 41704
+  },
+  {
+    "uf": "MG",
+    "municipio": "Abaeté",
+    "codigo_ibge": "3100203",
+    "populacao_2026": 23185
+  },
+  {
+    "uf": "MG",
+    "municipio": "Aimorés",
+    "codigo_ibge": "3101102",
+    "populacao_2026": 26257
+  },
+  {
+    "uf": "MG",
+    "municipio": "Alfenas",
+    "codigo_ibge": "3101607",
+    "populacao_2026": 82637
+  },
+  {
+    "uf": "MG",
+    "municipio": "Almenara",
+    "codigo_ibge": "3101706",
+    "populacao_2026": 42137
+  },
+  {
+    "uf": "MG",
+    "municipio": "Alpinópolis",
+    "codigo_ibge": "3101904",
+    "populacao_2026": 18673
+  },
+  {
+    "uf": "MG",
+    "municipio": "Alvinópolis",
+    "codigo_ibge": "3102308",
+    "populacao_2026": 15355
+  },
+  {
+    "uf": "MG",
+    "municipio": "Além Paraíba",
+    "codigo_ibge": "3101508",
+    "populacao_2026": 30994
+  },
+  {
+    "uf": "MG",
+    "municipio": "Andradas",
+    "codigo_ibge": "3102605",
+    "populacao_2026": 42708
+  },
+  {
+    "uf": "MG",
+    "municipio": "Araguari",
+    "codigo_ibge": "3103504",
+    "populacao_2026": 123959
+  },
+  {
+    "uf": "MG",
+    "municipio": "Araxá",
+    "codigo_ibge": "3104007",
+    "populacao_2026": 119834
+  },
+  {
+    "uf": "MG",
+    "municipio": "Araçuaí",
+    "codigo_ibge": "3103405",
+    "populacao_2026": 35124
+  },
+  {
+    "uf": "MG",
+    "municipio": "Arcos",
+    "codigo_ibge": "3104205",
+    "populacao_2026": 43941
+  },
+  {
+    "uf": "MG",
+    "municipio": "Arinos",
+    "codigo_ibge": "3104502",
+    "populacao_2026": 17574
+  },
+  {
+    "uf": "MG",
+    "municipio": "Baependi",
+    "codigo_ibge": "3104908",
+    "populacao_2026": 18796
+  },
+  {
+    "uf": "MG",
+    "municipio": "Bambuí",
+    "codigo_ibge": "3105103",
+    "populacao_2026": 24258
+  },
+  {
+    "uf": "MG",
+    "municipio": "Barbacena",
+    "codigo_ibge": "3105608",
+    "populacao_2026": 129757
+  },
+  {
+    "uf": "MG",
+    "municipio": "Barroso",
+    "codigo_ibge": "3105905",
+    "populacao_2026": 20640
+  },
+  {
+    "uf": "MG",
+    "municipio": "Barão de Cocais",
+    "codigo_ibge": "3105400",
+    "populacao_2026": 32424
+  },
+  {
+    "uf": "MG",
+    "municipio": "Belo Oriente",
+    "codigo_ibge": "3106309",
+    "populacao_2026": 24587
+  },
+  {
+    "uf": "MG",
+    "municipio": "Boa Esperança",
+    "codigo_ibge": "3107109",
+    "populacao_2026": 41547
+  },
+  {
+    "uf": "MG",
+    "municipio": "Bocaiúva",
+    "codigo_ibge": "3107307",
+    "populacao_2026": 49919
+  },
+  {
+    "uf": "MG",
+    "municipio": "Bom Despacho",
+    "codigo_ibge": "3107406",
+    "populacao_2026": 54738
+  },
+  {
+    "uf": "MG",
+    "municipio": "Bom Sucesso",
+    "codigo_ibge": "3108008",
+    "populacao_2026": 17519
+  },
+  {
+    "uf": "MG",
+    "municipio": "Borda da Mata",
+    "codigo_ibge": "3108305",
+    "populacao_2026": 17861
+  },
+  {
+    "uf": "MG",
+    "municipio": "Botelhos",
+    "codigo_ibge": "3108404",
+    "populacao_2026": 15144
+  },
+  {
+    "uf": "MG",
+    "municipio": "Brasilândia de Minas",
+    "codigo_ibge": "3108552",
+    "populacao_2026": 15535
+  },
+  {
+    "uf": "MG",
+    "municipio": "Brasília de Minas",
+    "codigo_ibge": "3108602",
+    "populacao_2026": 33332
+  },
+  {
+    "uf": "MG",
+    "municipio": "Brumadinho",
+    "codigo_ibge": "3109006",
+    "populacao_2026": 41382
+  },
+  {
+    "uf": "MG",
+    "municipio": "Buritis",
+    "codigo_ibge": "3109303",
+    "populacao_2026": 24860
+  },
+  {
+    "uf": "MG",
+    "municipio": "Buritizeiro",
+    "codigo_ibge": "3109402",
+    "populacao_2026": 23756
+  },
+  {
+    "uf": "MG",
+    "municipio": "Caeté",
+    "codigo_ibge": "3110004",
+    "populacao_2026": 39704
+  },
+  {
+    "uf": "MG",
+    "municipio": "Camanducaia",
+    "codigo_ibge": "3110509",
+    "populacao_2026": 28152
+  },
+  {
+    "uf": "MG",
+    "municipio": "Cambuí",
+    "codigo_ibge": "3110608",
+    "populacao_2026": 31252
+  },
+  {
+    "uf": "MG",
+    "municipio": "Campanha",
+    "codigo_ibge": "3110905",
+    "populacao_2026": 16406
+  },
+  {
+    "uf": "MG",
+    "municipio": "Campestre",
+    "codigo_ibge": "3111002",
+    "populacao_2026": 21167
+  },
+  {
+    "uf": "MG",
+    "municipio": "Campina Verde",
+    "codigo_ibge": "3111101",
+    "populacao_2026": 18129
+  },
+  {
+    "uf": "MG",
+    "municipio": "Campo Belo",
+    "codigo_ibge": "3111200",
+    "populacao_2026": 54106
+  },
+  {
+    "uf": "MG",
+    "municipio": "Campos Gerais",
+    "codigo_ibge": "3111606",
+    "populacao_2026": 26693
+  },
+  {
+    "uf": "MG",
+    "municipio": "Capelinha",
+    "codigo_ibge": "3112307",
+    "populacao_2026": 42162
+  },
+  {
+    "uf": "MG",
+    "municipio": "Carandaí",
+    "codigo_ibge": "3113206",
+    "populacao_2026": 24436
+  },
+  {
+    "uf": "MG",
+    "municipio": "Carangola",
+    "codigo_ibge": "3113305",
+    "populacao_2026": 32105
+  },
+  {
+    "uf": "MG",
+    "municipio": "Caratinga",
+    "codigo_ibge": "3113404",
+    "populacao_2026": 91082
+  },
+  {
+    "uf": "MG",
+    "municipio": "Caraí",
+    "codigo_ibge": "3113008",
+    "populacao_2026": 19376
+  },
+  {
+    "uf": "MG",
+    "municipio": "Carlos Chagas",
+    "codigo_ibge": "3113701",
+    "populacao_2026": 18717
+  },
+  {
+    "uf": "MG",
+    "municipio": "Carmo do Cajuru",
+    "codigo_ibge": "3114204",
+    "populacao_2026": 24775
+  },
+  {
+    "uf": "MG",
+    "municipio": "Carmo do Paranaíba",
+    "codigo_ibge": "3114303",
+    "populacao_2026": 29872
+  },
+  {
+    "uf": "MG",
+    "municipio": "Carmo do Rio Claro",
+    "codigo_ibge": "3114402",
+    "populacao_2026": 21545
+  },
+  {
+    "uf": "MG",
+    "municipio": "Carmópolis de Minas",
+    "codigo_ibge": "3114501",
+    "populacao_2026": 18621
+  },
+  {
+    "uf": "MG",
+    "municipio": "Cataguases",
+    "codigo_ibge": "3115300",
+    "populacao_2026": 67600
+  },
+  {
+    "uf": "MG",
+    "municipio": "Caxambu",
+    "codigo_ibge": "3115508",
+    "populacao_2026": 21390
+  },
+  {
+    "uf": "MG",
+    "municipio": "Cláudio",
+    "codigo_ibge": "3116605",
+    "populacao_2026": 32192
+  },
+  {
+    "uf": "MG",
+    "municipio": "Conceição das Alagoas",
+    "codigo_ibge": "3117306",
+    "populacao_2026": 30589
+  },
+  {
+    "uf": "MG",
+    "municipio": "Conceição do Mato Dentro",
+    "codigo_ibge": "3117504",
+    "populacao_2026": 24846
+  },
+  {
+    "uf": "MG",
+    "municipio": "Congonhas",
+    "codigo_ibge": "3118007",
+    "populacao_2026": 55542
+  },
+  {
+    "uf": "MG",
+    "municipio": "Conselheiro Lafaiete",
+    "codigo_ibge": "3118304",
+    "populacao_2026": 139858
+  },
+  {
+    "uf": "MG",
+    "municipio": "Conselheiro Pena",
+    "codigo_ibge": "3118403",
+    "populacao_2026": 20989
+  },
+  {
+    "uf": "MG",
+    "municipio": "Coração de Jesus",
+    "codigo_ibge": "3118809",
+    "populacao_2026": 26125
+  },
+  {
+    "uf": "MG",
+    "municipio": "Corinto",
+    "codigo_ibge": "3119104",
+    "populacao_2026": 23981
+  },
+  {
+    "uf": "MG",
+    "municipio": "Coromandel",
+    "codigo_ibge": "3119302",
+    "populacao_2026": 30209
+  },
+  {
+    "uf": "MG",
+    "municipio": "Coronel Fabriciano",
+    "codigo_ibge": "3119401",
+    "populacao_2026": 108857
+  },
+  {
+    "uf": "MG",
+    "municipio": "Cruzília",
+    "codigo_ibge": "3120805",
+    "populacao_2026": 15879
+  },
+  {
+    "uf": "MG",
+    "municipio": "Curvelo",
+    "codigo_ibge": "3120904",
+    "populacao_2026": 84709
+  },
+  {
+    "uf": "MG",
+    "municipio": "Cássia",
+    "codigo_ibge": "3115102",
+    "populacao_2026": 17487
+  },
+  {
+    "uf": "MG",
+    "municipio": "Diamantina",
+    "codigo_ibge": "3121605",
+    "populacao_2026": 49625
+  },
+  {
+    "uf": "MG",
+    "municipio": "Divino",
+    "codigo_ibge": "3122009",
+    "populacao_2026": 21521
+  },
+  {
+    "uf": "MG",
+    "municipio": "Divinópolis",
+    "codigo_ibge": "3122306",
+    "populacao_2026": 244769
+  },
+  {
+    "uf": "MG",
+    "municipio": "Elói Mendes",
+    "codigo_ibge": "3123601",
+    "populacao_2026": 27510
+  },
+  {
+    "uf": "MG",
+    "municipio": "Entre Rios de Minas",
+    "codigo_ibge": "3123908",
+    "populacao_2026": 15191
+  },
+  {
+    "uf": "MG",
+    "municipio": "Ervália",
+    "codigo_ibge": "3124005",
+    "populacao_2026": 21222
+  },
+  {
+    "uf": "MG",
+    "municipio": "Esmeraldas",
+    "codigo_ibge": "3124104",
+    "populacao_2026": 94543
+  },
+  {
+    "uf": "MG",
+    "municipio": "Espera Feliz",
+    "codigo_ibge": "3124203",
+    "populacao_2026": 24922
+  },
+  {
+    "uf": "MG",
+    "municipio": "Espinosa",
+    "codigo_ibge": "3124302",
+    "populacao_2026": 31366
+  },
+  {
+    "uf": "MG",
+    "municipio": "Extrema",
+    "codigo_ibge": "3125101",
+    "populacao_2026": 60681
+  },
+  {
+    "uf": "MG",
+    "municipio": "Formiga",
+    "codigo_ibge": "3126109",
+    "populacao_2026": 71113
+  },
+  {
+    "uf": "MG",
+    "municipio": "Francisco Sá",
+    "codigo_ibge": "3126703",
+    "populacao_2026": 23691
+  },
+  {
+    "uf": "MG",
+    "municipio": "Frutal",
+    "codigo_ibge": "3127107",
+    "populacao_2026": 61588
+  },
+  {
+    "uf": "MG",
+    "municipio": "Guanhães",
+    "codigo_ibge": "3128006",
+    "populacao_2026": 33596
+  },
+  {
+    "uf": "MG",
+    "municipio": "Guaranésia",
+    "codigo_ibge": "3128303",
+    "populacao_2026": 19679
+  },
+  {
+    "uf": "MG",
+    "municipio": "Guaxupé",
+    "codigo_ibge": "3128709",
+    "populacao_2026": 52862
+  },
+  {
+    "uf": "MG",
+    "municipio": "Ibirité",
+    "codigo_ibge": "3129806",
+    "populacao_2026": 180404
+  },
+  {
+    "uf": "MG",
+    "municipio": "Ibiá",
+    "codigo_ibge": "3129509",
+    "populacao_2026": 22515
+  },
+  {
+    "uf": "MG",
+    "municipio": "Igarapé",
+    "codigo_ibge": "3130101",
+    "populacao_2026": 49729
+  },
+  {
+    "uf": "MG",
+    "municipio": "Inhapim",
+    "codigo_ibge": "3130903",
+    "populacao_2026": 22854
+  },
+  {
+    "uf": "MG",
+    "municipio": "Ipaba",
+    "codigo_ibge": "3131158",
+    "populacao_2026": 17619
+  },
+  {
+    "uf": "MG",
+    "municipio": "Ipanema",
+    "codigo_ibge": "3131208",
+    "populacao_2026": 20262
+  },
+  {
+    "uf": "MG",
+    "municipio": "Ipatinga",
+    "codigo_ibge": "3131307",
+    "populacao_2026": 234930
+  },
+  {
+    "uf": "MG",
+    "municipio": "Itabira",
+    "codigo_ibge": "3131703",
+    "populacao_2026": 118342
+  },
+  {
+    "uf": "MG",
+    "municipio": "Itabirito",
+    "codigo_ibge": "3131901",
+    "populacao_2026": 56818
+  },
+  {
+    "uf": "MG",
+    "municipio": "Itacarambi",
+    "codigo_ibge": "3132107",
+    "populacao_2026": 17485
+  },
+  {
+    "uf": "MG",
+    "municipio": "Itajubá",
+    "codigo_ibge": "3132404",
+    "populacao_2026": 97065
+  },
+  {
+    "uf": "MG",
+    "municipio": "Itamarandiba",
+    "codigo_ibge": "3132503",
+    "populacao_2026": 34279
+  },
+  {
+    "uf": "MG",
+    "municipio": "Itambacuri",
+    "codigo_ibge": "3132701",
+    "populacao_2026": 21129
+  },
+  {
+    "uf": "MG",
+    "municipio": "Itamonte",
+    "codigo_ibge": "3133006",
+    "populacao_2026": 15294
+  },
+  {
+    "uf": "MG",
+    "municipio": "Itanhandu",
+    "codigo_ibge": "3133105",
+    "populacao_2026": 15815
+  },
+  {
+    "uf": "MG",
+    "municipio": "Itaobim",
+    "codigo_ibge": "3133303",
+    "populacao_2026": 19177
+  },
+  {
+    "uf": "MG",
+    "municipio": "Itapecerica",
+    "codigo_ibge": "3133501",
+    "populacao_2026": 21450
+  },
+  {
+    "uf": "MG",
+    "municipio": "Itaúna",
+    "codigo_ibge": "3133808",
+    "populacao_2026": 104002
+  },
+  {
+    "uf": "MG",
+    "municipio": "Ituiutaba",
+    "codigo_ibge": "3134202",
+    "populacao_2026": 107133
+  },
+  {
+    "uf": "MG",
+    "municipio": "Iturama",
+    "codigo_ibge": "3134400",
+    "populacao_2026": 40493
+  },
+  {
+    "uf": "MG",
+    "municipio": "Jaboticatubas",
+    "codigo_ibge": "3134608",
+    "populacao_2026": 21609
+  },
+  {
+    "uf": "MG",
+    "municipio": "Jacutinga",
+    "codigo_ibge": "3134905",
+    "populacao_2026": 27060
+  },
+  {
+    "uf": "MG",
+    "municipio": "Janaúba",
+    "codigo_ibge": "3135100",
+    "populacao_2026": 73814
+  },
+  {
+    "uf": "MG",
+    "municipio": "Januária",
+    "codigo_ibge": "3135209",
+    "populacao_2026": 67157
+  },
+  {
+    "uf": "MG",
+    "municipio": "Jaíba",
+    "codigo_ibge": "3135050",
+    "populacao_2026": 39884
+  },
+  {
+    "uf": "MG",
+    "municipio": "Jequitinhonha",
+    "codigo_ibge": "3135803",
+    "populacao_2026": 24523
+  },
+  {
+    "uf": "MG",
+    "municipio": "João Monlevade",
+    "codigo_ibge": "3136207",
+    "populacao_2026": 84198
+  },
+  {
+    "uf": "MG",
+    "municipio": "João Pinheiro",
+    "codigo_ibge": "3136306",
+    "populacao_2026": 48906
+  },
+  {
+    "uf": "MG",
+    "municipio": "Juatuba",
+    "codigo_ibge": "3136652",
+    "populacao_2026": 33730
+  },
+  {
+    "uf": "MG",
+    "municipio": "Lagoa Formosa",
+    "codigo_ibge": "3137502",
+    "populacao_2026": 19716
+  },
+  {
+    "uf": "MG",
+    "municipio": "Lagoa Santa",
+    "codigo_ibge": "3137601",
+    "populacao_2026": 82544
+  },
+  {
+    "uf": "MG",
+    "municipio": "Lagoa da Prata",
+    "codigo_ibge": "3137205",
+    "populacao_2026": 54251
+  },
+  {
+    "uf": "MG",
+    "municipio": "Lajinha",
+    "codigo_ibge": "3137700",
+    "populacao_2026": 21577
+  },
+  {
+    "uf": "MG",
+    "municipio": "Lambari",
+    "codigo_ibge": "3137809",
+    "populacao_2026": 21066
+  },
+  {
+    "uf": "MG",
+    "municipio": "Lavras",
+    "codigo_ibge": "3138203",
+    "populacao_2026": 111437
+  },
+  {
+    "uf": "MG",
+    "municipio": "Leopoldina",
+    "codigo_ibge": "3138401",
+    "populacao_2026": 52779
+  },
+  {
+    "uf": "MG",
+    "municipio": "Lima Duarte",
+    "codigo_ibge": "3138609",
+    "populacao_2026": 17847
+  },
+  {
+    "uf": "MG",
+    "municipio": "Luz",
+    "codigo_ibge": "3138807",
+    "populacao_2026": 18366
+  },
+  {
+    "uf": "MG",
+    "municipio": "Machado",
+    "codigo_ibge": "3139003",
+    "populacao_2026": 38788
+  },
+  {
+    "uf": "MG",
+    "municipio": "Malacacheta",
+    "codigo_ibge": "3139201",
+    "populacao_2026": 17635
+  },
+  {
+    "uf": "MG",
+    "municipio": "Manga",
+    "codigo_ibge": "3139300",
+    "populacao_2026": 19109
+  },
+  {
+    "uf": "MG",
+    "municipio": "Manhuaçu",
+    "codigo_ibge": "3139409",
+    "populacao_2026": 98067
+  },
+  {
+    "uf": "MG",
+    "municipio": "Manhumirim",
+    "codigo_ibge": "3139508",
+    "populacao_2026": 20910
+  },
+  {
+    "uf": "MG",
+    "municipio": "Mantena",
+    "codigo_ibge": "3139607",
+    "populacao_2026": 27342
+  },
+  {
+    "uf": "MG",
+    "municipio": "Mariana",
+    "codigo_ibge": "3140001",
+    "populacao_2026": 64929
+  },
+  {
+    "uf": "MG",
+    "municipio": "Mateus Leme",
+    "codigo_ibge": "3140704",
+    "populacao_2026": 41371
+  },
+  {
+    "uf": "MG",
+    "municipio": "Matipó",
+    "codigo_ibge": "3140902",
+    "populacao_2026": 19173
+  },
+  {
+    "uf": "MG",
+    "municipio": "Matozinhos",
+    "codigo_ibge": "3141108",
+    "populacao_2026": 39753
+  },
+  {
+    "uf": "MG",
+    "municipio": "Medina",
+    "codigo_ibge": "3141405",
+    "populacao_2026": 20421
+  },
+  {
+    "uf": "MG",
+    "municipio": "Minas Novas",
+    "codigo_ibge": "3141801",
+    "populacao_2026": 23514
+  },
+  {
+    "uf": "MG",
+    "municipio": "Monte Alegre de Minas",
+    "codigo_ibge": "3142809",
+    "populacao_2026": 20748
+  },
+  {
+    "uf": "MG",
+    "municipio": "Monte Azul",
+    "codigo_ibge": "3142908",
+    "populacao_2026": 20421
+  },
+  {
+    "uf": "MG",
+    "municipio": "Monte Carmelo",
+    "codigo_ibge": "3143104",
+    "populacao_2026": 49637
+  },
+  {
+    "uf": "MG",
+    "municipio": "Monte Santo de Minas",
+    "codigo_ibge": "3143203",
+    "populacao_2026": 21288
+  },
+  {
+    "uf": "MG",
+    "municipio": "Monte Sião",
+    "codigo_ibge": "3143401",
+    "populacao_2026": 25271
+  },
+  {
+    "uf": "MG",
+    "municipio": "Muriaé",
+    "codigo_ibge": "3143906",
+    "populacao_2026": 108716
+  },
+  {
+    "uf": "MG",
+    "municipio": "Mutum",
+    "codigo_ibge": "3144003",
+    "populacao_2026": 28824
+  },
+  {
+    "uf": "MG",
+    "municipio": "Muzambinho",
+    "codigo_ibge": "3144102",
+    "populacao_2026": 22708
+  },
+  {
+    "uf": "MG",
+    "municipio": "Mário Campos",
+    "codigo_ibge": "3140159",
+    "populacao_2026": 16855
+  },
+  {
+    "uf": "MG",
+    "municipio": "Nanuque",
+    "codigo_ibge": "3144300",
+    "populacao_2026": 34989
+  },
+  {
+    "uf": "MG",
+    "municipio": "Nepomuceno",
+    "codigo_ibge": "3144607",
+    "populacao_2026": 25741
+  },
+  {
+    "uf": "MG",
+    "municipio": "Nova Era",
+    "codigo_ibge": "3144706",
+    "populacao_2026": 17818
+  },
+  {
+    "uf": "MG",
+    "municipio": "Nova Lima",
+    "codigo_ibge": "3144805",
+    "populacao_2026": 122683
+  },
+  {
+    "uf": "MG",
+    "municipio": "Nova Ponte",
+    "codigo_ibge": "3145000",
+    "populacao_2026": 15321
+  },
+  {
+    "uf": "MG",
+    "municipio": "Nova Resende",
+    "codigo_ibge": "3145109",
+    "populacao_2026": 16981
+  },
+  {
+    "uf": "MG",
+    "municipio": "Nova Serrana",
+    "codigo_ibge": "3145208",
+    "populacao_2026": 116570
+  },
+  {
+    "uf": "MG",
+    "municipio": "Novo Cruzeiro",
+    "codigo_ibge": "3145307",
+    "populacao_2026": 27094
+  },
+  {
+    "uf": "MG",
+    "municipio": "Oliveira",
+    "codigo_ibge": "3145604",
+    "populacao_2026": 40599
+  },
+  {
+    "uf": "MG",
+    "municipio": "Ouro Branco",
+    "codigo_ibge": "3145901",
+    "populacao_2026": 40853
+  },
+  {
+    "uf": "MG",
+    "municipio": "Ouro Fino",
+    "codigo_ibge": "3146008",
+    "populacao_2026": 33340
+  },
+  {
+    "uf": "MG",
+    "municipio": "Ouro Preto",
+    "codigo_ibge": "3146107",
+    "populacao_2026": 78210
+  },
+  {
+    "uf": "MG",
+    "municipio": "Padre Paraíso",
+    "codigo_ibge": "3146305",
+    "populacao_2026": 17394
+  },
+  {
+    "uf": "MG",
+    "municipio": "Paracatu",
+    "codigo_ibge": "3147006",
+    "populacao_2026": 99578
+  },
+  {
+    "uf": "MG",
+    "municipio": "Paraguaçu",
+    "codigo_ibge": "3147204",
+    "populacao_2026": 22541
+  },
+  {
+    "uf": "MG",
+    "municipio": "Paraisópolis",
+    "codigo_ibge": "3147303",
+    "populacao_2026": 21143
+  },
+  {
+    "uf": "MG",
+    "municipio": "Paraopeba",
+    "codigo_ibge": "3147402",
+    "populacao_2026": 24993
+  },
+  {
+    "uf": "MG",
+    "municipio": "Pará de Minas",
+    "codigo_ibge": "3147105",
+    "populacao_2026": 103611
+  },
+  {
+    "uf": "MG",
+    "municipio": "Passa Quatro",
+    "codigo_ibge": "3147600",
+    "populacao_2026": 15852
+  },
+  {
+    "uf": "MG",
+    "municipio": "Passos",
+    "codigo_ibge": "3147907",
+    "populacao_2026": 117349
+  },
+  {
+    "uf": "MG",
+    "municipio": "Patos de Minas",
+    "codigo_ibge": "3148004",
+    "populacao_2026": 170404
+  },
+  {
+    "uf": "MG",
+    "municipio": "Patrocínio",
+    "codigo_ibge": "3148103",
+    "populacao_2026": 94834
+  },
+  {
+    "uf": "MG",
+    "municipio": "Pedra Azul",
+    "codigo_ibge": "3148707",
+    "populacao_2026": 25088
+  },
+  {
+    "uf": "MG",
+    "municipio": "Pedro Leopoldo",
+    "codigo_ibge": "3149309",
+    "populacao_2026": 65424
+  },
+  {
+    "uf": "MG",
+    "municipio": "Perdizes",
+    "codigo_ibge": "3149804",
+    "populacao_2026": 18145
+  },
+  {
+    "uf": "MG",
+    "municipio": "Perdões",
+    "codigo_ibge": "3149903",
+    "populacao_2026": 22154
+  },
+  {
+    "uf": "MG",
+    "municipio": "Peçanha",
+    "codigo_ibge": "3148608",
+    "populacao_2026": 17882
+  },
+  {
+    "uf": "MG",
+    "municipio": "Piranga",
+    "codigo_ibge": "3150802",
+    "populacao_2026": 17356
+  },
+  {
+    "uf": "MG",
+    "municipio": "Pirapora",
+    "codigo_ibge": "3151206",
+    "populacao_2026": 57873
+  },
+  {
+    "uf": "MG",
+    "municipio": "Pitangui",
+    "codigo_ibge": "3151404",
+    "populacao_2026": 27929
+  },
+  {
+    "uf": "MG",
+    "municipio": "Piumhi",
+    "codigo_ibge": "3151503",
+    "populacao_2026": 38257
+  },
+  {
+    "uf": "MG",
+    "municipio": "Pompéu",
+    "codigo_ibge": "3152006",
+    "populacao_2026": 32570
+  },
+  {
+    "uf": "MG",
+    "municipio": "Ponte Nova",
+    "codigo_ibge": "3152105",
+    "populacao_2026": 59703
+  },
+  {
+    "uf": "MG",
+    "municipio": "Porteirinha",
+    "codigo_ibge": "3152204",
+    "populacao_2026": 38714
+  },
+  {
+    "uf": "MG",
+    "municipio": "Pouso Alegre",
+    "codigo_ibge": "3152501",
+    "populacao_2026": 163439
+  },
+  {
+    "uf": "MG",
+    "municipio": "Poço Fundo",
+    "codigo_ibge": "3151701",
+    "populacao_2026": 16856
+  },
+  {
+    "uf": "MG",
+    "municipio": "Poços de Caldas",
+    "codigo_ibge": "3151800",
+    "populacao_2026": 173100
+  },
+  {
+    "uf": "MG",
+    "municipio": "Prata",
+    "codigo_ibge": "3152808",
+    "populacao_2026": 29903
+  },
+  {
+    "uf": "MG",
+    "municipio": "Presidente Olegário",
+    "codigo_ibge": "3153400",
+    "populacao_2026": 19205
+  },
+  {
+    "uf": "MG",
+    "municipio": "Raposos",
+    "codigo_ibge": "3153905",
+    "populacao_2026": 16854
+  },
+  {
+    "uf": "MG",
+    "municipio": "Raul Soares",
+    "codigo_ibge": "3154002",
+    "populacao_2026": 23866
+  },
+  {
+    "uf": "MG",
+    "municipio": "Resplendor",
+    "codigo_ibge": "3154309",
+    "populacao_2026": 17646
+  },
+  {
+    "uf": "MG",
+    "municipio": "Rio Paranaíba",
+    "codigo_ibge": "3155504",
+    "populacao_2026": 15443
+  },
+  {
+    "uf": "MG",
+    "municipio": "Rio Pardo de Minas",
+    "codigo_ibge": "3155603",
+    "populacao_2026": 29083
+  },
+  {
+    "uf": "MG",
+    "municipio": "Rio Piracicaba",
+    "codigo_ibge": "3155702",
+    "populacao_2026": 15069
+  },
+  {
+    "uf": "MG",
+    "municipio": "Rio Pomba",
+    "codigo_ibge": "3155801",
+    "populacao_2026": 17912
+  },
+  {
+    "uf": "MG",
+    "municipio": "Sabará",
+    "codigo_ibge": "3156700",
+    "populacao_2026": 134850
+  },
+  {
+    "uf": "MG",
+    "municipio": "Sacramento",
+    "codigo_ibge": "3156908",
+    "populacao_2026": 28251
+  },
+  {
+    "uf": "MG",
+    "municipio": "Salinas",
+    "codigo_ibge": "3157005",
+    "populacao_2026": 41826
+  },
+  {
+    "uf": "MG",
+    "municipio": "Santa Bárbara",
+    "codigo_ibge": "3157203",
+    "populacao_2026": 32068
+  },
+  {
+    "uf": "MG",
+    "municipio": "Santa Juliana",
+    "codigo_ibge": "3157708",
+    "populacao_2026": 17058
+  },
+  {
+    "uf": "MG",
+    "municipio": "Santa Luzia",
+    "codigo_ibge": "3157807",
+    "populacao_2026": 231473
+  },
+  {
+    "uf": "MG",
+    "municipio": "Santa Margarida",
+    "codigo_ibge": "3157906",
+    "populacao_2026": 17071
+  },
+  {
+    "uf": "MG",
+    "municipio": "Santa Rita do Sapucaí",
+    "codigo_ibge": "3159605",
+    "populacao_2026": 42703
+  },
+  {
+    "uf": "MG",
+    "municipio": "Santa Vitória",
+    "codigo_ibge": "3159803",
+    "populacao_2026": 22073
+  },
+  {
+    "uf": "MG",
+    "municipio": "Santana do Paraíso",
+    "codigo_ibge": "3158953",
+    "populacao_2026": 49978
+  },
+  {
+    "uf": "MG",
+    "municipio": "Santo Antônio do Amparo",
+    "codigo_ibge": "3159902",
+    "populacao_2026": 17664
+  },
+  {
+    "uf": "MG",
+    "municipio": "Santo Antônio do Monte",
+    "codigo_ibge": "3160405",
+    "populacao_2026": 28549
+  },
+  {
+    "uf": "MG",
+    "municipio": "Santos Dumont",
+    "codigo_ibge": "3160702",
+    "populacao_2026": 43054
+  },
+  {
+    "uf": "MG",
+    "municipio": "Sarzedo",
+    "codigo_ibge": "3165537",
+    "populacao_2026": 40585
+  },
+  {
+    "uf": "MG",
+    "municipio": "Serro",
+    "codigo_ibge": "3167103",
+    "populacao_2026": 22695
+  },
+  {
+    "uf": "MG",
+    "municipio": "Sete Lagoas",
+    "codigo_ibge": "3167202",
+    "populacao_2026": 239833
+  },
+  {
+    "uf": "MG",
+    "municipio": "Simonésia",
+    "codigo_ibge": "3167608",
+    "populacao_2026": 20518
+  },
+  {
+    "uf": "MG",
+    "municipio": "São Domingos do Prata",
+    "codigo_ibge": "3161007",
+    "populacao_2026": 17794
+  },
+  {
+    "uf": "MG",
+    "municipio": "São Francisco",
+    "codigo_ibge": "3161106",
+    "populacao_2026": 54208
+  },
+  {
+    "uf": "MG",
+    "municipio": "São Gonçalo do Sapucaí",
+    "codigo_ibge": "3162005",
+    "populacao_2026": 24513
+  },
+  {
+    "uf": "MG",
+    "municipio": "São Gotardo",
+    "codigo_ibge": "3162104",
+    "populacao_2026": 44364
+  },
+  {
+    "uf": "MG",
+    "municipio": "São Joaquim de Bicas",
+    "codigo_ibge": "3162922",
+    "populacao_2026": 37509
+  },
+  {
+    "uf": "MG",
+    "municipio": "São José da Lapa",
+    "codigo_ibge": "3162955",
+    "populacao_2026": 28445
+  },
+  {
+    "uf": "MG",
+    "municipio": "São João Evangelista",
+    "codigo_ibge": "3162807",
+    "populacao_2026": 15609
+  },
+  {
+    "uf": "MG",
+    "municipio": "São João Nepomuceno",
+    "codigo_ibge": "3162906",
+    "populacao_2026": 26577
+  },
+  {
+    "uf": "MG",
+    "municipio": "São João da Ponte",
+    "codigo_ibge": "3162401",
+    "populacao_2026": 24128
+  },
+  {
+    "uf": "MG",
+    "municipio": "São João del Rei",
+    "codigo_ibge": "3162500",
+    "populacao_2026": 94852
+  },
+  {
+    "uf": "MG",
+    "municipio": "São João do Paraíso",
+    "codigo_ibge": "3162708",
+    "populacao_2026": 24802
+  },
+  {
+    "uf": "MG",
+    "municipio": "São Lourenço",
+    "codigo_ibge": "3163706",
+    "populacao_2026": 47071
+  },
+  {
+    "uf": "MG",
+    "municipio": "São Sebastião do Paraíso",
+    "codigo_ibge": "3164704",
+    "populacao_2026": 75593
+  },
+  {
+    "uf": "MG",
+    "municipio": "Taiobeiras",
+    "codigo_ibge": "3168002",
+    "populacao_2026": 34675
+  },
+  {
+    "uf": "MG",
+    "municipio": "Tarumirim",
+    "codigo_ibge": "3168408",
+    "populacao_2026": 15134
+  },
+  {
+    "uf": "MG",
+    "municipio": "Teófilo Otoni",
+    "codigo_ibge": "3168606",
+    "populacao_2026": 143115
+  },
+  {
+    "uf": "MG",
+    "municipio": "Timóteo",
+    "codigo_ibge": "3168705",
+    "populacao_2026": 84253
+  },
+  {
+    "uf": "MG",
+    "municipio": "Tocantins",
+    "codigo_ibge": "3169000",
+    "populacao_2026": 16631
+  },
+  {
+    "uf": "MG",
+    "municipio": "Três Corações",
+    "codigo_ibge": "3169307",
+    "populacao_2026": 78492
+  },
+  {
+    "uf": "MG",
+    "municipio": "Três Marias",
+    "codigo_ibge": "3169356",
+    "populacao_2026": 30040
+  },
+  {
+    "uf": "MG",
+    "municipio": "Três Pontas",
+    "codigo_ibge": "3169406",
+    "populacao_2026": 57325
+  },
+  {
+    "uf": "MG",
+    "municipio": "Tupaciguara",
+    "codigo_ibge": "3169604",
+    "populacao_2026": 26679
+  },
+  {
+    "uf": "MG",
+    "municipio": "Turmalina",
+    "codigo_ibge": "3169703",
+    "populacao_2026": 20882
+  },
+  {
+    "uf": "MG",
+    "municipio": "Ubá",
+    "codigo_ibge": "3169901",
+    "populacao_2026": 107613
+  },
+  {
+    "uf": "MG",
+    "municipio": "Unaí",
+    "codigo_ibge": "3170404",
+    "populacao_2026": 91884
+  },
+  {
+    "uf": "MG",
+    "municipio": "Urucuia",
+    "codigo_ibge": "3170529",
+    "populacao_2026": 18727
+  },
+  {
+    "uf": "MG",
+    "municipio": "Varginha",
+    "codigo_ibge": "3170701",
+    "populacao_2026": 144503
+  },
+  {
+    "uf": "MG",
+    "municipio": "Varzelândia",
+    "codigo_ibge": "3170909",
+    "populacao_2026": 19206
+  },
+  {
+    "uf": "MG",
+    "municipio": "Vazante",
+    "codigo_ibge": "3171006",
+    "populacao_2026": 20483
+  },
+  {
+    "uf": "MG",
+    "municipio": "Vespasiano",
+    "codigo_ibge": "3171204",
+    "populacao_2026": 140004
+  },
+  {
+    "uf": "MG",
+    "municipio": "Visconde do Rio Branco",
+    "codigo_ibge": "3172004",
+    "populacao_2026": 40809
+  },
+  {
+    "uf": "MG",
+    "municipio": "Viçosa",
+    "codigo_ibge": "3171303",
+    "populacao_2026": 79797
+  },
+  {
+    "uf": "MG",
+    "municipio": "Várzea da Palma",
+    "codigo_ibge": "3170800",
+    "populacao_2026": 34475
+  },
+  {
+    "uf": "MG",
+    "municipio": "Águas Formosas",
+    "codigo_ibge": "3100906",
+    "populacao_2026": 18859
+  },
+  {
+    "uf": "MS",
+    "municipio": "Amambai",
+    "codigo_ibge": "5000609",
+    "populacao_2026": 42071
+  },
+  {
+    "uf": "MS",
+    "municipio": "Anastácio",
+    "codigo_ibge": "5000708",
+    "populacao_2026": 24820
+  },
+  {
+    "uf": "MS",
+    "municipio": "Aparecida do Taboado",
+    "codigo_ibge": "5001003",
+    "populacao_2026": 30189
+  },
+  {
+    "uf": "MS",
+    "municipio": "Aquidauana",
+    "codigo_ibge": "5001102",
+    "populacao_2026": 48810
+  },
+  {
+    "uf": "MS",
+    "municipio": "Bataguassu",
+    "codigo_ibge": "5001904",
+    "populacao_2026": 24430
+  },
+  {
+    "uf": "MS",
+    "municipio": "Bela Vista",
+    "codigo_ibge": "5002100",
+    "populacao_2026": 21800
+  },
+  {
+    "uf": "MS",
+    "municipio": "Bonito",
+    "codigo_ibge": "5002209",
+    "populacao_2026": 25294
+  },
+  {
+    "uf": "MS",
+    "municipio": "Caarapó",
+    "codigo_ibge": "5002407",
+    "populacao_2026": 33074
+  },
+  {
+    "uf": "MS",
+    "municipio": "Cassilândia",
+    "codigo_ibge": "5002902",
+    "populacao_2026": 21581
+  },
+  {
+    "uf": "MS",
+    "municipio": "Chapadão do Sul",
+    "codigo_ibge": "5002951",
+    "populacao_2026": 35384
+  },
+  {
+    "uf": "MS",
+    "municipio": "Corumbá",
+    "codigo_ibge": "5003207",
+    "populacao_2026": 96334
+  },
+  {
+    "uf": "MS",
+    "municipio": "Costa Rica",
+    "codigo_ibge": "5003256",
+    "populacao_2026": 29292
+  },
+  {
+    "uf": "MS",
+    "municipio": "Coxim",
+    "codigo_ibge": "5003306",
+    "populacao_2026": 33488
+  },
+  {
+    "uf": "MS",
+    "municipio": "Fátima do Sul",
+    "codigo_ibge": "5003801",
+    "populacao_2026": 21615
+  },
+  {
+    "uf": "MS",
+    "municipio": "Itaporã",
+    "codigo_ibge": "5004502",
+    "populacao_2026": 25732
+  },
+  {
+    "uf": "MS",
+    "municipio": "Itaquiraí",
+    "codigo_ibge": "5004601",
+    "populacao_2026": 20122
+  },
+  {
+    "uf": "MS",
+    "municipio": "Ivinhema",
+    "codigo_ibge": "5004700",
+    "populacao_2026": 30371
+  },
+  {
+    "uf": "MS",
+    "municipio": "Jardim",
+    "codigo_ibge": "5005004",
+    "populacao_2026": 24499
+  },
+  {
+    "uf": "MS",
+    "municipio": "Ladário",
+    "codigo_ibge": "5005202",
+    "populacao_2026": 24631
+  },
+  {
+    "uf": "MS",
+    "municipio": "Maracaju",
+    "codigo_ibge": "5005400",
+    "populacao_2026": 48564
+  },
+  {
+    "uf": "MS",
+    "municipio": "Miranda",
+    "codigo_ibge": "5005608",
+    "populacao_2026": 26535
+  },
+  {
+    "uf": "MS",
+    "municipio": "Mundo Novo",
+    "codigo_ibge": "5005681",
+    "populacao_2026": 20229
+  },
+  {
+    "uf": "MS",
+    "municipio": "Naviraí",
+    "codigo_ibge": "5005707",
+    "populacao_2026": 53307
+  },
+  {
+    "uf": "MS",
+    "municipio": "Nova Alvorada do Sul",
+    "codigo_ibge": "5006002",
+    "populacao_2026": 23747
+  },
+  {
+    "uf": "MS",
+    "municipio": "Nova Andradina",
+    "codigo_ibge": "5006200",
+    "populacao_2026": 51081
+  },
+  {
+    "uf": "MS",
+    "municipio": "Paranaíba",
+    "codigo_ibge": "5006309",
+    "populacao_2026": 42728
+  },
+  {
+    "uf": "MS",
+    "municipio": "Ponta Porã",
+    "codigo_ibge": "5006606",
+    "populacao_2026": 99572
+  },
+  {
+    "uf": "MS",
+    "municipio": "Ribas do Rio Pardo",
+    "codigo_ibge": "5007109",
+    "populacao_2026": 24300
+  },
+  {
+    "uf": "MS",
+    "municipio": "Rio Brilhante",
+    "codigo_ibge": "5007208",
+    "populacao_2026": 40880
+  },
+  {
+    "uf": "MS",
+    "municipio": "Rio Verde de Mato Grosso",
+    "codigo_ibge": "5007406",
+    "populacao_2026": 20513
+  },
+  {
+    "uf": "MS",
+    "municipio": "Sidrolândia",
+    "codigo_ibge": "5007901",
+    "populacao_2026": 50079
+  },
+  {
+    "uf": "MS",
+    "municipio": "São Gabriel do Oeste",
+    "codigo_ibge": "5007695",
+    "populacao_2026": 32696
+  },
+  {
+    "uf": "MS",
+    "municipio": "Terenos",
+    "codigo_ibge": "5008008",
+    "populacao_2026": 18223
+  },
+  {
+    "uf": "MS",
+    "municipio": "Três Lagoas",
+    "codigo_ibge": "5008305",
+    "populacao_2026": 145514
+  },
+  {
+    "uf": "MS",
+    "municipio": "Água Clara",
+    "codigo_ibge": "5000203",
+    "populacao_2026": 18143
+  },
+  {
+    "uf": "MT",
+    "municipio": "Alta Floresta",
+    "codigo_ibge": "5100250",
+    "populacao_2026": 63017
+  },
+  {
+    "uf": "MT",
+    "municipio": "Alto Araguaia",
+    "codigo_ibge": "5100300",
+    "populacao_2026": 17888
+  },
+  {
+    "uf": "MT",
+    "municipio": "Aripuanã",
+    "codigo_ibge": "5101407",
+    "populacao_2026": 27101
+  },
+  {
+    "uf": "MT",
+    "municipio": "Barra do Bugres",
+    "codigo_ibge": "5101704",
+    "populacao_2026": 29238
+  },
+  {
+    "uf": "MT",
+    "municipio": "Barra do Garças",
+    "codigo_ibge": "5101803",
+    "populacao_2026": 75524
+  },
+  {
+    "uf": "MT",
+    "municipio": "Brasnorte",
+    "codigo_ibge": "5101902",
+    "populacao_2026": 17793
+  },
+  {
+    "uf": "MT",
+    "municipio": "Campinápolis",
+    "codigo_ibge": "5102603",
+    "populacao_2026": 15902
+  },
+  {
+    "uf": "MT",
+    "municipio": "Campo Novo do Parecis",
+    "codigo_ibge": "5102637",
+    "populacao_2026": 53393
+  },
+  {
+    "uf": "MT",
+    "municipio": "Campo Verde",
+    "codigo_ibge": "5102678",
+    "populacao_2026": 51969
+  },
+  {
+    "uf": "MT",
+    "municipio": "Canarana",
+    "codigo_ibge": "5102702",
+    "populacao_2026": 28985
+  },
+  {
+    "uf": "MT",
+    "municipio": "Chapada dos Guimarães",
+    "codigo_ibge": "5103007",
+    "populacao_2026": 19541
+  },
+  {
+    "uf": "MT",
+    "municipio": "Colniza",
+    "codigo_ibge": "5103254",
+    "populacao_2026": 25963
+  },
+  {
+    "uf": "MT",
+    "municipio": "Colíder",
+    "codigo_ibge": "5103205",
+    "populacao_2026": 32099
+  },
+  {
+    "uf": "MT",
+    "municipio": "Comodoro",
+    "codigo_ibge": "5103304",
+    "populacao_2026": 18477
+  },
+  {
+    "uf": "MT",
+    "municipio": "Confresa",
+    "codigo_ibge": "5103353",
+    "populacao_2026": 39368
+  },
+  {
+    "uf": "MT",
+    "municipio": "Cáceres",
+    "codigo_ibge": "5102504",
+    "populacao_2026": 91908
+  },
+  {
+    "uf": "MT",
+    "municipio": "Diamantino",
+    "codigo_ibge": "5103502",
+    "populacao_2026": 22766
+  },
+  {
+    "uf": "MT",
+    "municipio": "Guarantã do Norte",
+    "codigo_ibge": "5104104",
+    "populacao_2026": 31092
+  },
+  {
+    "uf": "MT",
+    "municipio": "Jaciara",
+    "codigo_ibge": "5104807",
+    "populacao_2026": 30044
+  },
+  {
+    "uf": "MT",
+    "municipio": "Juara",
+    "codigo_ibge": "5105101",
+    "populacao_2026": 36276
+  },
+  {
+    "uf": "MT",
+    "municipio": "Juína",
+    "codigo_ibge": "5105150",
+    "populacao_2026": 48987
+  },
+  {
+    "uf": "MT",
+    "municipio": "Lucas do Rio Verde",
+    "codigo_ibge": "5105259",
+    "populacao_2026": 99291
+  },
+  {
+    "uf": "MT",
+    "municipio": "Matupá",
+    "codigo_ibge": "5105606",
+    "populacao_2026": 22497
+  },
+  {
+    "uf": "MT",
+    "municipio": "Mirassol d'Oeste",
+    "codigo_ibge": "5105622",
+    "populacao_2026": 27763
+  },
+  {
+    "uf": "MT",
+    "municipio": "Nobres",
+    "codigo_ibge": "5105903",
+    "populacao_2026": 15838
+  },
+  {
+    "uf": "MT",
+    "municipio": "Nova Mutum",
+    "codigo_ibge": "5106224",
+    "populacao_2026": 65663
+  },
+  {
+    "uf": "MT",
+    "municipio": "Nova Olímpia",
+    "codigo_ibge": "5106232",
+    "populacao_2026": 16094
+  },
+  {
+    "uf": "MT",
+    "municipio": "Nova Xavantina",
+    "codigo_ibge": "5106257",
+    "populacao_2026": 26340
+  },
+  {
+    "uf": "MT",
+    "municipio": "Paranatinga",
+    "codigo_ibge": "5106307",
+    "populacao_2026": 29528
+  },
+  {
+    "uf": "MT",
+    "municipio": "Pedra Preta",
+    "codigo_ibge": "5106372",
+    "populacao_2026": 19168
+  },
+  {
+    "uf": "MT",
+    "municipio": "Peixoto de Azevedo",
+    "codigo_ibge": "5106422",
+    "populacao_2026": 33907
+  },
+  {
+    "uf": "MT",
+    "municipio": "Poconé",
+    "codigo_ibge": "5106505",
+    "populacao_2026": 31138
+  },
+  {
+    "uf": "MT",
+    "municipio": "Pontes e Lacerda",
+    "codigo_ibge": "5106752",
+    "populacao_2026": 56720
+  },
+  {
+    "uf": "MT",
+    "municipio": "Poxoréu",
+    "codigo_ibge": "5107008",
+    "populacao_2026": 25614
+  },
+  {
+    "uf": "MT",
+    "municipio": "Primavera do Leste",
+    "codigo_ibge": "5107040",
+    "populacao_2026": 99053
+  },
+  {
+    "uf": "MT",
+    "municipio": "Querência",
+    "codigo_ibge": "5107065",
+    "populacao_2026": 32368
+  },
+  {
+    "uf": "MT",
+    "municipio": "Santo Antônio de Leverger",
+    "codigo_ibge": "5107800",
+    "populacao_2026": 16882
+  },
+  {
+    "uf": "MT",
+    "municipio": "Sapezal",
+    "codigo_ibge": "5107875",
+    "populacao_2026": 33520
+  },
+  {
+    "uf": "MT",
+    "municipio": "Sinop",
+    "codigo_ibge": "5107909",
+    "populacao_2026": 231452
+  },
+  {
+    "uf": "MT",
+    "municipio": "Sorriso",
+    "codigo_ibge": "5107925",
+    "populacao_2026": 128727
+  },
+  {
+    "uf": "MT",
+    "municipio": "São José dos Quatro Marcos",
+    "codigo_ibge": "5107107",
+    "populacao_2026": 17613
+  },
+  {
+    "uf": "MT",
+    "municipio": "Tangará da Serra",
+    "codigo_ibge": "5107958",
+    "populacao_2026": 116637
+  },
+  {
+    "uf": "MT",
+    "municipio": "Tapurah",
+    "codigo_ibge": "5108006",
+    "populacao_2026": 16001
+  },
+  {
+    "uf": "MT",
+    "municipio": "Vila Bela da Santíssima Trindade",
+    "codigo_ibge": "5105507",
+    "populacao_2026": 17798
+  },
+  {
+    "uf": "MT",
+    "municipio": "Vila Rica",
+    "codigo_ibge": "5108600",
+    "populacao_2026": 19545
+  },
+  {
+    "uf": "MT",
+    "municipio": "Água Boa",
+    "codigo_ibge": "5100201",
+    "populacao_2026": 32876
+  },
+  {
+    "uf": "PA",
+    "municipio": "Abaetetuba",
+    "codigo_ibge": "1500107",
+    "populacao_2026": 173638
+  },
+  {
+    "uf": "PA",
+    "municipio": "Acará",
+    "codigo_ibge": "1500206",
+    "populacao_2026": 63503
+  },
+  {
+    "uf": "PA",
+    "municipio": "Afuá",
+    "codigo_ibge": "1500305",
+    "populacao_2026": 40692
+  },
+  {
+    "uf": "PA",
+    "municipio": "Alenquer",
+    "codigo_ibge": "1500404",
+    "populacao_2026": 76889
+  },
+  {
+    "uf": "PA",
+    "municipio": "Almeirim",
+    "codigo_ibge": "1500503",
+    "populacao_2026": 36545
+  },
+  {
+    "uf": "PA",
+    "municipio": "Altamira",
+    "codigo_ibge": "1500602",
+    "populacao_2026": 140450
+  },
+  {
+    "uf": "PA",
+    "municipio": "Anajás",
+    "codigo_ibge": "1500701",
+    "populacao_2026": 30482
+  },
+  {
+    "uf": "PA",
+    "municipio": "Anapu",
+    "codigo_ibge": "1500859",
+    "populacao_2026": 36304
+  },
+  {
+    "uf": "PA",
+    "municipio": "Augusto Corrêa",
+    "codigo_ibge": "1500909",
+    "populacao_2026": 48216
+  },
+  {
+    "uf": "PA",
+    "municipio": "Aurora do Pará",
+    "codigo_ibge": "1500958",
+    "populacao_2026": 24070
+  },
+  {
+    "uf": "PA",
+    "municipio": "Aveiro",
+    "codigo_ibge": "1501006",
+    "populacao_2026": 19531
+  },
+  {
+    "uf": "PA",
+    "municipio": "Bagre",
+    "codigo_ibge": "1501105",
+    "populacao_2026": 35640
+  },
+  {
+    "uf": "PA",
+    "municipio": "Baião",
+    "codigo_ibge": "1501204",
+    "populacao_2026": 57717
+  },
+  {
+    "uf": "PA",
+    "municipio": "Barcarena",
+    "codigo_ibge": "1501303",
+    "populacao_2026": 140756
+  },
+  {
+    "uf": "PA",
+    "municipio": "Belterra",
+    "codigo_ibge": "1501451",
+    "populacao_2026": 19191
+  },
+  {
+    "uf": "PA",
+    "municipio": "Benevides",
+    "codigo_ibge": "1501501",
+    "populacao_2026": 69703
+  },
+  {
+    "uf": "PA",
+    "municipio": "Bom Jesus do Tocantins",
+    "codigo_ibge": "1501576",
+    "populacao_2026": 19294
+  },
+  {
+    "uf": "PA",
+    "municipio": "Bragança",
+    "codigo_ibge": "1501709",
+    "populacao_2026": 133268
+  },
+  {
+    "uf": "PA",
+    "municipio": "Brasil Novo",
+    "codigo_ibge": "1501725",
+    "populacao_2026": 27635
+  },
+  {
+    "uf": "PA",
+    "municipio": "Breu Branco",
+    "codigo_ibge": "1501782",
+    "populacao_2026": 46792
+  },
+  {
+    "uf": "PA",
+    "municipio": "Breves",
+    "codigo_ibge": "1501808",
+    "populacao_2026": 117028
+  },
+  {
+    "uf": "PA",
+    "municipio": "Bujaru",
+    "codigo_ibge": "1501907",
+    "populacao_2026": 25019
+  },
+  {
+    "uf": "PA",
+    "municipio": "Cachoeira do Arari",
+    "codigo_ibge": "1502004",
+    "populacao_2026": 25683
+  },
+  {
+    "uf": "PA",
+    "municipio": "Cachoeira do Piriá",
+    "codigo_ibge": "1501956",
+    "populacao_2026": 18881
+  },
+  {
+    "uf": "PA",
+    "municipio": "Cametá",
+    "codigo_ibge": "1502103",
+    "populacao_2026": 145843
+  },
+  {
+    "uf": "PA",
+    "municipio": "Canaã dos Carajás",
+    "codigo_ibge": "1502152",
+    "populacao_2026": 92311
+  },
+  {
+    "uf": "PA",
+    "municipio": "Capanema",
+    "codigo_ibge": "1502202",
+    "populacao_2026": 75791
+  },
+  {
+    "uf": "PA",
+    "municipio": "Capitão Poço",
+    "codigo_ibge": "1502301",
+    "populacao_2026": 60663
+  },
+  {
+    "uf": "PA",
+    "municipio": "Castanhal",
+    "codigo_ibge": "1502400",
+    "populacao_2026": 210592
+  },
+  {
+    "uf": "PA",
+    "municipio": "Chaves",
+    "codigo_ibge": "1502509",
+    "populacao_2026": 21514
+  },
+  {
+    "uf": "PA",
+    "municipio": "Conceição do Araguaia",
+    "codigo_ibge": "1502707",
+    "populacao_2026": 47187
+  },
+  {
+    "uf": "PA",
+    "municipio": "Concórdia do Pará",
+    "codigo_ibge": "1502756",
+    "populacao_2026": 28253
+  },
+  {
+    "uf": "PA",
+    "municipio": "Cumaru do Norte",
+    "codigo_ibge": "1502764",
+    "populacao_2026": 15354
+  },
+  {
+    "uf": "PA",
+    "municipio": "Curionópolis",
+    "codigo_ibge": "1502772",
+    "populacao_2026": 21088
+  },
+  {
+    "uf": "PA",
+    "municipio": "Curralinho",
+    "codigo_ibge": "1502806",
+    "populacao_2026": 37164
+  },
+  {
+    "uf": "PA",
+    "municipio": "Curuá",
+    "codigo_ibge": "1502855",
+    "populacao_2026": 15069
+  },
+  {
+    "uf": "PA",
+    "municipio": "Curuçá",
+    "codigo_ibge": "1502905",
+    "populacao_2026": 45330
+  },
+  {
+    "uf": "PA",
+    "municipio": "Dom Eliseu",
+    "codigo_ibge": "1502939",
+    "populacao_2026": 63306
+  },
+  {
+    "uf": "PA",
+    "municipio": "Eldorado do Carajás",
+    "codigo_ibge": "1502954",
+    "populacao_2026": 29154
+  },
+  {
+    "uf": "PA",
+    "municipio": "Floresta do Araguaia",
+    "codigo_ibge": "1503044",
+    "populacao_2026": 18625
+  },
+  {
+    "uf": "PA",
+    "municipio": "Garrafão do Norte",
+    "codigo_ibge": "1503077",
+    "populacao_2026": 25565
+  },
+  {
+    "uf": "PA",
+    "municipio": "Goianésia do Pará",
+    "codigo_ibge": "1503093",
+    "populacao_2026": 26361
+  },
+  {
+    "uf": "PA",
+    "municipio": "Gurupá",
+    "codigo_ibge": "1503101",
+    "populacao_2026": 34344
+  },
+  {
+    "uf": "PA",
+    "municipio": "Igarapé-Açu",
+    "codigo_ibge": "1503200",
+    "populacao_2026": 37992
+  },
+  {
+    "uf": "PA",
+    "municipio": "Igarapé-Miri",
+    "codigo_ibge": "1503309",
+    "populacao_2026": 69918
+  },
+  {
+    "uf": "PA",
+    "municipio": "Ipixuna do Pará",
+    "codigo_ibge": "1503457",
+    "populacao_2026": 28403
+  },
+  {
+    "uf": "PA",
+    "municipio": "Irituia",
+    "codigo_ibge": "1503507",
+    "populacao_2026": 32780
+  },
+  {
+    "uf": "PA",
+    "municipio": "Itaituba",
+    "codigo_ibge": "1503606",
+    "populacao_2026": 136990
+  },
+  {
+    "uf": "PA",
+    "municipio": "Itupiranga",
+    "codigo_ibge": "1503705",
+    "populacao_2026": 52213
+  },
+  {
+    "uf": "PA",
+    "municipio": "Jacareacanga",
+    "codigo_ibge": "1503754",
+    "populacao_2026": 27130
+  },
+  {
+    "uf": "PA",
+    "municipio": "Jacundá",
+    "codigo_ibge": "1503804",
+    "populacao_2026": 37086
+  },
+  {
+    "uf": "PA",
+    "municipio": "Juruti",
+    "codigo_ibge": "1503903",
+    "populacao_2026": 54546
+  },
+  {
+    "uf": "PA",
+    "municipio": "Limoeiro do Ajuru",
+    "codigo_ibge": "1504000",
+    "populacao_2026": 32387
+  },
+  {
+    "uf": "PA",
+    "municipio": "Maracanã",
+    "codigo_ibge": "1504307",
+    "populacao_2026": 27054
+  },
+  {
+    "uf": "PA",
+    "municipio": "Marapanim",
+    "codigo_ibge": "1504406",
+    "populacao_2026": 28210
+  },
+  {
+    "uf": "PA",
+    "municipio": "Marituba",
+    "codigo_ibge": "1504422",
+    "populacao_2026": 119859
+  },
+  {
+    "uf": "PA",
+    "municipio": "Medicilândia",
+    "codigo_ibge": "1504455",
+    "populacao_2026": 28718
+  },
+  {
+    "uf": "PA",
+    "municipio": "Melgaço",
+    "codigo_ibge": "1504505",
+    "populacao_2026": 30305
+  },
+  {
+    "uf": "PA",
+    "municipio": "Mocajuba",
+    "codigo_ibge": "1504604",
+    "populacao_2026": 28982
+  },
+  {
+    "uf": "PA",
+    "municipio": "Moju",
+    "codigo_ibge": "1504703",
+    "populacao_2026": 92688
+  },
+  {
+    "uf": "PA",
+    "municipio": "Mojuí dos Campos",
+    "codigo_ibge": "1504752",
+    "populacao_2026": 26305
+  },
+  {
+    "uf": "PA",
+    "municipio": "Monte Alegre",
+    "codigo_ibge": "1504802",
+    "populacao_2026": 64350
+  },
+  {
+    "uf": "PA",
+    "municipio": "Muaná",
+    "codigo_ibge": "1504901",
+    "populacao_2026": 50314
+  },
+  {
+    "uf": "PA",
+    "municipio": "Mãe do Rio",
+    "codigo_ibge": "1504059",
+    "populacao_2026": 37881
+  },
+  {
+    "uf": "PA",
+    "municipio": "Nova Esperança do Piriá",
+    "codigo_ibge": "1504950",
+    "populacao_2026": 21346
+  },
+  {
+    "uf": "PA",
+    "municipio": "Novo Progresso",
+    "codigo_ibge": "1505031",
+    "populacao_2026": 37570
+  },
+  {
+    "uf": "PA",
+    "municipio": "Novo Repartimento",
+    "codigo_ibge": "1505064",
+    "populacao_2026": 63836
+  },
+  {
+    "uf": "PA",
+    "municipio": "Oeiras do Pará",
+    "codigo_ibge": "1505205",
+    "populacao_2026": 37078
+  },
+  {
+    "uf": "PA",
+    "municipio": "Oriximiná",
+    "codigo_ibge": "1505304",
+    "populacao_2026": 73301
+  },
+  {
+    "uf": "PA",
+    "municipio": "Ourilândia do Norte",
+    "codigo_ibge": "1505437",
+    "populacao_2026": 35585
+  },
+  {
+    "uf": "PA",
+    "municipio": "Ourém",
+    "codigo_ibge": "1505403",
+    "populacao_2026": 18886
+  },
+  {
+    "uf": "PA",
+    "municipio": "Pacajá",
+    "codigo_ibge": "1505486",
+    "populacao_2026": 43882
+  },
+  {
+    "uf": "PA",
+    "municipio": "Paragominas",
+    "codigo_ibge": "1505502",
+    "populacao_2026": 114128
+  },
+  {
+    "uf": "PA",
+    "municipio": "Placas",
+    "codigo_ibge": "1505650",
+    "populacao_2026": 18258
+  },
+  {
+    "uf": "PA",
+    "municipio": "Ponta de Pedras",
+    "codigo_ibge": "1505700",
+    "populacao_2026": 25707
+  },
+  {
+    "uf": "PA",
+    "municipio": "Portel",
+    "codigo_ibge": "1505809",
+    "populacao_2026": 68236
+  },
+  {
+    "uf": "PA",
+    "municipio": "Porto de Moz",
+    "codigo_ibge": "1505908",
+    "populacao_2026": 44552
+  },
+  {
+    "uf": "PA",
+    "municipio": "Prainha",
+    "codigo_ibge": "1506005",
+    "populacao_2026": 39132
+  },
+  {
+    "uf": "PA",
+    "municipio": "Redenção",
+    "codigo_ibge": "1506138",
+    "populacao_2026": 93414
+  },
+  {
+    "uf": "PA",
+    "municipio": "Rio Maria",
+    "codigo_ibge": "1506161",
+    "populacao_2026": 19250
+  },
+  {
+    "uf": "PA",
+    "municipio": "Rondon do Pará",
+    "codigo_ibge": "1506187",
+    "populacao_2026": 57452
+  },
+  {
+    "uf": "PA",
+    "municipio": "Rurópolis",
+    "codigo_ibge": "1506195",
+    "populacao_2026": 37042
+  },
+  {
+    "uf": "PA",
+    "municipio": "Salinópolis",
+    "codigo_ibge": "1506203",
+    "populacao_2026": 49140
+  },
+  {
+    "uf": "PA",
+    "municipio": "Salvaterra",
+    "codigo_ibge": "1506302",
+    "populacao_2026": 25925
+  },
+  {
+    "uf": "PA",
+    "municipio": "Santa Bárbara do Pará",
+    "codigo_ibge": "1506351",
+    "populacao_2026": 22764
+  },
+  {
+    "uf": "PA",
+    "municipio": "Santa Izabel do Pará",
+    "codigo_ibge": "1506500",
+    "populacao_2026": 80039
+  },
+  {
+    "uf": "PA",
+    "municipio": "Santa Luzia do Pará",
+    "codigo_ibge": "1506559",
+    "populacao_2026": 21370
+  },
+  {
+    "uf": "PA",
+    "municipio": "Santa Maria das Barreiras",
+    "codigo_ibge": "1506583",
+    "populacao_2026": 17051
+  },
+  {
+    "uf": "PA",
+    "municipio": "Santa Maria do Pará",
+    "codigo_ibge": "1506609",
+    "populacao_2026": 25930
+  },
+  {
+    "uf": "PA",
+    "municipio": "Santana do Araguaia",
+    "codigo_ibge": "1506708",
+    "populacao_2026": 29273
+  },
+  {
+    "uf": "PA",
+    "municipio": "Santo Antônio do Tauá",
+    "codigo_ibge": "1507003",
+    "populacao_2026": 29330
+  },
+  {
+    "uf": "PA",
+    "municipio": "Senador José Porfírio",
+    "codigo_ibge": "1507805",
+    "populacao_2026": 25517
+  },
+  {
+    "uf": "PA",
+    "municipio": "Soure",
+    "codigo_ibge": "1507904",
+    "populacao_2026": 25409
+  },
+  {
+    "uf": "PA",
+    "municipio": "São Caetano de Odivelas",
+    "codigo_ibge": "1507102",
+    "populacao_2026": 17267
+  },
+  {
+    "uf": "PA",
+    "municipio": "São Domingos do Araguaia",
+    "codigo_ibge": "1507151",
+    "populacao_2026": 21475
+  },
+  {
+    "uf": "PA",
+    "municipio": "São Domingos do Capim",
+    "codigo_ibge": "1507201",
+    "populacao_2026": 32655
+  },
+  {
+    "uf": "PA",
+    "municipio": "São Francisco do Pará",
+    "codigo_ibge": "1507409",
+    "populacao_2026": 15439
+  },
+  {
+    "uf": "PA",
+    "municipio": "São Félix do Xingu",
+    "codigo_ibge": "1507300",
+    "populacao_2026": 63393
+  },
+  {
+    "uf": "PA",
+    "municipio": "São Geraldo do Araguaia",
+    "codigo_ibge": "1507458",
+    "populacao_2026": 24882
+  },
+  {
+    "uf": "PA",
+    "municipio": "São João de Pirabas",
+    "codigo_ibge": "1507474",
+    "populacao_2026": 21505
+  },
+  {
+    "uf": "PA",
+    "municipio": "São Miguel do Guamá",
+    "codigo_ibge": "1507607",
+    "populacao_2026": 56135
+  },
+  {
+    "uf": "PA",
+    "municipio": "São Sebastião da Boa Vista",
+    "codigo_ibge": "1507706",
+    "populacao_2026": 27853
+  },
+  {
+    "uf": "PA",
+    "municipio": "Tailândia",
+    "codigo_ibge": "1507953",
+    "populacao_2026": 75062
+  },
+  {
+    "uf": "PA",
+    "municipio": "Terra Santa",
+    "codigo_ibge": "1507979",
+    "populacao_2026": 19912
+  },
+  {
+    "uf": "PA",
+    "municipio": "Tomé-Açu",
+    "codigo_ibge": "1508001",
+    "populacao_2026": 73762
+  },
+  {
+    "uf": "PA",
+    "municipio": "Tracuateua",
+    "codigo_ibge": "1508035",
+    "populacao_2026": 30612
+  },
+  {
+    "uf": "PA",
+    "municipio": "Trairão",
+    "codigo_ibge": "1508050",
+    "populacao_2026": 15484
+  },
+  {
+    "uf": "PA",
+    "municipio": "Tucumã",
+    "codigo_ibge": "1508084",
+    "populacao_2026": 43270
+  },
+  {
+    "uf": "PA",
+    "municipio": "Tucuruí",
+    "codigo_ibge": "1508100",
+    "populacao_2026": 96004
+  },
+  {
+    "uf": "PA",
+    "municipio": "Ulianópolis",
+    "codigo_ibge": "1508126",
+    "populacao_2026": 39153
+  },
+  {
+    "uf": "PA",
+    "municipio": "Uruará",
+    "codigo_ibge": "1508159",
+    "populacao_2026": 45984
+  },
+  {
+    "uf": "PA",
+    "municipio": "Vigia",
+    "codigo_ibge": "1508209",
+    "populacao_2026": 54309
+  },
+  {
+    "uf": "PA",
+    "municipio": "Viseu",
+    "codigo_ibge": "1508308",
+    "populacao_2026": 62398
+  },
+  {
+    "uf": "PA",
+    "municipio": "Vitória do Xingu",
+    "codigo_ibge": "1508357",
+    "populacao_2026": 16686
+  },
+  {
+    "uf": "PA",
+    "municipio": "Xinguara",
+    "codigo_ibge": "1508407",
+    "populacao_2026": 58508
+  },
+  {
+    "uf": "PA",
+    "municipio": "Água Azul do Norte",
+    "codigo_ibge": "1500347",
+    "populacao_2026": 17246
+  },
+  {
+    "uf": "PA",
+    "municipio": "Óbidos",
+    "codigo_ibge": "1505106",
+    "populacao_2026": 55774
+  },
+  {
+    "uf": "PI",
+    "municipio": "Altos",
+    "codigo_ibge": "2200400",
+    "populacao_2026": 50509
+  },
+  {
+    "uf": "PI",
+    "municipio": "Amarante",
+    "codigo_ibge": "2200509",
+    "populacao_2026": 17602
+  },
+  {
+    "uf": "PI",
+    "municipio": "Barras",
+    "codigo_ibge": "2201200",
+    "populacao_2026": 49856
+  },
+  {
+    "uf": "PI",
+    "municipio": "Batalha",
+    "codigo_ibge": "2201507",
+    "populacao_2026": 27161
+  },
+  {
+    "uf": "PI",
+    "municipio": "Bom Jesus",
+    "codigo_ibge": "2201903",
+    "populacao_2026": 30965
+  },
+  {
+    "uf": "PI",
+    "municipio": "Buriti dos Lopes",
+    "codigo_ibge": "2202000",
+    "populacao_2026": 20161
+  },
+  {
+    "uf": "PI",
+    "municipio": "Campo Maior",
+    "codigo_ibge": "2202208",
+    "populacao_2026": 47160
+  },
+  {
+    "uf": "PI",
+    "municipio": "Canto do Buriti",
+    "codigo_ibge": "2202307",
+    "populacao_2026": 19613
+  },
+  {
+    "uf": "PI",
+    "municipio": "Castelo do Piauí",
+    "codigo_ibge": "2202604",
+    "populacao_2026": 19674
+  },
+  {
+    "uf": "PI",
+    "municipio": "Cocal",
+    "codigo_ibge": "2202703",
+    "populacao_2026": 29386
+  },
+  {
+    "uf": "PI",
+    "municipio": "Corrente",
+    "codigo_ibge": "2202901",
+    "populacao_2026": 28477
+  },
+  {
+    "uf": "PI",
+    "municipio": "Demerval Lobão",
+    "codigo_ibge": "2203305",
+    "populacao_2026": 17294
+  },
+  {
+    "uf": "PI",
+    "municipio": "Esperantina",
+    "codigo_ibge": "2203701",
+    "populacao_2026": 42873
+  },
+  {
+    "uf": "PI",
+    "municipio": "Floriano",
+    "codigo_ibge": "2203909",
+    "populacao_2026": 64614
+  },
+  {
+    "uf": "PI",
+    "municipio": "Inhuma",
+    "codigo_ibge": "2204709",
+    "populacao_2026": 15286
+  },
+  {
+    "uf": "PI",
+    "municipio": "Jaicós",
+    "codigo_ibge": "2205201",
+    "populacao_2026": 17768
+  },
+  {
+    "uf": "PI",
+    "municipio": "José de Freitas",
+    "codigo_ibge": "2205508",
+    "populacao_2026": 44959
+  },
+  {
+    "uf": "PI",
+    "municipio": "Luzilândia",
+    "codigo_ibge": "2205805",
+    "populacao_2026": 26189
+  },
+  {
+    "uf": "PI",
+    "municipio": "Luís Correia",
+    "codigo_ibge": "2205706",
+    "populacao_2026": 32015
+  },
+  {
+    "uf": "PI",
+    "municipio": "Miguel Alves",
+    "codigo_ibge": "2206209",
+    "populacao_2026": 33077
+  },
+  {
+    "uf": "PI",
+    "municipio": "Oeiras",
+    "codigo_ibge": "2207009",
+    "populacao_2026": 39275
+  },
+  {
+    "uf": "PI",
+    "municipio": "Parnaíba",
+    "codigo_ibge": "2207702",
+    "populacao_2026": 171342
+  },
+  {
+    "uf": "PI",
+    "municipio": "Paulistana",
+    "codigo_ibge": "2207801",
+    "populacao_2026": 21698
+  },
+  {
+    "uf": "PI",
+    "municipio": "Pedro II",
+    "codigo_ibge": "2207900",
+    "populacao_2026": 38978
+  },
+  {
+    "uf": "PI",
+    "municipio": "Picos",
+    "codigo_ibge": "2208007",
+    "populacao_2026": 87129
+  },
+  {
+    "uf": "PI",
+    "municipio": "Pio IX",
+    "codigo_ibge": "2208205",
+    "populacao_2026": 17949
+  },
+  {
+    "uf": "PI",
+    "municipio": "Piracuruca",
+    "codigo_ibge": "2208304",
+    "populacao_2026": 29801
+  },
+  {
+    "uf": "PI",
+    "municipio": "Piripiri",
+    "codigo_ibge": "2208403",
+    "populacao_2026": 68076
+  },
+  {
+    "uf": "PI",
+    "municipio": "Regeneração",
+    "codigo_ibge": "2208809",
+    "populacao_2026": 17385
+  },
+  {
+    "uf": "PI",
+    "municipio": "São João do Piauí",
+    "codigo_ibge": "2210003",
+    "populacao_2026": 22231
+  },
+  {
+    "uf": "PI",
+    "municipio": "São Miguel do Tapuio",
+    "codigo_ibge": "2210409",
+    "populacao_2026": 17918
+  },
+  {
+    "uf": "PI",
+    "municipio": "São Raimundo Nonato",
+    "codigo_ibge": "2210607",
+    "populacao_2026": 41461
+  },
+  {
+    "uf": "PI",
+    "municipio": "União",
+    "codigo_ibge": "2211100",
+    "populacao_2026": 48067
+  },
+  {
+    "uf": "PI",
+    "municipio": "Uruçuí",
+    "codigo_ibge": "2211209",
+    "populacao_2026": 27031
+  },
+  {
+    "uf": "PI",
+    "municipio": "Valença do Piauí",
+    "codigo_ibge": "2211308",
+    "populacao_2026": 23121
+  },
+  {
+    "uf": "PI",
+    "municipio": "Água Branca",
+    "codigo_ibge": "2200202",
+    "populacao_2026": 18269
+  },
+  {
+    "uf": "PR",
+    "municipio": "Almirante Tamandaré",
+    "codigo_ibge": "4100400",
+    "populacao_2026": 127031
+  },
+  {
+    "uf": "PR",
+    "municipio": "Altônia",
+    "codigo_ibge": "4100509",
+    "populacao_2026": 18525
+  },
+  {
+    "uf": "PR",
+    "municipio": "Ampére",
+    "codigo_ibge": "4101002",
+    "populacao_2026": 20479
+  },
+  {
+    "uf": "PR",
+    "municipio": "Andirá",
+    "codigo_ibge": "4101101",
+    "populacao_2026": 19944
+  },
+  {
+    "uf": "PR",
+    "municipio": "Antonina",
+    "codigo_ibge": "4101200",
+    "populacao_2026": 18091
+  },
+  {
+    "uf": "PR",
+    "municipio": "Apucarana",
+    "codigo_ibge": "4101408",
+    "populacao_2026": 135481
+  },
+  {
+    "uf": "PR",
+    "municipio": "Arapongas",
+    "codigo_ibge": "4101507",
+    "populacao_2026": 125767
+  },
+  {
+    "uf": "PR",
+    "municipio": "Arapoti",
+    "codigo_ibge": "4101606",
+    "populacao_2026": 26321
+  },
+  {
+    "uf": "PR",
+    "municipio": "Araucária",
+    "codigo_ibge": "4101804",
+    "populacao_2026": 164291
+  },
+  {
+    "uf": "PR",
+    "municipio": "Assis Chateaubriand",
+    "codigo_ibge": "4102000",
+    "populacao_2026": 38591
+  },
+  {
+    "uf": "PR",
+    "municipio": "Astorga",
+    "codigo_ibge": "4102109",
+    "populacao_2026": 26262
+  },
+  {
+    "uf": "PR",
+    "municipio": "Bandeirantes",
+    "codigo_ibge": "4102406",
+    "populacao_2026": 31690
+  },
+  {
+    "uf": "PR",
+    "municipio": "Bituruna",
+    "codigo_ibge": "4102901",
+    "populacao_2026": 15615
+  },
+  {
+    "uf": "PR",
+    "municipio": "Cafelândia",
+    "codigo_ibge": "4103453",
+    "populacao_2026": 20411
+  },
+  {
+    "uf": "PR",
+    "municipio": "Cambará",
+    "codigo_ibge": "4103602",
+    "populacao_2026": 23352
+  },
+  {
+    "uf": "PR",
+    "municipio": "Cambé",
+    "codigo_ibge": "4103701",
+    "populacao_2026": 111553
+  },
+  {
+    "uf": "PR",
+    "municipio": "Campina Grande do Sul",
+    "codigo_ibge": "4104006",
+    "populacao_2026": 51154
+  },
+  {
+    "uf": "PR",
+    "municipio": "Campina da Lagoa",
+    "codigo_ibge": "4103909",
+    "populacao_2026": 16035
+  },
+  {
+    "uf": "PR",
+    "municipio": "Campo Largo",
+    "codigo_ibge": "4104204",
+    "populacao_2026": 146002
+  },
+  {
+    "uf": "PR",
+    "municipio": "Campo Magro",
+    "codigo_ibge": "4104253",
+    "populacao_2026": 32227
+  },
+  {
+    "uf": "PR",
+    "municipio": "Campo Mourão",
+    "codigo_ibge": "4104303",
+    "populacao_2026": 104881
+  },
+  {
+    "uf": "PR",
+    "municipio": "Candói",
+    "codigo_ibge": "4104428",
+    "populacao_2026": 15173
+  },
+  {
+    "uf": "PR",
+    "municipio": "Capanema",
+    "codigo_ibge": "4104501",
+    "populacao_2026": 21208
+  },
+  {
+    "uf": "PR",
+    "municipio": "Carambeí",
+    "codigo_ibge": "4104659",
+    "populacao_2026": 24721
+  },
+  {
+    "uf": "PR",
+    "municipio": "Carlópolis",
+    "codigo_ibge": "4104709",
+    "populacao_2026": 17985
+  },
+  {
+    "uf": "PR",
+    "municipio": "Castro",
+    "codigo_ibge": "4104907",
+    "populacao_2026": 76015
+  },
+  {
+    "uf": "PR",
+    "municipio": "Cerro Azul",
+    "codigo_ibge": "4105201",
+    "populacao_2026": 15681
+  },
+  {
+    "uf": "PR",
+    "municipio": "Chopinzinho",
+    "codigo_ibge": "4105409",
+    "populacao_2026": 21690
+  },
+  {
+    "uf": "PR",
+    "municipio": "Cianorte",
+    "codigo_ibge": "4105508",
+    "populacao_2026": 83579
+  },
+  {
+    "uf": "PR",
+    "municipio": "Colombo",
+    "codigo_ibge": "4105805",
+    "populacao_2026": 242698
+  },
+  {
+    "uf": "PR",
+    "municipio": "Colorado",
+    "codigo_ibge": "4105904",
+    "populacao_2026": 23347
+  },
+  {
+    "uf": "PR",
+    "municipio": "Contenda",
+    "codigo_ibge": "4106209",
+    "populacao_2026": 20205
+  },
+  {
+    "uf": "PR",
+    "municipio": "Corbélia",
+    "codigo_ibge": "4106308",
+    "populacao_2026": 18004
+  },
+  {
+    "uf": "PR",
+    "municipio": "Cornélio Procópio",
+    "codigo_ibge": "4106407",
+    "populacao_2026": 45614
+  },
+  {
+    "uf": "PR",
+    "municipio": "Coronel Vivida",
+    "codigo_ibge": "4106506",
+    "populacao_2026": 24107
+  },
+  {
+    "uf": "PR",
+    "municipio": "Cruz Machado",
+    "codigo_ibge": "4106803",
+    "populacao_2026": 15632
+  },
+  {
+    "uf": "PR",
+    "municipio": "Cruzeiro do Oeste",
+    "codigo_ibge": "4106605",
+    "populacao_2026": 25071
+  },
+  {
+    "uf": "PR",
+    "municipio": "Dois Vizinhos",
+    "codigo_ibge": "4107207",
+    "populacao_2026": 48127
+  },
+  {
+    "uf": "PR",
+    "municipio": "Faxinal",
+    "codigo_ibge": "4107603",
+    "populacao_2026": 16548
+  },
+  {
+    "uf": "PR",
+    "municipio": "Fazenda Rio Grande",
+    "codigo_ibge": "4107652",
+    "populacao_2026": 170123
+  },
+  {
+    "uf": "PR",
+    "municipio": "Francisco Beltrão",
+    "codigo_ibge": "4108403",
+    "populacao_2026": 103424
+  },
+  {
+    "uf": "PR",
+    "municipio": "Goioerê",
+    "codigo_ibge": "4108601",
+    "populacao_2026": 28895
+  },
+  {
+    "uf": "PR",
+    "municipio": "Guarapuava",
+    "codigo_ibge": "4109401",
+    "populacao_2026": 190542
+  },
+  {
+    "uf": "PR",
+    "municipio": "Guaratuba",
+    "codigo_ibge": "4109609",
+    "populacao_2026": 45529
+  },
+  {
+    "uf": "PR",
+    "municipio": "Guaíra",
+    "codigo_ibge": "4108809",
+    "populacao_2026": 33145
+  },
+  {
+    "uf": "PR",
+    "municipio": "Ibaiti",
+    "codigo_ibge": "4109708",
+    "populacao_2026": 29465
+  },
+  {
+    "uf": "PR",
+    "municipio": "Ibiporã",
+    "codigo_ibge": "4109807",
+    "populacao_2026": 53486
+  },
+  {
+    "uf": "PR",
+    "municipio": "Imbaú",
+    "codigo_ibge": "4110078",
+    "populacao_2026": 15235
+  },
+  {
+    "uf": "PR",
+    "municipio": "Imbituva",
+    "codigo_ibge": "4110102",
+    "populacao_2026": 30940
+  },
+  {
+    "uf": "PR",
+    "municipio": "Iporã",
+    "codigo_ibge": "4110607",
+    "populacao_2026": 16149
+  },
+  {
+    "uf": "PR",
+    "municipio": "Irati",
+    "codigo_ibge": "4110706",
+    "populacao_2026": 61192
+  },
+  {
+    "uf": "PR",
+    "municipio": "Itaperuçu",
+    "codigo_ibge": "4111258",
+    "populacao_2026": 33763
+  },
+  {
+    "uf": "PR",
+    "municipio": "Ivaiporã",
+    "codigo_ibge": "4111506",
+    "populacao_2026": 33619
+  },
+  {
+    "uf": "PR",
+    "municipio": "Jacarezinho",
+    "codigo_ibge": "4111803",
+    "populacao_2026": 41571
+  },
+  {
+    "uf": "PR",
+    "municipio": "Jaguapitã",
+    "codigo_ibge": "4111902",
+    "populacao_2026": 16085
+  },
+  {
+    "uf": "PR",
+    "municipio": "Jaguariaíva",
+    "codigo_ibge": "4112009",
+    "populacao_2026": 36575
+  },
+  {
+    "uf": "PR",
+    "municipio": "Jandaia do Sul",
+    "codigo_ibge": "4112108",
+    "populacao_2026": 22000
+  },
+  {
+    "uf": "PR",
+    "municipio": "Lapa",
+    "codigo_ibge": "4113205",
+    "populacao_2026": 45877
+  },
+  {
+    "uf": "PR",
+    "municipio": "Laranjeiras do Sul",
+    "codigo_ibge": "4113304",
+    "populacao_2026": 33267
+  },
+  {
+    "uf": "PR",
+    "municipio": "Loanda",
+    "codigo_ibge": "4113502",
+    "populacao_2026": 24090
+  },
+  {
+    "uf": "PR",
+    "municipio": "Mandaguari",
+    "codigo_ibge": "4114203",
+    "populacao_2026": 38564
+  },
+  {
+    "uf": "PR",
+    "municipio": "Mandaguaçu",
+    "codigo_ibge": "4114104",
+    "populacao_2026": 35253
+  },
+  {
+    "uf": "PR",
+    "municipio": "Mandirituba",
+    "codigo_ibge": "4114302",
+    "populacao_2026": 29437
+  },
+  {
+    "uf": "PR",
+    "municipio": "Mangueirinha",
+    "codigo_ibge": "4114401",
+    "populacao_2026": 16709
+  },
+  {
+    "uf": "PR",
+    "municipio": "Marechal Cândido Rondon",
+    "codigo_ibge": "4114609",
+    "populacao_2026": 59291
+  },
+  {
+    "uf": "PR",
+    "municipio": "Marialva",
+    "codigo_ibge": "4114807",
+    "populacao_2026": 45360
+  },
+  {
+    "uf": "PR",
+    "municipio": "Marmeleiro",
+    "codigo_ibge": "4115408",
+    "populacao_2026": 16728
+  },
+  {
+    "uf": "PR",
+    "municipio": "Matelândia",
+    "codigo_ibge": "4115606",
+    "populacao_2026": 19368
+  },
+  {
+    "uf": "PR",
+    "municipio": "Matinhos",
+    "codigo_ibge": "4115705",
+    "populacao_2026": 42671
+  },
+  {
+    "uf": "PR",
+    "municipio": "Medianeira",
+    "codigo_ibge": "4115804",
+    "populacao_2026": 58681
+  },
+  {
+    "uf": "PR",
+    "municipio": "Morretes",
+    "codigo_ibge": "4116208",
+    "populacao_2026": 19248
+  },
+  {
+    "uf": "PR",
+    "municipio": "Nova Esperança",
+    "codigo_ibge": "4116901",
+    "populacao_2026": 27140
+  },
+  {
+    "uf": "PR",
+    "municipio": "Ortigueira",
+    "codigo_ibge": "4117305",
+    "populacao_2026": 24808
+  },
+  {
+    "uf": "PR",
+    "municipio": "Paiçandu",
+    "codigo_ibge": "4117503",
+    "populacao_2026": 49694
+  },
+  {
+    "uf": "PR",
+    "municipio": "Palmas",
+    "codigo_ibge": "4117602",
+    "populacao_2026": 50564
+  },
+  {
+    "uf": "PR",
+    "municipio": "Palmeira",
+    "codigo_ibge": "4117701",
+    "populacao_2026": 35054
+  },
+  {
+    "uf": "PR",
+    "municipio": "Palotina",
+    "codigo_ibge": "4117909",
+    "populacao_2026": 37431
+  },
+  {
+    "uf": "PR",
+    "municipio": "Paranaguá",
+    "codigo_ibge": "4118204",
+    "populacao_2026": 150436
+  },
+  {
+    "uf": "PR",
+    "municipio": "Paranavaí",
+    "codigo_ibge": "4118402",
+    "populacao_2026": 96870
+  },
+  {
+    "uf": "PR",
+    "municipio": "Pato Branco",
+    "codigo_ibge": "4118501",
+    "populacao_2026": 99041
+  },
+  {
+    "uf": "PR",
+    "municipio": "Pinhais",
+    "codigo_ibge": "4119152",
+    "populacao_2026": 131857
+  },
+  {
+    "uf": "PR",
+    "municipio": "Pinhão",
+    "codigo_ibge": "4119301",
+    "populacao_2026": 30431
+  },
+  {
+    "uf": "PR",
+    "municipio": "Piraquara",
+    "codigo_ibge": "4119509",
+    "populacao_2026": 129035
+  },
+  {
+    "uf": "PR",
+    "municipio": "Piraí do Sul",
+    "codigo_ibge": "4119400",
+    "populacao_2026": 23991
+  },
+  {
+    "uf": "PR",
+    "municipio": "Pitanga",
+    "codigo_ibge": "4119608",
+    "populacao_2026": 34583
+  },
+  {
+    "uf": "PR",
+    "municipio": "Pontal do Paraná",
+    "codigo_ibge": "4119954",
+    "populacao_2026": 33730
+  },
+  {
+    "uf": "PR",
+    "municipio": "Prudentópolis",
+    "codigo_ibge": "4120606",
+    "populacao_2026": 50988
+  },
+  {
+    "uf": "PR",
+    "municipio": "Quatro Barras",
+    "codigo_ibge": "4120804",
+    "populacao_2026": 25663
+  },
+  {
+    "uf": "PR",
+    "municipio": "Quedas do Iguaçu",
+    "codigo_ibge": "4120903",
+    "populacao_2026": 31431
+  },
+  {
+    "uf": "PR",
+    "municipio": "Quitandinha",
+    "codigo_ibge": "4121208",
+    "populacao_2026": 18963
+  },
+  {
+    "uf": "PR",
+    "municipio": "Realeza",
+    "codigo_ibge": "4121406",
+    "populacao_2026": 20276
+  },
+  {
+    "uf": "PR",
+    "municipio": "Reserva",
+    "codigo_ibge": "4121703",
+    "populacao_2026": 24856
+  },
+  {
+    "uf": "PR",
+    "municipio": "Rio Branco do Sul",
+    "codigo_ibge": "4122206",
+    "populacao_2026": 40745
+  },
+  {
+    "uf": "PR",
+    "municipio": "Rio Negro",
+    "codigo_ibge": "4122305",
+    "populacao_2026": 31954
+  },
+  {
+    "uf": "PR",
+    "municipio": "Rolândia",
+    "codigo_ibge": "4122404",
+    "populacao_2026": 76671
+  },
+  {
+    "uf": "PR",
+    "municipio": "Salto do Lontra",
+    "codigo_ibge": "4123006",
+    "populacao_2026": 15800
+  },
+  {
+    "uf": "PR",
+    "municipio": "Santa Helena",
+    "codigo_ibge": "4123501",
+    "populacao_2026": 26601
+  },
+  {
+    "uf": "PR",
+    "municipio": "Santa Terezinha de Itaipu",
+    "codigo_ibge": "4124053",
+    "populacao_2026": 25510
+  },
+  {
+    "uf": "PR",
+    "municipio": "Santo Antônio da Platina",
+    "codigo_ibge": "4124103",
+    "populacao_2026": 45730
+  },
+  {
+    "uf": "PR",
+    "municipio": "Santo Antônio do Sudoeste",
+    "codigo_ibge": "4124400",
+    "populacao_2026": 25273
+  },
+  {
+    "uf": "PR",
+    "municipio": "Sarandi",
+    "codigo_ibge": "4126256",
+    "populacao_2026": 130211
+  },
+  {
+    "uf": "PR",
+    "municipio": "Sengés",
+    "codigo_ibge": "4126306",
+    "populacao_2026": 17151
+  },
+  {
+    "uf": "PR",
+    "municipio": "Sertanópolis",
+    "codigo_ibge": "4126504",
+    "populacao_2026": 16228
+  },
+  {
+    "uf": "PR",
+    "municipio": "Siqueira Campos",
+    "codigo_ibge": "4126603",
+    "populacao_2026": 24299
+  },
+  {
+    "uf": "PR",
+    "municipio": "São Mateus do Sul",
+    "codigo_ibge": "4125605",
+    "populacao_2026": 43558
+  },
+  {
+    "uf": "PR",
+    "municipio": "São Miguel do Iguaçu",
+    "codigo_ibge": "4125704",
+    "populacao_2026": 30624
+  },
+  {
+    "uf": "PR",
+    "municipio": "Tapejara",
+    "codigo_ibge": "4126801",
+    "populacao_2026": 16404
+  },
+  {
+    "uf": "PR",
+    "municipio": "Telêmaco Borba",
+    "codigo_ibge": "4127106",
+    "populacao_2026": 77798
+  },
+  {
+    "uf": "PR",
+    "municipio": "Terra Boa",
+    "codigo_ibge": "4127205",
+    "populacao_2026": 18278
+  },
+  {
+    "uf": "PR",
+    "municipio": "Terra Roxa",
+    "codigo_ibge": "4127403",
+    "populacao_2026": 18719
+  },
+  {
+    "uf": "PR",
+    "municipio": "Tibagi",
+    "codigo_ibge": "4127502",
+    "populacao_2026": 20408
+  },
+  {
+    "uf": "PR",
+    "municipio": "Tijucas do Sul",
+    "codigo_ibge": "4127601",
+    "populacao_2026": 18646
+  },
+  {
+    "uf": "PR",
+    "municipio": "Toledo",
+    "codigo_ibge": "4127700",
+    "populacao_2026": 162658
+  },
+  {
+    "uf": "PR",
+    "municipio": "Ubiratã",
+    "codigo_ibge": "4128005",
+    "populacao_2026": 25928
+  },
+  {
+    "uf": "PR",
+    "municipio": "Umuarama",
+    "codigo_ibge": "4128104",
+    "populacao_2026": 124077
+  },
+  {
+    "uf": "PR",
+    "municipio": "União da Vitória",
+    "codigo_ibge": "4128203",
+    "populacao_2026": 56701
+  },
+  {
+    "uf": "PR",
+    "municipio": "Wenceslau Braz",
+    "codigo_ibge": "4128500",
+    "populacao_2026": 19392
+  },
+  {
+    "uf": "TO",
+    "municipio": "Araguatins",
+    "codigo_ibge": "1702208",
+    "populacao_2026": 33364
+  },
+  {
+    "uf": "TO",
+    "municipio": "Araguaína",
+    "codigo_ibge": "1702109",
+    "populacao_2026": 184495
+  },
+  {
+    "uf": "TO",
+    "municipio": "Augustinópolis",
+    "codigo_ibge": "1702554",
+    "populacao_2026": 18341
+  },
+  {
+    "uf": "TO",
+    "municipio": "Colinas do Tocantins",
+    "codigo_ibge": "1705508",
+    "populacao_2026": 36451
+  },
+  {
+    "uf": "TO",
+    "municipio": "Dianópolis",
+    "codigo_ibge": "1707009",
+    "populacao_2026": 17905
+  },
+  {
+    "uf": "TO",
+    "municipio": "Formoso do Araguaia",
+    "codigo_ibge": "1708205",
+    "populacao_2026": 19517
+  },
+  {
+    "uf": "TO",
+    "municipio": "Guaraí",
+    "codigo_ibge": "1709302",
+    "populacao_2026": 25975
+  },
+  {
+    "uf": "TO",
+    "municipio": "Gurupi",
+    "codigo_ibge": "1709500",
+    "populacao_2026": 90818
+  },
+  {
+    "uf": "TO",
+    "municipio": "Lagoa da Confusão",
+    "codigo_ibge": "1711902",
+    "populacao_2026": 16934
+  },
+  {
+    "uf": "TO",
+    "municipio": "Miracema do Tocantins",
+    "codigo_ibge": "1713205",
+    "populacao_2026": 18576
+  },
+  {
+    "uf": "TO",
+    "municipio": "Paraíso do Tocantins",
+    "codigo_ibge": "1716109",
+    "populacao_2026": 56223
+  },
+  {
+    "uf": "TO",
+    "municipio": "Pedro Afonso",
+    "codigo_ibge": "1716505",
+    "populacao_2026": 15051
+  },
+  {
+    "uf": "TO",
+    "municipio": "Porto Nacional",
+    "codigo_ibge": "1718204",
+    "populacao_2026": 70507
+  },
+  {
+    "uf": "TO",
+    "municipio": "Tocantinópolis",
+    "codigo_ibge": "1721208",
+    "populacao_2026": 23246
+  }
+]

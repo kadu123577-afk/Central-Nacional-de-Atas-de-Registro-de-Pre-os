@@ -270,6 +270,12 @@ model EntidadeAlvo {
   uf        String?
   municipio String?
   endereco  String?
+  // Código do município no IBGE — só preenchido pra entidade tipo
+  // "municipal" vinda do levantamento de dados (2026-09-05, ver
+  // prisma/seed-municipios-alvo.ts). Chave de upsert segura: permite
+  // rodar o levantamento de novo (lote 2, lote 3...) sem duplicar
+  // município já cadastrado.
+  codigoIbgeMunicipio String? @unique
   ativo     Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
