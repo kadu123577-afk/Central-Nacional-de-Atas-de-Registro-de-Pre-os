@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Prisma } from "@/generated/prisma/client";
 import { adminIdLogado } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { limitePorOrgao, saldoAgregadoDisponivel } from "@/lib/saldo";
@@ -12,6 +13,11 @@ import { tomStatusAta } from "@/lib/severidade";
 // Depende sempre de dados atuais do banco — nunca pré-renderizar em build.
 export const dynamic = "force-dynamic";
 
+interface FiltrosAtas {
+  objeto?: string;
+  municipio?: string;
+}
+
 /**
  * Cadastro interno de atas — mostra TODO status (inclusive PENDENTE e
  * REJEITADA, que não têm nada a ver com o catálogo público) com dado
@@ -20,14 +26,37 @@ export const dynamic = "force-dynamic";
  * autenticação, embora o cadastro (`/atas/nova`) já tivesse sido
  * desativado antes por essa mesma razão. Trava aqui também, atrás do
  * login de admin — não é fluxo de fornecedor nem de órgão.
+ *
+ * Filtro por objeto + cidade (2026-09-05) — pedido explícito pra
+ * conseguir enxergar, entre TODAS as atas (qualquer status/origem), só as
+ * de um objeto específico numa cidade específica. Filtra pelo texto livre
+ * de `Ata.objeto` e por `Orgao.municipio` do órgão gerenciador — não é o
+ * mesmo filtro do catálogo público (que só mostra atas aprovadas e
+ * vigentes, e filtra por UF, não por município).
  */
-export default async function AtasPage() {
+export default async function AtasPage({
+  searchParams,
+}: {
+  searchParams: Promise<FiltrosAtas>;
+}) {
   const adminId = await adminIdLogado();
   if (!adminId) {
     redirect("/admin/login");
   }
 
+  const filtros = await searchParams;
+  const objeto = filtros.objeto?.trim() ?? "";
+  const municipio = filtros.municipio?.trim() ?? "";
+
+  const where: Prisma.AtaWhereInput = {
+    ...(objeto ? { objeto: { contains: objeto, mode: "insensitive" } } : {}),
+    ...(municipio
+      ? { orgaoGerenciador: { municipio: { contains: municipio, mode: "insensitive" } } }
+      : {}),
+  };
+
   const atas = await prisma.ata.findMany({
+    where,
     include: {
       fornecedor: true,
       orgaoGerenciador: true,
@@ -47,14 +76,35 @@ export default async function AtasPage() {
         </Link>
       </div>
 
+      <Secao titulo="Filtrar">
+        <form className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <input
+            name="objeto"
+            defaultValue={objeto}
+            placeholder="Objeto da ata (ex.: material hospitalar)"
+            className="campo-atas sm:col-span-2"
+          />
+          <input name="municipio" defaultValue={municipio} placeholder="Cidade" className="campo-atas" />
+          <button type="submit" className="botao-atas sm:col-span-3">
+            Filtrar
+          </button>
+        </form>
+      </Secao>
+
       {atas.length === 0 ? (
         <VazioComAcao
-          titulo="Nenhuma ata cadastrada ainda"
-          descricao="Comece pela primeira ata — fornecedor, órgão gerenciador e ao menos um item."
+          titulo={objeto || municipio ? "Nenhuma ata bate com esse filtro" : "Nenhuma ata cadastrada ainda"}
+          descricao={
+            objeto || municipio
+              ? "Ajuste o objeto ou a cidade buscada."
+              : "Comece pela primeira ata — fornecedor, órgão gerenciador e ao menos um item."
+          }
           acao={
-            <Link href="/atas/nova" className="botao-atas">
-              Cadastrar ata
-            </Link>
+            !objeto && !municipio ? (
+              <Link href="/atas/nova" className="botao-atas">
+                Cadastrar ata
+              </Link>
+            ) : undefined
           }
         />
       ) : (
@@ -69,7 +119,8 @@ export default async function AtasPage() {
                 {ata.objeto}
               </p>
               <p className="mt-1 text-xs" style={{ color: "var(--cor-texto-3)" }}>
-                Órgão gerenciador: {ata.orgaoGerenciador.nome} ({ata.orgaoGerenciador.uf})
+                Órgão gerenciador: {ata.orgaoGerenciador.nome} — {ata.orgaoGerenciador.municipio}/
+                {ata.orgaoGerenciador.uf}
               </p>
 
               <div className="mt-4 overflow-x-auto">

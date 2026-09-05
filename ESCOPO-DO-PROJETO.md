@@ -435,6 +435,15 @@ até agora já aplicados.
     portais valem o esforço, decisão que ninguém tomou ainda; nenhuma
     fonte nova foi inventada. O mapa completo, com os cinco blocos e o
     que cada um significa, está no artefato publicado separadamente.
+- **Filtro por objeto + cidade em `/atas` (2026-09-05)** — a listagem
+  interna do admin (mostra TODA ata, qualquer status/origem) não tinha
+  filtro nenhum até então; era só uma lista corrida. Agora tem uma busca
+  por texto livre do objeto (`Ata.objeto`) combinada com a cidade do
+  órgão gerenciador (`Orgao.municipio`) — diferente do filtro do catálogo
+  público (`/catalogo`), que só filtra atas aprovadas/vigentes por tema e
+  UF, não por município. Verificado ao vivo: 24 atas sem filtro → 2 ao
+  combinar objeto + cidade nos dados de desenvolvimento, e mensagem clara
+  quando o filtro não bate com nada.
 
 ---
 
