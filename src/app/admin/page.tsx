@@ -33,6 +33,8 @@ const NAV_ADMIN = [
   { rotulo: "Painel", href: "/admin" },
   { rotulo: "Contas a receber", href: "/admin/faturamento" },
   { rotulo: "Usuários", href: "/admin/usuarios" },
+  { rotulo: "Pontos focais", href: "/admin/pontos-focais" },
+  { rotulo: "Parceiros", href: "/admin/parceiros" },
   { rotulo: "Perfil", href: "/admin/perfil" },
 ];
 
@@ -44,6 +46,7 @@ export default async function PainelAdminPage() {
 
   const [
     totalAtas,
+    atasComAdesao,
     itensComSaldo,
     pedidosEmAndamento,
     pedidosFaturados,
@@ -51,6 +54,13 @@ export default async function PainelAdminPage() {
     faturamentos,
   ] = await Promise.all([
     prisma.ata.count({ where: { status: "APROVADA" } }),
+    // Funil de conversão (mapa do núcleo de atas, 2026-09-05): quantas atas
+    // aprovadas conseguiram fechar pelo menos uma adesão de verdade — não
+    // existe estágio de "cancelada" em Adesao hoje, então qualquer adesão
+    // registrada já conta.
+    prisma.ata.count({
+      where: { status: "APROVADA", itens: { some: { adesoes: { some: {} } } } },
+    }),
     prisma.item.findMany({ include: { saldo: true } }),
     prisma.adesao.count({ where: { estagio: { not: "FATURADA" } } }),
     prisma.adesao.count({ where: { estagio: "FATURADA" } }),
@@ -68,6 +78,8 @@ export default async function PainelAdminPage() {
       ),
     prisma.faturamento.findMany(),
   ]);
+
+  const taxaConversao = totalAtas > 0 ? Math.round((atasComAdesao / totalAtas) * 100) : null;
 
   const saldoTotalDisponivel = itensComSaldo.reduce(
     (total, item) =>
@@ -113,6 +125,17 @@ export default async function PainelAdminPage() {
           tom={totalAReceber > 0 ? "atencao" : "neutro"}
         />
         <CartaoIndicador rotulo="Total recebido" valor={<Cifra valor={totalRecebido} />} />
+        <CartaoIndicador
+          rotulo="Atas com adesão"
+          valor={atasComAdesao}
+          nota={`de ${totalAtas} aprovadas`}
+        />
+        <CartaoIndicador
+          rotulo="Taxa de conversão"
+          valor={taxaConversao === null ? "—" : `${taxaConversao}%`}
+          tom={taxaConversao !== null && taxaConversao > 0 ? "marca" : "neutro"}
+          nota="atas aprovadas que já fecharam ao menos 1 adesão"
+        />
       </div>
 
       <Secao titulo="Atas aguardando moderação">

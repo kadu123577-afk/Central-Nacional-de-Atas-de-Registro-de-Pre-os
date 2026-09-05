@@ -11,6 +11,8 @@ import {
 } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import type { EstadoTrocarSenha } from "@/components/ui/formulario-trocar-senha";
+import { esferaValida } from "@/lib/esferas";
+import { resultadoInteracaoValido } from "@/lib/pontos-focais";
 
 export interface EstadoLoginAdmin {
   erro?: string;
@@ -259,6 +261,148 @@ export async function marcarFaturamentoComoPago(
   revalidatePath("/admin/faturamento");
   revalidatePath("/admin");
   return {};
+}
+
+export interface EstadoPontoFocal {
+  erro?: string;
+}
+
+/** Mapa do núcleo de atas (2026-09-05) — banco de contatos por esfera/UF/
+ * município, acesso restrito ao admin. */
+export async function criarPontoFocal(
+  _estadoAnterior: EstadoPontoFocal,
+  formData: FormData,
+): Promise<EstadoPontoFocal> {
+  await exigirAdmin();
+
+  const esfera = String(formData.get("esfera") ?? "").trim();
+  const uf = String(formData.get("uf") ?? "").trim();
+  const municipio = String(formData.get("municipio") ?? "").trim();
+  const cargo = String(formData.get("cargo") ?? "").trim();
+  const nomeContato = String(formData.get("nomeContato") ?? "").trim();
+  const telefone = String(formData.get("telefone") ?? "").trim();
+  const email = String(formData.get("email") ?? "").trim();
+  const particularidades = String(formData.get("particularidades") ?? "").trim();
+
+  if (!esferaValida(esfera)) {
+    return { erro: "Selecione uma esfera válida." };
+  }
+  if (!cargo || !nomeContato) {
+    return { erro: "Informe ao menos o cargo e o nome do contato." };
+  }
+
+  await prisma.pontoFocal.create({
+    data: {
+      esfera,
+      uf: uf || null,
+      municipio: municipio || null,
+      cargo,
+      nomeContato,
+      telefone: telefone || null,
+      email: email || null,
+      particularidades: particularidades || null,
+    },
+  });
+
+  revalidatePath("/admin/pontos-focais");
+  return {};
+}
+
+export async function alternarStatusPontoFocal(formData: FormData): Promise<void> {
+  await exigirAdmin();
+  const pontoFocalId = String(formData.get("pontoFocalId") ?? "");
+  if (!pontoFocalId) return;
+
+  const pontoFocal = await prisma.pontoFocal.findUnique({ where: { id: pontoFocalId } });
+  if (!pontoFocal) return;
+
+  await prisma.pontoFocal.update({
+    where: { id: pontoFocalId },
+    data: { ativo: !pontoFocal.ativo },
+  });
+  revalidatePath("/admin/pontos-focais");
+}
+
+export interface EstadoInteracaoPontoFocal {
+  erro?: string;
+}
+
+/** Registra o histórico de match descrito no mapa: qual ata foi oferecida
+ * a este ponto focal e o que resultou — é o sinal que refina capilaridade
+ * com o tempo. */
+export async function registrarInteracaoPontoFocal(
+  _estadoAnterior: EstadoInteracaoPontoFocal,
+  formData: FormData,
+): Promise<EstadoInteracaoPontoFocal> {
+  await exigirAdmin();
+
+  const pontoFocalId = String(formData.get("pontoFocalId") ?? "");
+  const ataId = String(formData.get("ataId") ?? "").trim();
+  const resultado = String(formData.get("resultado") ?? "").trim();
+  const observacao = String(formData.get("observacao") ?? "").trim();
+
+  if (!pontoFocalId || !resultadoInteracaoValido(resultado)) {
+    return { erro: "Selecione um resultado válido." };
+  }
+
+  await prisma.interacaoPontoFocal.create({
+    data: {
+      pontoFocalId,
+      ataId: ataId || null,
+      resultado,
+      observacao: observacao || null,
+    },
+  });
+
+  revalidatePath(`/admin/pontos-focais/${pontoFocalId}`);
+  return {};
+}
+
+export interface EstadoParceiro {
+  erro?: string;
+}
+
+/** "Os 30 parceiros" das notas de voz — quem revende/comercializa atas
+ * junto com a Tech 10, organizado por categoria e UF de interesse. */
+export async function criarParceiro(
+  _estadoAnterior: EstadoParceiro,
+  formData: FormData,
+): Promise<EstadoParceiro> {
+  await exigirAdmin();
+
+  const nome = String(formData.get("nome") ?? "").trim();
+  const contato = String(formData.get("contato") ?? "").trim();
+  const categoriasInteresse = formData.getAll("categoriasInteresse").map(String);
+  const ufsInteresse = String(formData.get("ufsInteresse") ?? "")
+    .split(",")
+    .map((uf) => uf.trim().toUpperCase())
+    .filter(Boolean);
+
+  if (!nome || !contato) {
+    return { erro: "Informe nome e contato do parceiro." };
+  }
+
+  await prisma.parceiro.create({
+    data: { nome, contato, categoriasInteresse, ufsInteresse },
+  });
+
+  revalidatePath("/admin/parceiros");
+  return {};
+}
+
+export async function alternarStatusParceiro(formData: FormData): Promise<void> {
+  await exigirAdmin();
+  const parceiroId = String(formData.get("parceiroId") ?? "");
+  if (!parceiroId) return;
+
+  const parceiro = await prisma.parceiro.findUnique({ where: { id: parceiroId } });
+  if (!parceiro) return;
+
+  await prisma.parceiro.update({
+    where: { id: parceiroId },
+    data: { ativo: !parceiro.ativo },
+  });
+  revalidatePath("/admin/parceiros");
 }
 
 export async function marcarFaturamentoComoPendente(

@@ -125,6 +125,7 @@ model Ata {
   orgaoGerenciador Orgao           @relation("OrgaoGerenciador", fields: [orgaoGerenciadorId], references: [id])
   itens            Item[]
   documentos       DocumentoAta[]
+  interacoesPontoFocal InteracaoPontoFocal[]
 
   @@unique([numero, orgaoGerenciadorId])
   @@map("atas")
@@ -240,4 +241,68 @@ model Faturamento {
   adesao Adesao @relation(fields: [adesaoId], references: [id])
 
   @@map("faturamentos")
+}
+
+// Mapa do núcleo de atas (2026-09-05) — cadastro de contato por esfera/UF/
+// município (prefeito, governador ou intermediário) com as particularidades
+// da relação, pra apoiar a decisão de quem procurar antes de oferecer uma
+// ata. Acesso restrito ao admin (nunca exposto a fornecedor/órgão) — é
+// justamente o "banco de dados secreto" descrito nas notas de voz que
+// originaram o mapa; controle de acesso mais fino (quem no time interno
+// pode ver o quê) fica para quando existir mais de um perfil de admin.
+model PontoFocal {
+  id               String   @id @default(cuid())
+  esfera           String
+  uf               String?
+  municipio        String?
+  cargo            String
+  nomeContato      String
+  telefone         String?
+  email            String?
+  particularidades String?
+  ativo            Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  isSeed           Boolean  @default(false)
+
+  interacoes InteracaoPontoFocal[]
+
+  @@map("pontos_focais")
+}
+
+// Histórico de match: qual ata foi oferecida a este ponto focal e o que
+// resultou disso — é o que permite refinar capilaridade com o tempo, em
+// vez de repetir a mesma oferta pra quem já recusou.
+model InteracaoPontoFocal {
+  id           String   @id @default(cuid())
+  pontoFocalId String
+  ataId        String?
+  resultado    String
+  observacao   String?
+  criadoEm     DateTime @default(now())
+  isSeed       Boolean  @default(false)
+
+  pontoFocal PontoFocal @relation(fields: [pontoFocalId], references: [id])
+  ata        Ata?       @relation(fields: [ataId], references: [id])
+
+  @@map("interacoes_ponto_focal")
+}
+
+// "Os 30 parceiros" das notas de voz — quem revende/comercializa atas junto
+// com a Tech 10. categoriasInteresse usa os mesmos slugs de
+// src/lib/categorias.ts; ufsInteresse são siglas de UF. Nenhum dos dois é
+// enum do Prisma, mesmo racional de Item.categoria — vocabulário evolui
+// sem migração.
+model Parceiro {
+  id                  String   @id @default(cuid())
+  nome                String
+  contato             String
+  categoriasInteresse String[]
+  ufsInteresse        String[]
+  ativo               Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  isSeed              Boolean  @default(false)
+
+  @@map("parceiros")
 }

@@ -362,6 +362,8 @@ até agora já aplicados.
 | `/admin/faturamento` | Contas a receber (taxa de intermediação) — marcar como recebido | ✅ Completo (feedback visual imediato adicionado em rodada anterior) |
 | `/admin/usuarios` | Gestão de usuários — ativar/desativar fornecedor e órgão | ✅ Completo |
 | `/admin/atas/[ataId]/completar` | Completar ata PNCP incompleta (fornecedor real + itens) | ✅ Completo |
+| `/admin/pontos-focais` | Banco de contatos por esfera/UF/município (prefeito, governador, intermediário) — cadastro + histórico de match | ✅ Completo |
+| `/admin/parceiros` | Parceiros comerciais (revendedores de atas) + atas compatíveis por categoria/UF | ✅ Completo |
 | `/admin/perfil` | Perfil — trocar senha | ✅ Completo |
 | `/atas` | Cadastro/listagem interna completa de atas (todo status) | ✅ Completo — **agora atrás de login de admin** (corrigido em 2026-09-04, ver §2.4 item 3) |
 
@@ -401,6 +403,38 @@ até agora já aplicados.
   requisição, não só no login — deixado de fora por ora por ser uma
   mudança mais ampla no `src/lib/auth.ts`, não uma decisão de negócio.
   Verificado ao vivo com Playwright.
+- **Mapa do "Núcleo de Atas" (2026-09-05)** — a pedido explícito
+  ("tudo isso que te mandei são pontos pra lapidarmos e inserir no nosso
+  sistema, construa"), depois de um mapa operacional (artefato publicado
+  separadamente) traduzindo notas de voz sobre a operação de venda de
+  atas em blocos concretos. Do que era construível sem inventar mais
+  regra de negócio, entrou nesta leva:
+  - **Funil de conversão** — dois cartões novos em `/admin`: "Atas com
+    adesão" e "Taxa de conversão" (`atasComAdesao / totalAtas`). Não
+    existe estágio "cancelada" em `Adesao` hoje, então qualquer adesão
+    registrada já conta como conversão — `Ata.count({ itens: { some: {
+    adesoes: { some: {} } } } })`.
+  - **Banco de pontos focais** (`/admin/pontos-focais`) — cadastro de
+    contato por esfera/UF/município (prefeito, governador ou
+    intermediário) com particularidades e histórico de interação
+    (`PontoFocal` + `InteracaoPontoFocal`, migração
+    `20260905120000_nucleo_de_atas`). Acesso restrito ao admin de
+    propósito — é o "banco de dados secreto" das notas de voz; controle
+    de acesso mais fino entre pessoas do time interno fica para quando
+    existir mais de um perfil de admin (hoje é tudo-ou-nada por login).
+  - **Parceiros e match por necessidade** (`/admin/parceiros`) — cadastro
+    de parceiro comercial (nome, contato, categorias e UFs de interesse,
+    `String[]` no Postgres) com uma tela de detalhe que já calcula, ao
+    vivo, quais atas aprovadas batem com os interesses dele (união por
+    categoria OU UF — não interseção). Verificado ao vivo com Playwright:
+    um parceiro de teste com interesse em "material hospitalar" + UFs
+    GO/SP encontrou 8 atas compatíveis nos dados de desenvolvimento.
+  - **Deixado de fora desta leva, por decisão explícita** — expandir a
+    raspagem vertical pra portais estaduais/municipais específicos (§3
+    do mapa) não entrou porque exige decidir fonte por fonte quais
+    portais valem o esforço, decisão que ninguém tomou ainda; nenhuma
+    fonte nova foi inventada. O mapa completo, com os cinco blocos e o
+    que cada um significa, está no artefato publicado separadamente.
 
 ---
 

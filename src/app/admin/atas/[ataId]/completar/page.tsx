@@ -17,6 +17,8 @@ const NAV_ADMIN = [
   { rotulo: "Painel", href: "/admin" },
   { rotulo: "Contas a receber", href: "/admin/faturamento" },
   { rotulo: "Usuários", href: "/admin/usuarios" },
+  { rotulo: "Pontos focais", href: "/admin/pontos-focais" },
+  { rotulo: "Parceiros", href: "/admin/parceiros" },
   { rotulo: "Perfil", href: "/admin/perfil" },
 ];
 
