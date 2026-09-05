@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { registrarInteracaoPontoFocal, type EstadoInteracaoPontoFocal } from "../../actions";
+import { registrarInteracaoPontoFocal, type EstadoInteracaoPontoFocal } from "../../../../actions";
 import { Secao } from "@/components/ui/secao";
 import { RESULTADOS_INTERACAO } from "@/lib/pontos-focais";
 

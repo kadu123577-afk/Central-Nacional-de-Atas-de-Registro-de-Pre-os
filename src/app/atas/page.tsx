@@ -9,6 +9,7 @@ import { Secao } from "@/components/ui/secao";
 import { Numero } from "@/components/ui/valores";
 import { VazioComAcao } from "@/components/ui/vazio-com-acao";
 import { tomStatusAta } from "@/lib/severidade";
+import { ESFERAS_ORGAO } from "@/lib/esferas";
 
 // Depende sempre de dados atuais do banco — nunca pré-renderizar em build.
 export const dynamic = "force-dynamic";
@@ -16,6 +17,8 @@ export const dynamic = "force-dynamic";
 interface FiltrosAtas {
   objeto?: string;
   municipio?: string;
+  orgao?: string;
+  esfera?: string;
 }
 
 /**
@@ -33,6 +36,11 @@ interface FiltrosAtas {
  * de `Ata.objeto` e por `Orgao.municipio` do órgão gerenciador — não é o
  * mesmo filtro do catálogo público (que só mostra atas aprovadas e
  * vigentes, e filtra por UF, não por município).
+ *
+ * Banco de atas segmentado (2026-09-05) — filtro por esfera e por nome do
+ * órgão, pra fatiar "só municipal", "só estadual" etc. e achar ministério/
+ * secretaria específicos pelo nome (não são esfera, são tipo de órgão
+ * dentro dela — daí o filtro de texto no nome, não um campo novo).
  */
 export default async function AtasPage({
   searchParams,
@@ -47,11 +55,19 @@ export default async function AtasPage({
   const filtros = await searchParams;
   const objeto = filtros.objeto?.trim() ?? "";
   const municipio = filtros.municipio?.trim() ?? "";
+  const orgao = filtros.orgao?.trim() ?? "";
+  const esfera = filtros.esfera?.trim() ?? "";
 
   const where: Prisma.AtaWhereInput = {
     ...(objeto ? { objeto: { contains: objeto, mode: "insensitive" } } : {}),
-    ...(municipio
-      ? { orgaoGerenciador: { municipio: { contains: municipio, mode: "insensitive" } } }
+    ...(orgao || municipio || esfera
+      ? {
+          orgaoGerenciador: {
+            ...(municipio ? { municipio: { contains: municipio, mode: "insensitive" } } : {}),
+            ...(orgao ? { nome: { contains: orgao, mode: "insensitive" } } : {}),
+            ...(esfera ? { esfera } : {}),
+          },
+        }
       : {}),
   };
 
@@ -77,15 +93,29 @@ export default async function AtasPage({
       </div>
 
       <Secao titulo="Filtrar">
-        <form className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <form className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <input
             name="objeto"
             defaultValue={objeto}
             placeholder="Objeto da ata (ex.: material hospitalar)"
-            className="campo-atas sm:col-span-2"
+            className="campo-atas col-span-2"
           />
           <input name="municipio" defaultValue={municipio} placeholder="Cidade" className="campo-atas" />
-          <button type="submit" className="botao-atas sm:col-span-3">
+          <input
+            name="orgao"
+            defaultValue={orgao}
+            placeholder="Nome do órgão (ex.: Ministério da Saúde)"
+            className="campo-atas"
+          />
+          <select name="esfera" defaultValue={esfera} className="campo-atas col-span-2 sm:col-span-1">
+            <option value="">Qualquer esfera</option>
+            {ESFERAS_ORGAO.map((e) => (
+              <option key={e} value={e}>
+                {e[0].toUpperCase() + e.slice(1)}
+              </option>
+            ))}
+          </select>
+          <button type="submit" className="botao-atas col-span-2 sm:col-span-4">
             Filtrar
           </button>
         </form>
@@ -93,14 +123,18 @@ export default async function AtasPage({
 
       {atas.length === 0 ? (
         <VazioComAcao
-          titulo={objeto || municipio ? "Nenhuma ata bate com esse filtro" : "Nenhuma ata cadastrada ainda"}
+          titulo={
+            objeto || municipio || orgao || esfera
+              ? "Nenhuma ata bate com esse filtro"
+              : "Nenhuma ata cadastrada ainda"
+          }
           descricao={
-            objeto || municipio
-              ? "Ajuste o objeto ou a cidade buscada."
+            objeto || municipio || orgao || esfera
+              ? "Ajuste o objeto, a cidade, o órgão ou a esfera buscados."
               : "Comece pela primeira ata — fornecedor, órgão gerenciador e ao menos um item."
           }
           acao={
-            !objeto && !municipio ? (
+            !objeto && !municipio && !orgao && !esfera ? (
               <Link href="/atas/nova" className="botao-atas">
                 Cadastrar ata
               </Link>

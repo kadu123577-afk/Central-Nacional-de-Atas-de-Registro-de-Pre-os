@@ -362,10 +362,13 @@ até agora já aplicados.
 | `/admin/faturamento` | Contas a receber (taxa de intermediação) — marcar como recebido | ✅ Completo (feedback visual imediato adicionado em rodada anterior) |
 | `/admin/usuarios` | Gestão de usuários — ativar/desativar fornecedor e órgão | ✅ Completo |
 | `/admin/atas/[ataId]/completar` | Completar ata PNCP incompleta (fornecedor real + itens) | ✅ Completo |
-| `/admin/pontos-focais` | Banco de contatos por esfera/UF/município (prefeito, governador, intermediário) — cadastro + histórico de match | ✅ Completo |
+| `/admin/entidades` | Municípios/entidades (prefeitura, secretaria, ministério) — cadastro | ✅ Completo |
+| `/admin/entidades/[id]` | Contatos de uma entidade (prefeito, cada secretário...) | ✅ Completo |
+| `/admin/entidades/[id]/contatos/[contatoId]` | Histórico de interação/match de um contato específico | ✅ Completo |
+| `/admin/fornecedores` | Catálogo interno — o que cada fornecedor realmente fornece | ✅ Completo |
 | `/admin/parceiros` | Parceiros comerciais (revendedores de atas) + atas compatíveis por categoria/UF | ✅ Completo |
 | `/admin/perfil` | Perfil — trocar senha | ✅ Completo |
-| `/atas` | Cadastro/listagem interna completa de atas (todo status) | ✅ Completo — **agora atrás de login de admin** (corrigido em 2026-09-04, ver §2.4 item 3) |
+| `/atas` | Cadastro/listagem interna completa de atas (todo status), filtro por objeto/cidade/órgão/esfera | ✅ Completo — **agora atrás de login de admin** (corrigido em 2026-09-04, ver §2.4 item 3) |
 
 ### 5.2 Requisitos confirmados e já aplicados
 
@@ -444,6 +447,46 @@ até agora já aplicados.
   UF, não por município. Verificado ao vivo: 24 atas sem filtro → 2 ao
   combinar objeto + cidade nos dados de desenvolvimento, e mensagem clara
   quando o filtro não bate com nada.
+- **Reorganização "trabalho é humano, sistema é CRM" (2026-09-05)** — o
+  usuário explicou que a venda de ata não é automatizada nem
+  automatizável: é trabalho comercial de gente (ligação, reunião), feito
+  pela própria Tech 10 — nem o parceiro nem o município vão cadastrar
+  nada sozinhos. Isso reorganizou o que tinha sido construído como
+  "Pontos Focais" (mapa do núcleo de atas):
+  - **Pesquisado antes de construir**: onde mais achar atas de registro
+    de preços além de PNCP e Compras.gov.br. Achado principal: o PNCP já
+    é, por lei (14.133/2021), o agregador universal de toda licitação de
+    qualquer esfera — inclusive as que passam por plataformas
+    terceirizadas (BLL Compras, Portal de Compras Públicas, BNC), que se
+    anunciam "100% integradas ao PNCP". Ou seja, o rastreador do PNCP já
+    deveria cobrir estadual/municipal também — isso nunca foi testado ao
+    vivo (o sandbox segue sem rede até pncp.gov.br, confirmado de novo
+    nesta sessão). Tribunais de Contas estaduais têm APIs próprias de
+    dados abertos de licitação municipal (TCE-PE, TCM-SP confirmados),
+    mas são 27 fontes diferentes — fica de fora deste momento, é backlog.
+  - **`PontoFocal` virou duas tabelas** (migração
+    `20260905180000_entidade_alvo`): `EntidadeAlvo` (o "lugar" — prefeitura,
+    secretaria estadual, ministério, com nome/tipo/esfera/UF/município/
+    endereço) e `PontoFocal` agora é só o contato (pessoa) dentro dela,
+    com `cargo` + `area` (pasta específica, ex.: "Secretaria de Saúde") —
+    permite guardar quantos contatos forem necessários por entidade
+    ("de todas as áreas", como pedido). Rotas movidas de
+    `/admin/pontos-focais` para `/admin/entidades` (lista + criação) e
+    `/admin/entidades/[id]/contatos/[contatoId]` (histórico de interação
+    de cada contato, mesmo formulário de antes).
+  - **Catálogo interno de fornecedores** (`/admin/fornecedores`, novo) —
+    mostra, por fornecedor, quais categorias ele fornece, quantas atas
+    aprovadas e em quais UFs — "quem são os fornecedores, o que eles
+    estão fornecendo", separado da tela de ativar/desativar que já
+    existia em `/admin/usuarios`.
+  - **Banco de atas segmentado** — `/atas` ganhou filtro por esfera e por
+    nome do órgão (além de objeto+cidade), cobrindo a separação
+    "ministerial, secretaria, municipal, estadual, federal" pedida —
+    ministério/secretaria não viraram esfera nova (evita mexer na trava
+    do art. 86); aparecem via busca de texto no nome do órgão.
+  - Verificado ao vivo com Playwright: criar entidade → criar contato →
+    registrar interação → catálogo de fornecedores → filtro esfera+órgão
+    em `/atas`, tudo funcionando, sem erro de console.
 
 ---
 

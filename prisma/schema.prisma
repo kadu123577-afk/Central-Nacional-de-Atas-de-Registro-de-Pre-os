@@ -250,12 +250,44 @@ model Faturamento {
 // justamente o "banco de dados secreto" descrito nas notas de voz que
 // originaram o mapa; controle de acesso mais fino (quem no time interno
 // pode ver o quê) fica para quando existir mais de um perfil de admin.
+// Reorganizado em 2026-09-05 — o trabalho de venda é humano ("de
+// formiguinha", não automatizado), então o CRM precisa refletir a
+// realidade real: uma prefeitura/secretaria/ministério (a "entidade
+// alvo") tem VÁRIOS contatos (prefeito, secretário de cada pasta,
+// intermediário), não um contato só. Antes disso, PontoFocal misturava
+// os dois níveis numa linha só (esfera/uf/município junto com o
+// contato) — separado agora em duas tabelas.
+model EntidadeAlvo {
+  id        String   @id @default(cuid())
+  nome      String
+  // Tipo livre (não enum, mesmo racional de src/lib/categorias.ts):
+  // "municipal" | "estadual" | "federal" | "ministerio" | "secretaria" —
+  // a separação ministerial/secretaria/municipal/estadual/federal pedida
+  // nas notas de voz. Esfera (quando existe) usa o vocabulário de
+  // src/lib/esferas.ts.
+  tipo      String
+  esfera    String?
+  uf        String?
+  municipio String?
+  endereco  String?
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  isSeed    Boolean  @default(false)
+
+  contatos PontoFocal[]
+
+  @@map("entidades_alvo")
+}
+
 model PontoFocal {
   id               String   @id @default(cuid())
-  esfera           String
-  uf               String?
-  municipio        String?
+  entidadeAlvoId   String
   cargo            String
+  // Pasta/departamento específico deste contato dentro da entidade (ex.:
+  // "Secretaria de Saúde", "Gabinete do Prefeito") — é o que permite
+  // guardar "contatos de todas as áreas" de um mesmo município.
+  area             String?
   nomeContato      String
   telefone         String?
   email            String?
@@ -265,7 +297,8 @@ model PontoFocal {
   updatedAt        DateTime @updatedAt
   isSeed           Boolean  @default(false)
 
-  interacoes InteracaoPontoFocal[]
+  entidadeAlvo EntidadeAlvo          @relation(fields: [entidadeAlvoId], references: [id])
+  interacoes   InteracaoPontoFocal[]
 
   @@map("pontos_focais")
 }

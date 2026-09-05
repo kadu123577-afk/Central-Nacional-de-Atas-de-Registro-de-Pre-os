@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { adminIdLogado } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { alternarStatusPontoFocal, logoutAdmin } from "../../actions";
+import { alternarStatusPontoFocal, logoutAdmin } from "../../../../actions";
 import { AppShell } from "@/components/ui/app-shell";
 import { Secao } from "@/components/ui/secao";
 import { Badge } from "@/components/ui/badge";
@@ -15,26 +15,28 @@ const NAV_ADMIN = [
   { rotulo: "Painel", href: "/admin" },
   { rotulo: "Contas a receber", href: "/admin/faturamento" },
   { rotulo: "Usuários", href: "/admin/usuarios" },
-  { rotulo: "Pontos focais", href: "/admin/pontos-focais" },
+  { rotulo: "Fornecedores", href: "/admin/fornecedores" },
+  { rotulo: "Municípios/Entidades", href: "/admin/entidades" },
   { rotulo: "Parceiros", href: "/admin/parceiros" },
   { rotulo: "Perfil", href: "/admin/perfil" },
 ];
 
-export default async function DetalhePontoFocalPage({
+export default async function DetalheContatoPage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ id: string; contatoId: string }>;
 }) {
   const adminId = await adminIdLogado();
   if (!adminId) {
     redirect("/admin/login");
   }
 
-  const { id } = await params;
-  const [pontoFocal, atasVigentes] = await Promise.all([
+  const { id, contatoId } = await params;
+  const [contato, atasVigentes] = await Promise.all([
     prisma.pontoFocal.findUnique({
-      where: { id },
+      where: { id: contatoId },
       include: {
+        entidadeAlvo: true,
         interacoes: {
           orderBy: { criadoEm: "desc" },
           include: { ata: { select: { numero: true, objeto: true } } },
@@ -49,7 +51,7 @@ export default async function DetalhePontoFocalPage({
     }),
   ]);
 
-  if (!pontoFocal) {
+  if (!contato || contato.entidadeAlvoId !== id) {
     notFound();
   }
 
@@ -68,16 +70,15 @@ export default async function DetalhePontoFocalPage({
       <div className="flex items-center justify-between">
         <div>
           <h1 className="marca text-2xl" style={{ color: "var(--cor-texto)" }}>
-            {pontoFocal.nomeContato}
+            {contato.nomeContato}
           </h1>
           <p className="mt-1 text-sm" style={{ color: "var(--cor-texto-2)" }}>
-            {pontoFocal.cargo} · {pontoFocal.esfera}
-            {pontoFocal.uf ? ` · ${pontoFocal.uf}` : ""}
-            {pontoFocal.municipio ? ` · ${pontoFocal.municipio}` : ""}
+            {contato.cargo}
+            {contato.area ? ` · ${contato.area}` : ""} · {contato.entidadeAlvo.nome}
           </p>
         </div>
-        <Link href="/admin/pontos-focais" className="botao-atas link">
-          ← Pontos focais
+        <Link href={`/admin/entidades/${id}`} className="botao-atas link">
+          ← {contato.entidadeAlvo.nome}
         </Link>
       </div>
 
@@ -85,46 +86,44 @@ export default async function DetalhePontoFocalPage({
         titulo="Contato"
         acao={
           <div className="flex items-center gap-3">
-            <Badge tom={pontoFocal.ativo ? "neutro" : "critico"}>
-              {pontoFocal.ativo ? "Ativo" : "Inativo"}
+            <Badge tom={contato.ativo ? "neutro" : "critico"}>
+              {contato.ativo ? "Ativo" : "Inativo"}
             </Badge>
             <form action={alternarStatusPontoFocal}>
-              <input type="hidden" name="pontoFocalId" value={pontoFocal.id} />
+              <input type="hidden" name="pontoFocalId" value={contato.id} />
               <button
                 type="submit"
-                className={pontoFocal.ativo ? "botao-atas critico" : "botao-atas secundario"}
+                className={contato.ativo ? "botao-atas critico" : "botao-atas secundario"}
               >
-                {pontoFocal.ativo ? "Desativar" : "Reativar"}
+                {contato.ativo ? "Desativar" : "Reativar"}
               </button>
             </form>
           </div>
         }
       >
         <div className="grid grid-cols-2 gap-3 text-sm">
-          <p style={{ color: "var(--cor-texto-2)" }}>Telefone: {pontoFocal.telefone ?? "—"}</p>
-          <p style={{ color: "var(--cor-texto-2)" }}>E-mail: {pontoFocal.email ?? "—"}</p>
+          <p style={{ color: "var(--cor-texto-2)" }}>Telefone: {contato.telefone ?? "—"}</p>
+          <p style={{ color: "var(--cor-texto-2)" }}>E-mail: {contato.email ?? "—"}</p>
         </div>
-        {pontoFocal.particularidades && (
+        {contato.particularidades && (
           <p className="mt-3 text-sm" style={{ color: "var(--cor-texto-2)" }}>
             <strong style={{ color: "var(--cor-texto)" }}>Particularidades:</strong>{" "}
-            {pontoFocal.particularidades}
+            {contato.particularidades}
           </p>
         )}
       </Secao>
 
-      <FormularioInteracao pontoFocalId={pontoFocal.id} atas={atasVigentes} />
+      <FormularioInteracao pontoFocalId={contato.id} atas={atasVigentes} />
 
-      <Secao titulo={`Histórico de match (${pontoFocal.interacoes.length})`}>
-        {pontoFocal.interacoes.length === 0 ? (
-          <div className="mt-3">
-            <VazioComAcao
-              titulo="Nenhuma interação registrada"
-              descricao="Registre acima a primeira oferta feita a este contato."
-            />
-          </div>
+      <Secao titulo={`Histórico de match (${contato.interacoes.length})`}>
+        {contato.interacoes.length === 0 ? (
+          <VazioComAcao
+            titulo="Nenhuma interação registrada"
+            descricao="Registre acima a primeira oferta feita a este contato."
+          />
         ) : (
-          <ul className="mt-3 flex flex-col gap-2">
-            {pontoFocal.interacoes.map((i) => (
+          <ul className="flex flex-col gap-2">
+            {contato.interacoes.map((i) => (
               <li key={i.id} className="painel p-4">
                 <div className="flex items-baseline justify-between gap-2">
                   <Badge tom={i.resultado === "Converteu" ? "marca" : i.resultado === "Recusou" ? "critico" : "neutro"}>

@@ -1,39 +1,24 @@
 "use client";
 
 import { useActionState } from "react";
-import { criarPontoFocal, type EstadoPontoFocal } from "../actions";
+import { criarPontoFocal, type EstadoPontoFocal } from "../../actions";
 import { Secao } from "@/components/ui/secao";
-import { ESFERAS_ORGAO } from "@/lib/esferas";
 
 const estadoInicial: EstadoPontoFocal = {};
 
-export function FormularioNovoPontoFocal() {
+export function FormularioNovoContato({ entidadeAlvoId }: { entidadeAlvoId: string }) {
   const [estado, formAction, pendente] = useActionState(criarPontoFocal, estadoInicial);
 
   return (
-    <Secao titulo="Novo ponto focal">
+    <Secao titulo="Novo contato">
       <form action={formAction} className="flex flex-col gap-4">
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <label className="block text-sm">
-            <span className="mb-1 block font-medium" style={{ color: "var(--cor-texto-2)" }}>
-              Esfera
-            </span>
-            <select name="esfera" required className="campo-atas" defaultValue="">
-              <option value="" disabled>
-                Selecione...
-              </option>
-              {ESFERAS_ORGAO.map((e) => (
-                <option key={e} value={e}>
-                  {e[0].toUpperCase() + e.slice(1)}
-                </option>
-              ))}
-            </select>
-          </label>
-          <Campo label="UF" name="uf" />
-          <Campo label="Município" name="municipio" />
-          <Campo label="Cargo" name="cargo" required placeholder="Prefeito, Governador, intermediário..." />
+        <input type="hidden" name="entidadeAlvoId" value={entidadeAlvoId} />
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <Campo label="Nome do contato" name="nomeContato" required />
+          <Campo label="Cargo" name="cargo" required placeholder="Prefeito, Secretário..." />
+          <Campo label="Área/pasta" name="area" placeholder="Saúde, Educação, Gabinete..." />
         </div>
-        <Campo label="Nome do contato" name="nomeContato" required />
         <div className="grid grid-cols-2 gap-4">
           <Campo label="Telefone" name="telefone" />
           <Campo label="E-mail" name="email" type="email" />
@@ -59,7 +44,7 @@ export function FormularioNovoPontoFocal() {
         )}
 
         <button type="submit" disabled={pendente} className="botao-atas self-start">
-          {pendente ? "Salvando..." : "Cadastrar ponto focal"}
+          {pendente ? "Salvando..." : "Cadastrar contato"}
         </button>
       </form>
     </Secao>

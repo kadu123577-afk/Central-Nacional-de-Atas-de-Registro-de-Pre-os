@@ -13,6 +13,7 @@ import { prisma } from "@/lib/prisma";
 import type { EstadoTrocarSenha } from "@/components/ui/formulario-trocar-senha";
 import { esferaValida } from "@/lib/esferas";
 import { resultadoInteracaoValido } from "@/lib/pontos-focais";
+import { tipoEntidadeAlvoValido } from "@/lib/entidades-alvo";
 
 export interface EstadoLoginAdmin {
   erro?: string;
@@ -263,40 +264,97 @@ export async function marcarFaturamentoComoPago(
   return {};
 }
 
+export interface EstadoEntidadeAlvo {
+  erro?: string;
+}
+
+/**
+ * Reorganizado em 2026-09-05: o trabalho de venda é humano, não
+ * automatizado ("de formiguinha") — o sistema só é o banco de dados e o
+ * CRM que sustenta isso. Uma entidade alvo (prefeitura, secretaria
+ * estadual, ministério) é o "lugar"; os contatos dela (PontoFocal) são as
+ * pessoas dentro dela — prefeito, cada secretário, intermediário.
+ */
+export async function criarEntidadeAlvo(
+  _estadoAnterior: EstadoEntidadeAlvo,
+  formData: FormData,
+): Promise<EstadoEntidadeAlvo> {
+  await exigirAdmin();
+
+  const nome = String(formData.get("nome") ?? "").trim();
+  const tipo = String(formData.get("tipo") ?? "").trim();
+  const esfera = String(formData.get("esfera") ?? "").trim();
+  const uf = String(formData.get("uf") ?? "").trim();
+  const municipio = String(formData.get("municipio") ?? "").trim();
+  const endereco = String(formData.get("endereco") ?? "").trim();
+
+  if (!nome || !tipoEntidadeAlvoValido(tipo)) {
+    return { erro: "Informe o nome e selecione um tipo válido." };
+  }
+  if (esfera && !esferaValida(esfera)) {
+    return { erro: "Esfera inválida." };
+  }
+
+  await prisma.entidadeAlvo.create({
+    data: {
+      nome,
+      tipo,
+      esfera: esfera || null,
+      uf: uf || null,
+      municipio: municipio || null,
+      endereco: endereco || null,
+    },
+  });
+
+  revalidatePath("/admin/entidades");
+  return {};
+}
+
+export async function alternarStatusEntidadeAlvo(formData: FormData): Promise<void> {
+  await exigirAdmin();
+  const entidadeAlvoId = String(formData.get("entidadeAlvoId") ?? "");
+  if (!entidadeAlvoId) return;
+
+  const entidade = await prisma.entidadeAlvo.findUnique({ where: { id: entidadeAlvoId } });
+  if (!entidade) return;
+
+  await prisma.entidadeAlvo.update({
+    where: { id: entidadeAlvoId },
+    data: { ativo: !entidade.ativo },
+  });
+  revalidatePath("/admin/entidades");
+  revalidatePath(`/admin/entidades/${entidadeAlvoId}`);
+}
+
 export interface EstadoPontoFocal {
   erro?: string;
 }
 
-/** Mapa do núcleo de atas (2026-09-05) — banco de contatos por esfera/UF/
- * município, acesso restrito ao admin. */
+/** Contato (pessoa) dentro de uma entidade alvo — prefeito, secretário de
+ * uma pasta específica, intermediário. */
 export async function criarPontoFocal(
   _estadoAnterior: EstadoPontoFocal,
   formData: FormData,
 ): Promise<EstadoPontoFocal> {
   await exigirAdmin();
 
-  const esfera = String(formData.get("esfera") ?? "").trim();
-  const uf = String(formData.get("uf") ?? "").trim();
-  const municipio = String(formData.get("municipio") ?? "").trim();
+  const entidadeAlvoId = String(formData.get("entidadeAlvoId") ?? "").trim();
   const cargo = String(formData.get("cargo") ?? "").trim();
+  const area = String(formData.get("area") ?? "").trim();
   const nomeContato = String(formData.get("nomeContato") ?? "").trim();
   const telefone = String(formData.get("telefone") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim();
   const particularidades = String(formData.get("particularidades") ?? "").trim();
 
-  if (!esferaValida(esfera)) {
-    return { erro: "Selecione uma esfera válida." };
-  }
-  if (!cargo || !nomeContato) {
+  if (!entidadeAlvoId || !cargo || !nomeContato) {
     return { erro: "Informe ao menos o cargo e o nome do contato." };
   }
 
   await prisma.pontoFocal.create({
     data: {
-      esfera,
-      uf: uf || null,
-      municipio: municipio || null,
+      entidadeAlvoId,
       cargo,
+      area: area || null,
       nomeContato,
       telefone: telefone || null,
       email: email || null,
@@ -304,7 +362,7 @@ export async function criarPontoFocal(
     },
   });
 
-  revalidatePath("/admin/pontos-focais");
+  revalidatePath(`/admin/entidades/${entidadeAlvoId}`);
   return {};
 }
 
@@ -320,7 +378,7 @@ export async function alternarStatusPontoFocal(formData: FormData): Promise<void
     where: { id: pontoFocalId },
     data: { ativo: !pontoFocal.ativo },
   });
-  revalidatePath("/admin/pontos-focais");
+  revalidatePath(`/admin/entidades/${pontoFocal.entidadeAlvoId}`);
 }
 
 export interface EstadoInteracaoPontoFocal {
@@ -345,6 +403,11 @@ export async function registrarInteracaoPontoFocal(
     return { erro: "Selecione um resultado válido." };
   }
 
+  const pontoFocal = await prisma.pontoFocal.findUnique({ where: { id: pontoFocalId } });
+  if (!pontoFocal) {
+    return { erro: "Contato inválido." };
+  }
+
   await prisma.interacaoPontoFocal.create({
     data: {
       pontoFocalId,
@@ -354,7 +417,7 @@ export async function registrarInteracaoPontoFocal(
     },
   });
 
-  revalidatePath(`/admin/pontos-focais/${pontoFocalId}`);
+  revalidatePath(`/admin/entidades/${pontoFocal.entidadeAlvoId}/contatos/${pontoFocalId}`);
   return {};
 }
 
