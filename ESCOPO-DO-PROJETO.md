@@ -363,7 +363,7 @@ até agora já aplicados.
 | `/admin/usuarios` | Gestão de usuários — ativar/desativar fornecedor e órgão | ✅ Completo |
 | `/admin/atas/[ataId]/completar` | Completar ata PNCP incompleta (fornecedor real + itens) | ✅ Completo |
 | `/admin/entidades` | Municípios/entidades (prefeitura, secretaria, ministério) — cadastro | ✅ Completo |
-| `/admin/entidades/[id]` | Contatos de uma entidade (prefeito, cada secretário...) | ✅ Completo |
+| `/admin/entidades/[id]` | Contatos de uma entidade + raio-X de consumo (histórico de contratos por categoria) | ✅ Completo |
 | `/admin/entidades/[id]/contatos/[contatoId]` | Histórico de interação/match de um contato específico | ✅ Completo |
 | `/admin/fornecedores` | Catálogo interno — o que cada fornecedor realmente fornece | ✅ Completo |
 | `/admin/parceiros` | Parceiros comerciais (revendedores de atas) + atas compatíveis por categoria/UF | ✅ Completo |
@@ -515,6 +515,46 @@ até agora já aplicados.
   - Planilha de entrega gerada (`Levantamento-Municipios-Lote1.xlsx`,
     fora do repositório) com aba de metodologia + lista completa, pra
     revisão e distribuição pro time comercial.
+  - **Raio-X de consumo (2026-09-25)** — "a gente tem que fazer um raio-x
+    de consumo mesmo... quanto tempo tem que eles não fazem um pregão de
+    contratação de gráfica, de equipamento hospitalar, de kit escolar".
+    Pesquisado e confirmado ao vivo: o PNCP passou a responder nesta
+    sessão (antes disso nunca tinha sido possível testar), e tem um
+    endpoint exato pra isso — `/v1/contratos?cnpjOrgao=...` (histórico de
+    contratos assinados por um órgão, limitado a janelas de 365 dias por
+    consulta). Faltava só o CNPJ de cada prefeitura — resolvido com a API
+    pública do SICONFI (Tesouro Nacional), que cobre os 5.570 municípios
+    do Brasil cruzando pelo mesmo `codigoIbgeMunicipio` já salvo.
+    - Novo campo `EntidadeAlvo.cnpj` (único) + novo modelo
+      `HistoricoConsumoCategoria` (uma linha por entidade+categoria: data
+      da última contratação, valor, quantidade de contratos na janela) —
+      migração `20260925180000_raio_x_consumo`.
+      `src/lib/classificador-objeto.ts` classifica o texto livre do
+      contrato por palavra-chave (heurístico, não é NLP de verdade —
+      **corrigido ao vivo** depois de um falso positivo real: "coloração
+      uniforme" de fruta batendo em "uniforme" e "trio elétrico" batendo
+      em "material elétrico" — as palavras soltas viraram frases de 2+
+      palavras).
+    - `src/lib/pncp-historico.ts` + `src/lib/raio-x-consumo.ts`
+      orquestram a busca — um bug real foi encontrado e corrigido ao
+      vivo: uma janela residual de 1-2 dias (resíduo de quebrar vários
+      anos em blocos de 365 dias) volta `204 No Content` do PNCP, e
+      chamar `.json()` num corpo vazio quebrava o cálculo inteiro pro
+      município (`Promise.all` falha rápido). Corrigido pra tratar
+      corpo vazio como "sem resultado nessa janela", não erro.
+    - Botão "Atualizar" em `/admin/entidades/[id]` (ação
+      `atualizarRaioXConsumo`) consulta sob demanda, um município de cada
+      vez — nunca em lote pela tela, porque cada consulta já dispara
+      várias chamadas ao PNCP (uma por janela de 365 dias).
+    - `prisma/enriquecer-cnpj-municipios.ts`
+      (`npm run enriquecer:cnpj-municipios`) — enriqueceu os 1.073
+      municípios do lote 1 com CNPJ real, 100% de cobertura no SICONFI.
+    - `prisma/levantar-raio-x-consumo-lote.ts`
+      (`npm run levantar:raio-x-consumo`) — roda o raio-X pra todos os
+      municípios já com CNPJ de uma vez, idempotente (pula quem foi
+      atualizado há menos de 30 dias) e resiliente (uma falha num
+      município não derruba o lote). Rodado em segundo plano pros 1.073
+      do lote 1 depois de validado numa amostra de 8.
   - **Não construído ainda, proposto como próxima decisão**: o "agente"
     de levantamento automático (pesquisar na internet e já preencher
     prefeito/secretário/contato de cada município) mencionado pelo

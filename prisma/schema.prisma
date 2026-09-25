@@ -276,12 +276,19 @@ model EntidadeAlvo {
   // rodar o levantamento de novo (lote 2, lote 3...) sem duplicar
   // município já cadastrado.
   codigoIbgeMunicipio String? @unique
+  // CNPJ da prefeitura — enriquecido automaticamente a partir do SICONFI
+  // (Tesouro Nacional), cruzando por `codigoIbgeMunicipio`. É a chave
+  // usada pra puxar o histórico de contratos no PNCP (raio-X de
+  // consumo, 2026-09-25) — sem ela não dá pra saber o que o município já
+  // contratou antes.
+  cnpj      String?  @unique
   ativo     Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   isSeed    Boolean  @default(false)
 
-  contatos PontoFocal[]
+  contatos       PontoFocal[]
+  historicoConsumo HistoricoConsumoCategoria[]
 
   @@map("entidades_alvo")
 }
@@ -344,4 +351,31 @@ model Parceiro {
   isSeed              Boolean  @default(false)
 
   @@map("parceiros")
+}
+
+// "Raio-X de consumo" (2026-09-25) — pedido explícito do usuário: não
+// basta saber quem são os responsáveis do município, precisa saber o
+// que e há quanto tempo eles compram, pra vender a ata certa na hora
+// certa ("quanto tempo tem que eles não fazem um pregão de contratação
+// de gráfica, de equipamento hospitalar, de kit escolar..."). Uma linha
+// por (entidade, categoria) — snapshot materializado, recalculado sob
+// demanda (botão na tela da entidade), não em tempo real, porque a
+// fonte é o histórico de contratos do PNCP (`/v1/contratos`), que exige
+// uma chamada por ano de janela (limite de 365 dias por consulta) — caro
+// demais pra fazer isso pra 1000+ municípios de uma vez, só faz sentido
+// por demanda, um município de cada vez.
+model HistoricoConsumoCategoria {
+  id               String   @id @default(cuid())
+  entidadeAlvoId   String
+  categoria        String
+  ultimaContratacao DateTime
+  valorUltimaContratacao Decimal @db.Decimal(14, 2)
+  quantidadeContratosNaJanela Int
+  objetoUltimaContratacao String
+  atualizadoEm     DateTime @updatedAt
+
+  entidadeAlvo EntidadeAlvo @relation(fields: [entidadeAlvoId], references: [id])
+
+  @@unique([entidadeAlvoId, categoria])
+  @@map("historico_consumo_categoria")
 }

@@ -14,6 +14,7 @@ import type { EstadoTrocarSenha } from "@/components/ui/formulario-trocar-senha"
 import { esferaValida } from "@/lib/esferas";
 import { resultadoInteracaoValido } from "@/lib/pontos-focais";
 import { tipoEntidadeAlvoValido } from "@/lib/entidades-alvo";
+import { calcularRaioXConsumo } from "@/lib/raio-x-consumo";
 
 export interface EstadoLoginAdmin {
   erro?: string;
@@ -486,5 +487,56 @@ export async function marcarFaturamentoComoPendente(
   }
   revalidatePath("/admin/faturamento");
   revalidatePath("/admin");
+  return {};
+}
+
+export interface EstadoRaioXConsumo {
+  erro?: string;
+}
+
+/**
+ * Raio-X de consumo (2026-09-25) — busca no PNCP, sob demanda (um
+ * município de cada vez, nunca em lote pros 1000+), o histórico de
+ * contratos dos últimos 3 anos e classifica por categoria. Substitui o
+ * snapshot anterior inteiro pra essa entidade — não acumula histórico de
+ * execuções, sempre reflete a consulta mais recente.
+ */
+export async function atualizarRaioXConsumo(
+  _estadoAnterior: EstadoRaioXConsumo,
+  formData: FormData,
+): Promise<EstadoRaioXConsumo> {
+  await exigirAdmin();
+
+  const entidadeAlvoId = String(formData.get("entidadeAlvoId") ?? "");
+  const entidade = await prisma.entidadeAlvo.findUnique({ where: { id: entidadeAlvoId } });
+  if (!entidade) {
+    return { erro: "Entidade inválida." };
+  }
+  if (!entidade.cnpj) {
+    return {
+      erro: "Esta entidade não tem CNPJ cadastrado — sem CNPJ não dá pra consultar o histórico no PNCP.",
+    };
+  }
+
+  const resultado = await calcularRaioXConsumo(entidade.cnpj);
+  if (resultado.erro) {
+    return { erro: `Não foi possível consultar o PNCP: ${resultado.erro}` };
+  }
+
+  await prisma.$transaction([
+    prisma.historicoConsumoCategoria.deleteMany({ where: { entidadeAlvoId } }),
+    prisma.historicoConsumoCategoria.createMany({
+      data: resultado.categoriasIdentificadas.map((c) => ({
+        entidadeAlvoId,
+        categoria: c.categoria,
+        ultimaContratacao: c.ultimaContratacao,
+        valorUltimaContratacao: c.valorUltimaContratacao,
+        quantidadeContratosNaJanela: c.quantidadeContratosNaJanela,
+        objetoUltimaContratacao: c.objetoUltimaContratacao.slice(0, 2000),
+      })),
+    }),
+  ]);
+
+  revalidatePath(`/admin/entidades/${entidadeAlvoId}`);
   return {};
 }

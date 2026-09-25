@@ -8,7 +8,10 @@ import { Secao } from "@/components/ui/secao";
 import { Badge } from "@/components/ui/badge";
 import { VazioComAcao } from "@/components/ui/vazio-com-acao";
 import { ROTULO_TIPO_ENTIDADE } from "@/lib/entidades-alvo";
+import { ROTULO_CATEGORIA_CONSUMO } from "@/lib/classificador-objeto";
+import { Cifra } from "@/components/ui/valores";
 import { FormularioNovoContato } from "./formulario";
+import { FormularioRaioXConsumo } from "./formulario-raio-x";
 
 export const dynamic = "force-dynamic";
 
@@ -40,6 +43,7 @@ export default async function DetalheEntidadeAlvoPage({
         orderBy: [{ cargo: "asc" }, { nomeContato: "asc" }],
         include: { _count: { select: { interacoes: true } } },
       },
+      historicoConsumo: { orderBy: { ultimaContratacao: "desc" } },
     },
   });
 
@@ -98,6 +102,52 @@ export default async function DetalheEntidadeAlvoPage({
         <p className="text-sm" style={{ color: "var(--cor-texto-2)" }}>
           Endereço: {entidade.endereco ?? "—"}
         </p>
+        <p className="mt-1 text-sm" style={{ color: "var(--cor-texto-2)" }}>
+          CNPJ: {entidade.cnpj ?? "—"}
+        </p>
+      </Secao>
+
+      <Secao titulo="Raio-X de consumo" acao={<FormularioRaioXConsumo entidadeAlvoId={entidade.id} temCnpj={!!entidade.cnpj} />}>
+        {!entidade.cnpj ? (
+          <p className="text-sm" style={{ color: "var(--cor-texto-3)" }}>
+            Sem CNPJ cadastrado — não dá pra consultar o histórico de contratos no PNCP.
+          </p>
+        ) : entidade.historicoConsumo.length === 0 ? (
+          <VazioComAcao
+            titulo="Ainda não levantado"
+            descricao="Clique em 'Atualizar' para buscar o histórico de contratos deste município no PNCP (últimos 3 anos)."
+          />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="tabela-atas">
+              <thead>
+                <tr>
+                  <th>Categoria</th>
+                  <th>Última contratação</th>
+                  <th>Valor</th>
+                  <th>Contratos na janela</th>
+                </tr>
+              </thead>
+              <tbody>
+                {entidade.historicoConsumo.map((h) => (
+                  <tr key={h.id}>
+                    <td>{ROTULO_CATEGORIA_CONSUMO[h.categoria] ?? h.categoria}</td>
+                    <td>{h.ultimaContratacao.toLocaleDateString("pt-BR")}</td>
+                    <td>
+                      <Cifra valor={h.valorUltimaContratacao} />
+                    </td>
+                    <td>{h.quantidadeContratosNaJanela}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <p className="mt-2 text-xs" style={{ color: "var(--cor-texto-3)" }}>
+              Classificação por palavra-chave no objeto do contrato — aproximada, confira o
+              objeto antes de usar numa abordagem comercial. Atualizado em{" "}
+              {entidade.historicoConsumo[0].atualizadoEm.toLocaleString("pt-BR")}.
+            </p>
+          </div>
+        )}
       </Secao>
 
       <FormularioNovoContato entidadeAlvoId={entidade.id} />
