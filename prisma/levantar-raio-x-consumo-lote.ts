@@ -16,7 +16,12 @@
  * próximo.
  *
  * Rodar com: npx tsx prisma/levantar-raio-x-consumo-lote.ts
- * Variável opcional: LIMITE=50 pra rodar só uma amostra primeiro.
+ * Variáveis opcionais:
+ *   LIMITE=50   pra rodar só uma amostra primeiro.
+ *   FORCE=1     ignora a revalidação de 30 dias e reprocessa todo mundo —
+ *               usar depois de mudar o vocabulário de categorias
+ *               (src/lib/classificador-objeto.ts), já que os dados
+ *               antigos foram classificados com a lista anterior.
  */
 import { PrismaClient } from "../src/generated/prisma/client";
 import { calcularRaioXConsumo } from "../src/lib/raio-x-consumo";
@@ -27,6 +32,7 @@ const PAUSA_ENTRE_MUNICIPIOS_MS = 800;
 
 async function main() {
   const limite = process.env.LIMITE ? Number(process.env.LIMITE) : undefined;
+  const forcar = process.env.FORCE === "1";
 
   const dataLimite = new Date();
   dataLimite.setDate(dataLimite.getDate() - DIAS_PARA_REVALIDAR);
@@ -35,7 +41,7 @@ async function main() {
     where: {
       tipo: "municipal",
       cnpj: { not: null },
-      OR: [{ raioXAtualizadoEm: null }, { raioXAtualizadoEm: { lt: dataLimite } }],
+      ...(forcar ? {} : { OR: [{ raioXAtualizadoEm: null }, { raioXAtualizadoEm: { lt: dataLimite } }] }),
     },
     select: { id: true, nome: true, cnpj: true },
     orderBy: { nome: "asc" },
