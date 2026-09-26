@@ -282,6 +282,12 @@ model EntidadeAlvo {
   // consumo, 2026-09-25) — sem ela não dá pra saber o que o município já
   // contratou antes.
   cnpj      String?  @unique
+  // Quando o raio-X de consumo rodou pela última vez pra esta entidade —
+  // marcado mesmo quando o resultado foi "nenhuma categoria
+  // identificada" (sem isso, o script de lote reprocessava esses
+  // municípios pra sempre, já que zero categoria = zero linha em
+  // HistoricoConsumoCategoria = "parece que nunca rodou").
+  raioXAtualizadoEm DateTime?
   ativo     Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

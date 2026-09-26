@@ -35,10 +35,7 @@ async function main() {
     where: {
       tipo: "municipal",
       cnpj: { not: null },
-      OR: [
-        { historicoConsumo: { none: {} } },
-        { historicoConsumo: { every: { atualizadoEm: { lt: dataLimite } } } },
-      ],
+      OR: [{ raioXAtualizadoEm: null }, { raioXAtualizadoEm: { lt: dataLimite } }],
     },
     select: { id: true, nome: true, cnpj: true },
     orderBy: { nome: "asc" },
@@ -69,6 +66,10 @@ async function main() {
               quantidadeContratosNaJanela: c.quantidadeContratosNaJanela,
               objetoUltimaContratacao: c.objetoUltimaContratacao.slice(0, 2000),
             })),
+          }),
+          prisma.entidadeAlvo.update({
+            where: { id: entidade.id },
+            data: { raioXAtualizadoEm: new Date() },
           }),
         ]);
         if (resultado.categoriasIdentificadas.length > 0) comCategoria += 1;

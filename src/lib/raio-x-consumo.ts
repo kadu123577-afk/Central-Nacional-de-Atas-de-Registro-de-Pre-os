@@ -9,7 +9,7 @@ import {
 } from "@/lib/pncp-historico";
 import { classificarObjeto } from "@/lib/classificador-objeto";
 
-const TIMEOUT_MS = 20_000;
+const TIMEOUT_MS = 40_000;
 const ANOS_PADRAO_JANELA = 3;
 
 export interface ResumoConsumoCategoria {
@@ -97,10 +97,17 @@ export async function calcularRaioXConsumo(
   const janelas = quebrarEmJanelasAnuais(inicio, fim);
 
   try {
-    const contratosPorJanela = await Promise.all(
-      janelas.map((j) => buscarContratosDeUmaJanela(cnpj, j.inicio, j.fim)),
-    );
-    const todosContratos = contratosPorJanela.flat();
+    // Sequencial, não Promise.all — disparar as janelas de um município
+    // em paralelo, multiplicado por milhares de municípios num lote,
+    // sobrecarrega o PNCP (confirmado ao vivo: um lote de 1067
+    // municípios teve 307 timeouts, concentrados numa faixa contígua do
+    // processamento — sinal de degradação por carga sustentada, não
+    // bloqueio pontual).
+    const todosContratos: ContratoImportado[] = [];
+    for (const j of janelas) {
+      const contratos = await buscarContratosDeUmaJanela(cnpj, j.inicio, j.fim);
+      todosContratos.push(...contratos);
+    }
 
     const porCategoria = new Map<string, ContratoImportado[]>();
     for (const contrato of todosContratos) {

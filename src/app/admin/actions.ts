@@ -535,6 +535,12 @@ export async function atualizarRaioXConsumo(
         objetoUltimaContratacao: c.objetoUltimaContratacao.slice(0, 2000),
       })),
     }),
+    // Marca que rodou agora mesmo quando não achou nenhuma categoria —
+    // sem isso, "zero categoria" parece indistinguível de "nunca rodou".
+    prisma.entidadeAlvo.update({
+      where: { id: entidadeAlvoId },
+      data: { raioXAtualizadoEm: new Date() },
+    }),
   ]);
 
   revalidatePath(`/admin/entidades/${entidadeAlvoId}`);

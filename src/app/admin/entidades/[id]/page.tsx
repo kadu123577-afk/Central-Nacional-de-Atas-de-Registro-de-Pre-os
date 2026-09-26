@@ -114,8 +114,12 @@ export default async function DetalheEntidadeAlvoPage({
           </p>
         ) : entidade.historicoConsumo.length === 0 ? (
           <VazioComAcao
-            titulo="Ainda não levantado"
-            descricao="Clique em 'Atualizar' para buscar o histórico de contratos deste município no PNCP (últimos 3 anos)."
+            titulo={entidade.raioXAtualizadoEm ? "Nenhuma categoria conhecida identificada" : "Ainda não levantado"}
+            descricao={
+              entidade.raioXAtualizadoEm
+                ? `Última verificação em ${entidade.raioXAtualizadoEm.toLocaleString("pt-BR")} — não encontrou contrato nas categorias conhecidas nos últimos 3 anos.`
+                : "Clique em 'Atualizar' para buscar o histórico de contratos deste município no PNCP (últimos 3 anos)."
+            }
           />
         ) : (
           <div className="overflow-x-auto">
