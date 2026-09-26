@@ -555,6 +555,18 @@ até agora já aplicados.
       atualizado há menos de 30 dias) e resiliente (uma falha num
       município não derruba o lote). Rodado em segundo plano pros 1.073
       do lote 1 depois de validado numa amostra de 8.
+    - **Resultado final do lote 1 (2026-09-26):** 1.072 dos 1.073
+      municípios com raio-X verificado (99,9%), 821 com pelo menos uma
+      categoria de consumo identificada. Só "Prefeitura de Bela Vista de
+      Goiás" ficou de fora — timeout consistente em 3 tentativas
+      (provavelmente tem histórico de contratos grande demais pra janela
+      de 40s por consulta); registrado como gap pontual conhecido, não
+      escondido, pra revisitar depois (aumentar o timeout só pra esse
+      caso, ou paginar em janelas menores que 365 dias). A sessão teve o
+      contêiner reiniciado três vezes no meio deste levantamento em
+      lote — o processo sempre retomava de onde parou graças ao campo
+      `raioXAtualizadoEm`, sem duplicar trabalho nem perder progresso já
+      salvo no banco.
   - **Não construído ainda, proposto como próxima decisão**: o "agente"
     de levantamento automático (pesquisar na internet e já preencher
     prefeito/secretário/contato de cada município) mencionado pelo
