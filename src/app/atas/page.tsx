@@ -10,6 +10,7 @@ import { Numero } from "@/components/ui/valores";
 import { VazioComAcao } from "@/components/ui/vazio-com-acao";
 import { tomStatusAta } from "@/lib/severidade";
 import { ESFERAS_ORGAO } from "@/lib/esferas";
+import { corDaCategoria } from "@/lib/categorias";
 
 // Depende sempre de dados atuais do banco — nunca pré-renderizar em build.
 export const dynamic = "force-dynamic";
@@ -87,7 +88,7 @@ export default async function AtasPage({
         <h1 className="marca text-2xl" style={{ color: "var(--cor-texto)" }}>
           Atas cadastradas
         </h1>
-        <Link href="/atas/nova" className="botao-atas">
+        <Link href="/admin/atas/nova" className="botao-atas">
           Nova ata
         </Link>
       </div>
@@ -135,7 +136,7 @@ export default async function AtasPage({
           }
           acao={
             !objeto && !municipio && !orgao && !esfera ? (
-              <Link href="/atas/nova" className="botao-atas">
+              <Link href="/admin/atas/nova" className="botao-atas">
                 Cadastrar ata
               </Link>
             ) : undefined
@@ -156,6 +157,23 @@ export default async function AtasPage({
                 Órgão gerenciador: {ata.orgaoGerenciador.nome} — {ata.orgaoGerenciador.municipio}/
                 {ata.orgaoGerenciador.uf}
               </p>
+              <div className="mt-2 flex items-center gap-2">
+                {ata.categoria ? (
+                  <span
+                    className="eyebrow rounded-full border px-2.5 py-0.5"
+                    style={{ borderColor: corDaCategoria(ata.categoria), color: corDaCategoria(ata.categoria) }}
+                  >
+                    {ata.categoria}
+                  </span>
+                ) : (
+                  <span className="text-xs" style={{ color: "var(--cor-texto-3)" }}>
+                    Sem categoria
+                  </span>
+                )}
+                <Link href={`/admin/atas/${ata.id}/municipios`} className="botao-atas secundario">
+                  Municípios com necessidade
+                </Link>
+              </div>
 
               <div className="mt-4 overflow-x-auto">
                 <table className="tabela-atas">

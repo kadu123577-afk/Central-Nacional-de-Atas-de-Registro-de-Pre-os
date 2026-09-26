@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { fornecedorIdLogado } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -38,7 +37,6 @@ export default async function PainelFornecedorPage() {
       area="Fornecedor"
       itens={[
         { rotulo: "Minhas atas", href: "/fornecedor" },
-        { rotulo: "Nova ata", href: "/fornecedor/atas/nova" },
         { rotulo: "Pedidos recebidos", href: "/fornecedor/adesoes" },
         { rotulo: "Perfil", href: "/fornecedor/perfil" },
       ]}
@@ -59,20 +57,12 @@ export default async function PainelFornecedorPage() {
             {fornecedor.razaoSocial}
           </p>
         </div>
-        <Link href="/fornecedor/atas/nova" className="botao-atas">
-          Nova ata
-        </Link>
       </div>
 
       {fornecedor.atas.length === 0 ? (
         <VazioComAcao
           titulo="Nenhuma ata ainda"
-          descricao="Cadastre sua primeira ata pra ela aparecer aqui."
-          acao={
-            <Link href="/fornecedor/atas/nova" className="botao-atas">
-              Cadastrar ata
-            </Link>
-          }
+          descricao="O cadastro de atas é feito pela Tech 10 — fale com o time comercial pra colocar sua primeira ata na plataforma."
         />
       ) : (
         <ul className="flex flex-col gap-4">

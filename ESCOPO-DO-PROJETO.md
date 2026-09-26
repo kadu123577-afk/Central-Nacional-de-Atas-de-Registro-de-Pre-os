@@ -361,7 +361,9 @@ até agora já aplicados.
 | `/admin` | Painel — aprovar/rejeitar atas pendentes | ✅ Completo |
 | `/admin/faturamento` | Contas a receber (taxa de intermediação) — marcar como recebido | ✅ Completo (feedback visual imediato adicionado em rodada anterior) |
 | `/admin/usuarios` | Gestão de usuários — ativar/desativar fornecedor e órgão | ✅ Completo |
+| `/admin/atas/nova` | Cadastro de ata pelo admin (fornecedor + órgão + itens) — caminho principal desde 2026-09-26 | ✅ Completo |
 | `/admin/atas/[ataId]/completar` | Completar ata PNCP incompleta (fornecedor real + itens) | ✅ Completo |
+| `/admin/atas/[ataId]/municipios` | Municípios com necessidade desta categoria de ata (raio-X invertido) | ✅ Completo |
 | `/admin/entidades` | Municípios/entidades (prefeitura, secretaria, ministério) — cadastro | ✅ Completo |
 | `/admin/entidades/[id]` | Contatos de uma entidade + raio-X de consumo (histórico de contratos por categoria) | ✅ Completo |
 | `/admin/entidades/[id]/contatos/[contatoId]` | Histórico de interação/match de um contato específico | ✅ Completo |
@@ -577,6 +579,58 @@ até agora já aplicados.
     verdade, diferente de dado de ata/licitação); (c) custo de API por
     consulta. Fica registrado como decisão pendente, não como gap
     esquecido.
+- **Taxonomia de categoria unificada + match ata↔município (2026-09-26)**
+  — o usuário mandou a lista real de licitações da operação (pasta do
+  Drive "LICITAÇÕES", ~51 processos) e pediu pra entender "a gente tem
+  uma ata de gráfica — qual município precisa dela?", a outra metade do
+  raio-X (a primeira metade, por município, já existia).
+  - `src/lib/classificador-objeto.ts` ganhou ~30 categorias novas
+    (medicamentos, gráfica, uniforme, curso de inglês, eventos,
+    festividades, controle de pragas, equipamentos hospitalares,
+    monitoramento de alunos, mobiliário corporativo, ar-condicionado,
+    robótica, veículos elétricos, entre outras) — 5 nomes de pasta que
+    eram plataforma/processo interno ("Dispensa - Aprova", "Dispensa
+    Conex", "Dispensa NucleoGov", "Sicap") ficaram de fora de propósito,
+    e "Boxes" ficou pendente por ambiguidade.
+  - `src/lib/categorias.ts` (`CATEGORIAS_ATAS`, vocabulário usado pra
+    marcar a categoria de uma ata/item) passou a usar o **mesmo**
+    vocabulário do raio-X — antes eram dois vocabulários parcialmente
+    sobrepostos, agora é um só.
+  - **Bug real encontrado e corrigido**: os `<select>` de categoria (ata
+    e item, nos formulários de cadastro) salvavam o **rótulo** (ex.:
+    "Material gráfico") em vez do **slug** (ex.: "grafica") — como o
+    raio-X classifica por slug, nenhuma ata cadastrada por esses
+    formulários jamais bateria com `HistoricoConsumoCategoria`. Corrigido
+    nos três lugares (cadastro do fornecedor, cadastro do admin, telas
+    de completar ata PNCP).
+  - Nova ação `definirCategoriaAta` — permite corrigir/definir a
+    categoria de qualquer ata já existente (essencial pras atas
+    importadas do PNCP/Compras.gov.br, que entram sempre sem categoria).
+  - Nova tela `/admin/atas/[ataId]/municipios` — parte de uma ata, mostra
+    dois grupos de municípios (dos 1.073 levantados): **já contrataram
+    essa categoria antes** (ordenado do mais atrasado pro mais recente,
+    com selo "sem renovar há 2+ anos" nos mais urgentes) e **possível
+    oportunidade** (raio-X rodou mas não achou essa categoria — pode ser
+    necessidade nova, rotulado como especulativo de propósito, não como
+    certeza). Link "Municípios com necessidade" em cada ata de `/atas`.
+    Verificado ao vivo com Playwright, ponta a ponta.
+- **Mudança de modelo de negócio: cadastro deixa de ser self-service do
+  fornecedor (2026-09-26)** — decisão explícita: "o fornecedor não
+  cadastrará mais a ata, nós faremos isso manualmente como
+  administrador, esse painel será mais uma vitrine para que os
+  vendedores mostrem para os municípios, o fornecedor poderá fazer isso
+  no futuro".
+  - `/fornecedor/atas/nova` pausada por redirecionamento (mesmo padrão
+    já usado em `/atas/nova`) — código do formulário e da action
+    (`cadastrarAtaComoFornecedor`) mantido intacto pra reativar sem
+    reescrever nada, quando/se isso voltar a ser self-service. Link "Nova
+    ata" removido da navegação do fornecedor nas 3 telas que o tinham.
+  - Nova tela `/admin/atas/nova` — cadastro completo pelo admin:
+    fornecedor (upsert por CNPJ, cria ou atualiza), órgão gerenciador,
+    dados da ata (incluindo categoria) e N itens — espelha a lógica já
+    validada do formulário do fornecedor, com a correção do bug de
+    slug/rótulo já aplicada. Link "Nova ata" de `/atas` passou a apontar
+    pra cá. Verificado ao vivo com Playwright, ponta a ponta.
 
 ---
 

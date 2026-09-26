@@ -57,7 +57,7 @@ export async function cadastrarAtaComoFornecedor(
     !numero ||
     !objeto ||
     !ataCategoria ||
-    !CATEGORIAS_ATAS.some((c) => c.rotulo === ataCategoria) ||
+    !CATEGORIAS_ATAS.some((c) => c.slug === ataCategoria) ||
     !dataAssinatura ||
     !dataVigenciaFim ||
     itensDescricao.length === 0

@@ -24,7 +24,6 @@ export default async function PerfilFornecedorPage() {
       area="Fornecedor"
       itens={[
         { rotulo: "Minhas atas", href: "/fornecedor" },
-        { rotulo: "Nova ata", href: "/fornecedor/atas/nova" },
         { rotulo: "Pedidos recebidos", href: "/fornecedor/adesoes" },
         { rotulo: "Perfil", href: "/fornecedor/perfil" },
       ]}

@@ -15,6 +15,7 @@ import { esferaValida } from "@/lib/esferas";
 import { resultadoInteracaoValido } from "@/lib/pontos-focais";
 import { tipoEntidadeAlvoValido } from "@/lib/entidades-alvo";
 import { calcularRaioXConsumo } from "@/lib/raio-x-consumo";
+import { CATEGORIAS_ATAS } from "@/lib/categorias";
 
 export interface EstadoLoginAdmin {
   erro?: string;
@@ -545,4 +546,183 @@ export async function atualizarRaioXConsumo(
 
   revalidatePath(`/admin/entidades/${entidadeAlvoId}`);
   return {};
+}
+
+/**
+ * Classificar/reclassificar a categoria de uma ata (2026-09-26) — muitas
+ * atas entram sem categoria (toda importação do PNCP/Compras.gov.br, e o
+ * cadastro antigo em `/atas/nova`, hoje desativado): sem isso não dá pra
+ * cruzar "temos uma ata de gráfica — qual município precisa dela?" no
+ * raio-X de consumo. Reaproveita o mesmo vocabulário de categoria do
+ * raio-X (src/lib/categorias.ts), então uma ata classificada aqui já
+ * casa direto com `HistoricoConsumoCategoria.categoria`.
+ */
+export async function definirCategoriaAta(formData: FormData): Promise<void> {
+  await exigirAdmin();
+  const ataId = String(formData.get("ataId") ?? "");
+  const categoria = String(formData.get("categoria") ?? "").trim();
+  if (!ataId) return;
+
+  await prisma.ata.update({
+    where: { id: ataId },
+    data: { categoria: categoria || null },
+  });
+  revalidatePath("/atas");
+  revalidatePath(`/admin/atas/${ataId}/municipios`);
+}
+
+export interface EstadoCadastroAtaAdmin {
+  erro?: string;
+}
+
+const TAMANHO_MAXIMO_DOCUMENTO_BYTES_ADMIN = 10 * 1024 * 1024;
+const TIPOS_MIME_DOCUMENTO_ACEITOS_ADMIN = ["application/pdf", "image/jpeg", "image/png"];
+
+/**
+ * Cadastro de ata pelo admin (2026-09-26) — decisão de negócio: o
+ * fornecedor não cadastra mais a própria ata, quem cadastra agora é a
+ * Tech 10, manualmente. Mesma lógica de `cadastrarAtaComoFornecedor`
+ * (src/app/fornecedor/atas/actions.ts, pausada), só que o fornecedor
+ * também vem do formulário (upsert por CNPJ) em vez de vir da sessão.
+ */
+export async function cadastrarAtaComoAdmin(
+  _estadoAnterior: EstadoCadastroAtaAdmin,
+  formData: FormData,
+): Promise<EstadoCadastroAtaAdmin> {
+  await exigirAdmin();
+
+  const fornecedorNome = String(formData.get("fornecedorNome") ?? "").trim();
+  const fornecedorCnpj = String(formData.get("fornecedorCnpj") ?? "").trim();
+  const fornecedorEmail = String(formData.get("fornecedorEmail") ?? "").trim();
+
+  const orgaoNome = String(formData.get("orgaoNome") ?? "").trim();
+  const orgaoCnpj = String(formData.get("orgaoCnpj") ?? "").trim();
+  const orgaoUf = String(formData.get("orgaoUf") ?? "").trim().toUpperCase();
+  const orgaoMunicipio = String(formData.get("orgaoMunicipio") ?? "").trim();
+  const orgaoEsfera = String(formData.get("orgaoEsfera") ?? "").trim();
+
+  const numero = String(formData.get("numero") ?? "").trim();
+  const objeto = String(formData.get("objeto") ?? "").trim();
+  const ataCategoria = String(formData.get("ataCategoria") ?? "").trim();
+  const dataAssinatura = String(formData.get("dataAssinatura") ?? "");
+  const dataVigenciaFim = String(formData.get("dataVigenciaFim") ?? "");
+
+  const itensDescricao = formData.getAll("itemDescricao[]").map((v) => String(v).trim());
+  const itensCategoria = formData.getAll("itemCategoria[]").map((v) => String(v).trim());
+  const itensUnidade = formData.getAll("itemUnidade[]").map((v) => String(v).trim());
+  const itensQuantidade = formData.getAll("itemQuantidade[]").map((v) => Number(v));
+  const itensValorUnitario = formData.getAll("itemValorUnitario[]").map((v) => String(v).trim());
+
+  if (
+    !fornecedorNome ||
+    !fornecedorCnpj ||
+    !fornecedorEmail ||
+    !orgaoNome ||
+    !orgaoCnpj ||
+    !orgaoUf ||
+    !orgaoMunicipio ||
+    !orgaoEsfera ||
+    !esferaValida(orgaoEsfera) ||
+    !numero ||
+    !objeto ||
+    !ataCategoria ||
+    !CATEGORIAS_ATAS.some((c) => c.slug === ataCategoria) ||
+    !dataAssinatura ||
+    !dataVigenciaFim ||
+    itensDescricao.length === 0
+  ) {
+    return { erro: "Preencha todos os campos obrigatórios com valores válidos." };
+  }
+
+  const contagensIguais =
+    itensDescricao.length === itensCategoria.length &&
+    itensDescricao.length === itensUnidade.length &&
+    itensDescricao.length === itensQuantidade.length &&
+    itensDescricao.length === itensValorUnitario.length;
+
+  const todosItensValidos =
+    contagensIguais &&
+    itensDescricao.every((d, i) => {
+      return (
+        d &&
+        itensCategoria[i] &&
+        itensUnidade[i] &&
+        itensValorUnitario[i] &&
+        Number.isFinite(itensQuantidade[i]) &&
+        itensQuantidade[i] > 0
+      );
+    });
+
+  if (!todosItensValidos) {
+    return { erro: "Preencha todos os campos obrigatórios de cada item com valores válidos." };
+  }
+
+  const documento = formData.get("documento");
+  const temDocumento = documento instanceof File && documento.size > 0;
+
+  if (temDocumento) {
+    if (documento.size > TAMANHO_MAXIMO_DOCUMENTO_BYTES_ADMIN) {
+      return { erro: "O documento não pode passar de 10MB." };
+    }
+    if (!TIPOS_MIME_DOCUMENTO_ACEITOS_ADMIN.includes(documento.type)) {
+      return { erro: "Envie o documento em PDF, JPEG ou PNG." };
+    }
+  }
+
+  const fornecedor = await prisma.fornecedor.upsert({
+    where: { cnpj: fornecedorCnpj },
+    update: { razaoSocial: fornecedorNome, email: fornecedorEmail },
+    create: { razaoSocial: fornecedorNome, cnpj: fornecedorCnpj, email: fornecedorEmail },
+  });
+
+  const orgaoGerenciador = await prisma.orgao.upsert({
+    where: { cnpj: orgaoCnpj },
+    update: { nome: orgaoNome, uf: orgaoUf, municipio: orgaoMunicipio, esfera: orgaoEsfera },
+    create: { nome: orgaoNome, cnpj: orgaoCnpj, uf: orgaoUf, municipio: orgaoMunicipio, esfera: orgaoEsfera },
+  });
+
+  const conteudoDocumento = temDocumento ? Buffer.from(await documento.arrayBuffer()) : null;
+
+  let ataId: string;
+  try {
+    const ata = await prisma.ata.create({
+      data: {
+        numero,
+        objeto,
+        categoria: ataCategoria,
+        dataAssinatura: new Date(dataAssinatura),
+        dataVigenciaFim: new Date(dataVigenciaFim),
+        fornecedorId: fornecedor.id,
+        orgaoGerenciadorId: orgaoGerenciador.id,
+        itens: {
+          create: itensDescricao.map((descricao, i) => ({
+            descricao,
+            categoria: itensCategoria[i],
+            unidade: itensUnidade[i],
+            quantidadeRegistrada: itensQuantidade[i],
+            valorUnitario: itensValorUnitario[i],
+            saldo: { create: {} },
+          })),
+        },
+        ...(temDocumento
+          ? {
+              documentos: {
+                create: {
+                  nomeArquivo: documento.name,
+                  tipoMime: documento.type,
+                  tamanhoBytes: documento.size,
+                  conteudo: conteudoDocumento!,
+                },
+              },
+            }
+          : {}),
+      },
+    });
+    ataId = ata.id;
+  } catch {
+    return { erro: "Já existe uma ata com esse número para esse órgão gerenciador." };
+  }
+
+  revalidatePath("/atas");
+  redirect(`/atas?ataCriada=${ataId}`);
 }

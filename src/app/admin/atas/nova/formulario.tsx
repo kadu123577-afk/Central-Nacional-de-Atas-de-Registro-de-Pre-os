@@ -1,17 +1,26 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { cadastrarAtaComoFornecedor, type EstadoCadastroAtaFornecedor } from "../actions";
+import { cadastrarAtaComoAdmin, logoutAdmin, type EstadoCadastroAtaAdmin } from "../../actions";
 import { AppShell } from "@/components/ui/app-shell";
 import { Secao } from "@/components/ui/secao";
-import { logoutFornecedor } from "@/app/fornecedor/actions";
 import { CATEGORIAS_ATAS } from "@/lib/categorias";
 import { ESFERAS_ORGAO } from "@/lib/esferas";
 
-const estadoInicial: EstadoCadastroAtaFornecedor = {};
+const estadoInicial: EstadoCadastroAtaAdmin = {};
 
-export function FormularioNovaAta() {
-  const [estado, formAction, pendente] = useActionState(cadastrarAtaComoFornecedor, estadoInicial);
+const NAV_ADMIN = [
+  { rotulo: "Painel", href: "/admin" },
+  { rotulo: "Contas a receber", href: "/admin/faturamento" },
+  { rotulo: "Usuários", href: "/admin/usuarios" },
+  { rotulo: "Fornecedores", href: "/admin/fornecedores" },
+  { rotulo: "Municípios/Entidades", href: "/admin/entidades" },
+  { rotulo: "Parceiros", href: "/admin/parceiros" },
+  { rotulo: "Perfil", href: "/admin/perfil" },
+];
+
+export function FormularioNovaAtaAdmin() {
+  const [estado, formAction, pendente] = useActionState(cadastrarAtaComoAdmin, estadoInicial);
   const [itens, setItens] = useState(() => [criarChaveItem()]);
 
   function adicionarItem() {
@@ -24,15 +33,10 @@ export function FormularioNovaAta() {
 
   return (
     <AppShell
-      area="Fornecedor"
-      itens={[
-        { rotulo: "Minhas atas", href: "/fornecedor" },
-        { rotulo: "Nova ata", href: "/fornecedor/atas/nova" },
-        { rotulo: "Pedidos recebidos", href: "/fornecedor/adesoes" },
-        { rotulo: "Perfil", href: "/fornecedor/perfil" },
-      ]}
+      area="Administrativo"
+      itens={NAV_ADMIN}
       rodape={
-        <form action={logoutFornecedor}>
+        <form action={logoutAdmin}>
           <button type="submit" className="botao-atas link">
             Sair
           </button>
@@ -44,12 +48,26 @@ export function FormularioNovaAta() {
           Cadastrar nova ata
         </h1>
         <p className="mt-1 text-sm" style={{ color: "var(--cor-texto-2)" }}>
-          Órgão gerenciador, dados da ata e ao menos um item — a ata entra como PENDENTE até
-          um administrador aprovar.
+          Fornecedor, órgão gerenciador, dados da ata e ao menos um item — a ata entra como
+          PENDENTE até ser aprovada na fila de moderação.
         </p>
       </div>
 
       <form action={formAction} className="flex flex-col gap-5" encType="multipart/form-data">
+        <Secao titulo="Fornecedor">
+          <div className="flex flex-col gap-4">
+            <Campo label="Razão social" name="fornecedorNome" required />
+            <div className="grid grid-cols-2 gap-4">
+              <Campo label="CNPJ" name="fornecedorCnpj" required />
+              <Campo label="E-mail" name="fornecedorEmail" type="email" required />
+            </div>
+            <p className="text-xs" style={{ color: "var(--cor-texto-3)" }}>
+              Se já existe um fornecedor com esse CNPJ, os dados dele são atualizados — essa
+              ata entra vinculada a ele, sem duplicar cadastro.
+            </p>
+          </div>
+        </Secao>
+
         <Secao titulo="Órgão gerenciador">
           <div className="flex flex-col gap-4">
             <Campo label="Nome" name="orgaoNome" required />
@@ -232,14 +250,7 @@ function Campo({
       <span className="mb-1 block font-medium" style={{ color: "var(--cor-texto-2)" }}>
         {label}
       </span>
-      <input
-        name={name}
-        type={type}
-        required={required}
-        min={min}
-        step={step}
-        className="campo-atas"
-      />
+      <input name={name} type={type} required={required} min={min} step={step} className="campo-atas" />
     </label>
   );
 }

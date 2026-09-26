@@ -29,7 +29,7 @@ export function FormularioAdicionarItem({
               Selecione...
             </option>
             {categorias.map((c) => (
-              <option key={c.slug} value={c.rotulo}>
+              <option key={c.slug} value={c.slug}>
                 {c.rotulo}
               </option>
             ))}
