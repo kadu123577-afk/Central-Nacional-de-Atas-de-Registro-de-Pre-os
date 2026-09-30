@@ -557,18 +557,17 @@ até agora já aplicados.
       atualizado há menos de 30 dias) e resiliente (uma falha num
       município não derruba o lote). Rodado em segundo plano pros 1.073
       do lote 1 depois de validado numa amostra de 8.
-    - **Resultado final do lote 1 (2026-09-26):** 1.072 dos 1.073
+    - **Resultado inicial do lote 1 (2026-09-26):** 1.072 dos 1.073
       municípios com raio-X verificado (99,9%), 821 com pelo menos uma
-      categoria de consumo identificada. Só "Prefeitura de Bela Vista de
-      Goiás" ficou de fora — timeout consistente em 3 tentativas
-      (provavelmente tem histórico de contratos grande demais pra janela
-      de 40s por consulta); registrado como gap pontual conhecido, não
-      escondido, pra revisitar depois (aumentar o timeout só pra esse
-      caso, ou paginar em janelas menores que 365 dias). A sessão teve o
-      contêiner reiniciado três vezes no meio deste levantamento em
-      lote — o processo sempre retomava de onde parou graças ao campo
+      categoria de consumo identificada. A sessão teve o contêiner
+      reiniciado várias vezes no meio deste levantamento em lote — o
+      processo sempre retomava de onde parou graças ao campo
       `raioXAtualizadoEm`, sem duplicar trabalho nem perder progresso já
-      salvo no banco.
+      salvo no banco. **Superado pelo reprocessamento completo e
+      qualificação de 2026-09-27/30** (ver §8) — resultado atual: 750
+      municípios (70%) com pelo menos 1 categoria, número mais baixo mas
+      mais confiável (o levantamento anterior tinha um bug de
+      classificação que inflava a contagem).
   - **Não construído ainda, proposto como próxima decisão**: o "agente"
     de levantamento automático (pesquisar na internet e já preencher
     prefeito/secretário/contato de cada município) mencionado pelo
@@ -770,3 +769,69 @@ Levantadas na primeira rodada de gap-analysis. Status em 2026-09-04:
   (nem tem relação com) hospedar o site na Vercel. `README.md`
   atualizado pra registrar essa decisão como definitiva, não mais como
   opção em aberto.
+- **2026-09-27/30 — Ampliação de cobertura do raio-X + qualificação dos
+  dados** — usuário pediu pra "encontrar o máximo de licitações
+  possíveis" dentro dos 1.073 municípios do lote 1, usando PNCP/Compras
+  Gov (portal de transparência municipal descartado por enquanto:
+  verificado ao vivo que URLs sugeridas por busca não respondem —
+  TCE-MA retornou 500/404 — fica como investigação futura, estado por
+  estado, com a mesma disciplina de verificação ao vivo já usada pro
+  PNCP).
+  - `src/lib/classificador-objeto.ts` ganhou mais variações de fraseado
+    real de edital por categoria (recall maior, mantendo a exigência de
+    frases de 2+ palavras).
+  - **Reprocessamento completo dos 1.073 municípios** com o vocabulário
+    novo (`FORCE=1 npm run levantar:raio-x-consumo`), rodado em segundo
+    plano por ~24h com 3 reinícios de contêiner no meio (o processo
+    sobreviveu a todos, graças à idempotência via `raioXAtualizadoEm`) —
+    resultado: 1.073/1.073 processados, 211 falhas por timeout do PNCP
+    na primeira passada, todas recuperadas em duas rodadas de retry
+    focadas só nos que falharam (reset pontual de `raioXAtualizadoEm`
+    pra `null` nesses casos, sem reprocessar quem já tinha dado certo).
+    Coverage final antes da qualificação: 599/1.073 (56%) num corte
+    intermediário, subindo pra **794/1.073 (74%)** no fechamento total.
+  - **Qualificação dos dados (pedido explícito do usuário, depois de
+    perguntar "as informações são qualificadas?")** — revisão manual de
+    amostra encontrou 4 problemas reais de precisão, todos corrigidos em
+    `classificador-objeto.ts`:
+    1. Palavra solta **"cimento"** é substring de "**forne**cimento",
+       "**abaste**cimento", "**estabele**cimento" — qualquer objeto
+       contendo essas palavras comuníssimas caía em
+       *material-construcao* por engano. Era o bug de maior impacto:
+       a categoria caiu de 779 pra 91 municípios depois da correção.
+    2. **"ar condicionado"** sozinho pegava amenidade de espaço alugado
+       (ex.: "teatro com palco, mobiliário, ar condicionado"), não
+       demanda de compra do equipamento — agora exige um verbo de
+       aquisição/instalação/manutenção em algum lugar do texto (não
+       precisa estar colado, editais reais escrevem "aquisição de
+       **aparelho de** ar condicionado").
+    3. **"licenciamento ambiental"** sozinho pegava pagamento de
+       inscrição de servidor em curso/congresso sobre o tema, não
+       demanda de contratação do serviço — virou guarda geral (qualquer
+       objeto com "inscrição" + "curso/congresso/seminário/capacitação"
+       retorna `null`, não é específico dessa categoria só) + frases
+       mais específicas.
+    4. **"reurb"** sozinho é substring de "**reurb**anização" (obra de
+       reurbanização de praça/via, coisa diferente do programa de
+       regularização fundiária) — trocado por "reurb-s"/"reurb-e" e a
+       frase completa. Mesmo problema com **"apostila"**, substring de
+       "apostila**mento**" (termo contratual, não material didático).
+    - Também executado, a pedido do usuário: papelaria passou a ser
+      tratada como a mesma linha de negócio de material gráfico
+      (`grafica`), deixou de ser categoria própria em
+      `material-escritorio`.
+    - `prisma/qualificar-raio-x-consumo.ts` (novo, idempotente) —
+      reclassifica os registros já salvos usando o texto já guardado em
+      `objetoUltimaContratacao`, **sem** reconsultar o PNCP (rápido,
+      minutos em vez de ~24h). Rodado uma vez: de 5.893 registros,
+      5.026 sem mudança, 762 removidos (falso positivo corrigido), 105
+      movidos pra outra categoria.
+  - **Resultado final consolidado**: 750/1.073 municípios (70%) com pelo
+    menos 1 categoria de consumo — número mais baixo que os 794 de
+    antes, mas mais confiável, já que o excesso vinha majoritariamente
+    do bug do "cimento". `veiculos` (530), `merenda-escolar` (477) e
+    `material-hospitalar` (360) são hoje as categorias mais frequentes.
+    Duas categorias ficaram com poucos resultados por causa do aperto de
+    precisão (`licenciamento-ambiental` e `apostilas`, 3 cada) —
+    registrado como possível candidato a afrouxar de novo, se o uso
+    real mostrar que ficou rigoroso demais.

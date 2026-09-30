@@ -38,7 +38,6 @@ const PALAVRAS_CHAVE_POR_CATEGORIA: Record<string, string[]> = {
   "material-escritorio": [
     "material de escritório",
     "material de expediente",
-    "papelaria escolar",
     "papel sulfite",
     "suprimentos de escritório",
     "material de consumo de escritório",
@@ -47,7 +46,13 @@ const PALAVRAS_CHAVE_POR_CATEGORIA: Record<string, string[]> = {
     "material de construção",
     "construção civil",
     "pavimentação asfáltica",
-    "cimento",
+    // Bug real encontrado (2026-09-30): "cimento" sozinho é substring de
+    // "fornecimento", "abastecimento", "estabelecimento" — qualquer
+    // objeto com essas palavras (comuníssimas em edital) caía aqui por
+    // engano. Só frases específicas de material de construção.
+    "sacos de cimento",
+    "cimento portland",
+    "cimento e argamassa",
     "argamassa",
     "insumos de construção",
     "material de acabamento",
@@ -128,6 +133,10 @@ const PALAVRAS_CHAVE_POR_CATEGORIA: Record<string, string[]> = {
     "impressões de",
     "serviços de impressão",
     "confecção de material gráfico",
+    // Papelaria é a mesma linha de negócio de material gráfico pra
+    // operação (confirmado pelo usuário, 2026-09-28) — não é mais
+    // categoria própria de material-escritorio.
+    "papelaria",
   ],
   "merenda-escolar": [
     "merenda escolar",
@@ -194,28 +203,105 @@ const PALAVRAS_CHAVE_POR_CATEGORIA: Record<string, string[]> = {
   projetos: ["projeto arquitetônico", "projeto de engenharia", "elaboração de projeto básico", "projeto executivo"],
   "educacao-midiatica": ["plataforma de streaming educacional", "licenciamento de conteúdo audiovisual educacional", "educação midiática"],
   "gestao-tributaria": ["gestão tributária", "modernização tributária", "sistema de arrecadação municipal"],
-  "licenciamento-ambiental": ["licenciamento ambiental", "estudo de impacto ambiental", "licença ambiental"],
+  // Bare "licenciamento ambiental"/"licença ambiental" removido — falso
+  // positivo real encontrado (2026-09-28): pagamento de inscrição de
+  // servidor em curso/congresso sobre licenciamento ambiental, não uma
+  // demanda de contratação do serviço. Só frases que já implicam
+  // contratação do serviço em si.
+  "licenciamento-ambiental": [
+    "estudo de impacto ambiental",
+    "serviço de licenciamento ambiental",
+    "elaboração de licenciamento ambiental",
+    "consultoria em licenciamento ambiental",
+    "assessoria em licenciamento ambiental",
+    "obtenção de licença ambiental",
+    "renovação de licença ambiental",
+  ],
   "monitoramento-alunos": ["monitoramento de alunos", "controle de frequência escolar", "monitoramento estudantil"],
   "parque-infantil": ["piso emborrachado", "parque infantil", "playground", "parque infantil inclusivo"],
-  reurb: ["regularização fundiária urbana", "reurb"],
+  // Bug real encontrado (2026-09-30): "reurb" sozinho é substring de
+  // "reurbanização" (obra de reurbanização de praça/via — coisa bem
+  // diferente de REURB, o programa de regularização fundiária).
+  reurb: ["regularização fundiária urbana", "reurb-s", "reurb-e"],
   "assessoria-juridica": ["assessoria jurídica", "consultoria jurídica especializada"],
   "engenharia-consultiva": ["assessoria técnica de engenharia", "consultoria em engenharia"],
   nr1: ["gerenciamento de riscos ocupacionais", "programa de gerenciamento de riscos", "norma regulamentadora nr-1"],
-  "ar-condicionado": ["ar condicionado", "climatização de ambiente", "instalação de ar condicionado", "manutenção de ar condicionado"],
+  // Bare "ar condicionado" removido — falso positivo real encontrado
+  // (2026-09-28): locação de espaço de evento que só cita ar
+  // condicionado como amenidade do local, não uma demanda de compra do
+  // equipamento. Só frases que já implicam aquisição/instalação/
+  // manutenção do próprio ar-condicionado.
+  // "ar condicionado" puro é tratado à parte (ver
+  // `pareceComDemandaDeArCondicionado`), porque frases reais de edital
+  // não colam as duas palavras direto (ex.: "aquisição de aparelho de
+  // ar condicionado" tem uma palavra no meio).
+  "ar-condicionado": ["climatização de ambiente", "instalação de ar condicionado", "manutenção de ar condicionado"],
   robotica: ["robótica educacional", "kit de robótica"],
   fotovoltaica: ["sistema fotovoltaico", "energia solar fotovoltaica", "usina solar", "placa solar"],
   "cesta-alimentos": ["cesta de alimentos", "cesta básica", "kit de alimentos"],
   "remocao-de-fios": ["remoção de fiação irregular", "remoção de cabeamento", "fiação aérea irregular"],
-  apostilas: ["apostila", "material didático apostilado", "sistema de apostilamento"],
+  // Bug real encontrado (2026-09-30): "apostila" sozinho é substring de
+  // "apostilamento" (termo de apostilamento contratual, instrumento
+  // jurídico comuníssimo em edital — nada a ver com material didático).
+  apostilas: ["apostila escolar", "aquisição de apostilas", "kit de apostilas", "material didático apostilado"],
 };
+
+// Falso positivo real encontrado (2026-09-28): "pagamento de inscrição
+// de servidor em curso/congresso sobre X" bate na palavra-chave de X,
+// mas não é uma demanda de contratação de X — é despesa administrativa
+// de capacitação. Padrão genérico, não específico de uma categoria só,
+// então vira uma guarda antes de qualquer match.
+const MARCADORES_DE_INSCRICAO_EM_CAPACITACAO = ["inscrição", "inscrições"];
+const MARCADORES_DE_EVENTO_DE_CAPACITACAO = [
+  "curso",
+  "congresso",
+  "seminário",
+  "capacitação",
+  "encontro",
+  "conferência",
+  "workshop",
+  "palestra",
+];
+
+function ehPagamentoDeInscricaoEmCapacitacao(texto: string): boolean {
+  const temInscricao = MARCADORES_DE_INSCRICAO_EM_CAPACITACAO.some((m) => texto.includes(m));
+  if (!temInscricao) return false;
+  return MARCADORES_DE_EVENTO_DE_CAPACITACAO.some((m) => texto.includes(m));
+}
+
+// "ar condicionado" sozinho é ambíguo (pode ser só amenidade de um
+// espaço alugado, ex.: teatro com "palco, mobiliário, ar condicionado e
+// sonorização") — só conta como demanda de compra do equipamento quando
+// o texto também tem um verbo de aquisição em algum lugar (não precisa
+// estar colado, editais reais escrevem "aquisição de aparelho de ar
+// condicionado" com palavra no meio).
+const VERBOS_DE_DEMANDA_DE_AR_CONDICIONADO = [
+  "aquisição",
+  "aquisicao",
+  "compra",
+  "fornecimento",
+  "manutenção",
+  "manutencao",
+  "instalação",
+  "instalacao",
+  "climatização",
+  "climatizacao",
+];
+
+function pareceComDemandaDeArCondicionado(texto: string): boolean {
+  if (!texto.includes("ar condicionado")) return false;
+  return VERBOS_DE_DEMANDA_DE_AR_CONDICIONADO.some((v) => texto.includes(v));
+}
 
 export function classificarObjeto(objeto: string): string | null {
   const texto = objeto.toLowerCase();
+  if (ehPagamentoDeInscricaoEmCapacitacao(texto)) return null;
   for (const [categoria, palavras] of Object.entries(PALAVRAS_CHAVE_POR_CATEGORIA)) {
     if (palavras.some((p) => texto.includes(p))) {
       return categoria;
     }
   }
+  if (pareceComDemandaDeArCondicionado(texto)) return "ar-condicionado";
   return null;
 }
 
