@@ -11,12 +11,13 @@ import bcrypt from "bcryptjs";
  * páginas que o consomem, quando a conta for provisionada.
  */
 
-type TipoSessao = "fornecedor" | "orgao" | "admin";
+type TipoSessao = "fornecedor" | "orgao" | "admin" | "vendedor";
 
 const COOKIE_POR_TIPO: Record<TipoSessao, string> = {
   fornecedor: "fornecedor_sessao",
   orgao: "orgao_sessao",
   admin: "admin_sessao",
+  vendedor: "vendedor_sessao",
 };
 const DURACAO_SESSAO_MS = 1000 * 60 * 60 * 24 * 7; // 7 dias
 
@@ -104,3 +105,7 @@ export const orgaoIdLogado = () => idLogado("orgao");
 export const criarSessaoAdmin = (adminId: string) => criarSessao("admin", adminId);
 export const encerrarSessaoAdmin = () => encerrarSessao("admin");
 export const adminIdLogado = () => idLogado("admin");
+
+export const criarSessaoVendedor = (vendedorId: string) => criarSessao("vendedor", vendedorId);
+export const encerrarSessaoVendedor = () => encerrarSessao("vendedor");
+export const vendedorIdLogado = () => idLogado("vendedor");

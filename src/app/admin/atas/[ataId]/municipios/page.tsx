@@ -8,6 +8,7 @@ import { Secao } from "@/components/ui/secao";
 import { Badge } from "@/components/ui/badge";
 import { VazioComAcao } from "@/components/ui/vazio-com-acao";
 import { corDaCategoria } from "@/lib/categorias";
+import { buscarMunicipiosCompativeis } from "@/lib/match-ata-municipio";
 import { FormularioCategoriaAta } from "./formulario-categoria";
 
 export const dynamic = "force-dynamic";
@@ -61,48 +62,9 @@ export default async function MunicipiosCompativeisPage({
   });
   if (!ata) notFound();
 
-  let jaContrataram: {
-    id: string;
-    nome: string;
-    uf: string | null;
-    municipio: string | null;
-    ultimaContratacao: Date;
-    valorUltimaContratacao: unknown;
-  }[] = [];
-  let nuncaContrataram: { id: string; nome: string; uf: string | null; municipio: string | null }[] = [];
-
-  if (ata.categoria) {
-    const comHistorico = await prisma.entidadeAlvo.findMany({
-      where: {
-        tipo: "municipal",
-        historicoConsumo: { some: { categoria: ata.categoria } },
-      },
-      include: {
-        historicoConsumo: { where: { categoria: ata.categoria }, take: 1 },
-      },
-    });
-    jaContrataram = comHistorico
-      .map((e) => ({
-        id: e.id,
-        nome: e.nome,
-        uf: e.uf,
-        municipio: e.municipio,
-        ultimaContratacao: e.historicoConsumo[0].ultimaContratacao,
-        valorUltimaContratacao: e.historicoConsumo[0].valorUltimaContratacao,
-      }))
-      .sort((a, b) => a.ultimaContratacao.getTime() - b.ultimaContratacao.getTime());
-
-    nuncaContrataram = await prisma.entidadeAlvo.findMany({
-      where: {
-        tipo: "municipal",
-        raioXAtualizadoEm: { not: null },
-        historicoConsumo: { none: { categoria: ata.categoria } },
-      },
-      select: { id: true, nome: true, uf: true, municipio: true },
-      orderBy: { nome: "asc" },
-      take: 200,
-    });
-  }
+  const { jaContrataram, nuncaContrataram } = ata.categoria
+    ? await buscarMunicipiosCompativeis(ata.categoria)
+    : { jaContrataram: [], nuncaContrataram: [] };
 
   const dataLimiteAtraso = new Date();
   dataLimiteAtraso.setFullYear(dataLimiteAtraso.getFullYear() - ANOS_PARA_CONSIDERAR_ATRASADO);

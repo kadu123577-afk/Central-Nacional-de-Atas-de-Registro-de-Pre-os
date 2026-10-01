@@ -370,7 +370,7 @@ async function main() {
       objeto: "Registro de preços para material de escritório",
       status: "APROVADA",
       origem: "MANUAL",
-      categoria: "Material de escritório",
+      categoria: "material-escritorio",
       dataAssinatura: diasAtras(330),
       dataVigenciaFim: diasNoFuturo(35),
       fornecedorId: papelaria.id,
@@ -379,7 +379,7 @@ async function main() {
       itens: {
         create: {
           descricao: "Papel A4 75g (demo)",
-          categoria: "Material de escritório",
+          categoria: "material-escritorio",
           unidade: "resma",
           quantidadeRegistrada: 5000,
           valorUnitario: "24.90",
@@ -398,7 +398,7 @@ async function main() {
       objeto: "Registro de preços para canetas esferográficas",
       status: "APROVADA",
       origem: "MANUAL",
-      categoria: "Material de escritório",
+      categoria: "material-escritorio",
       dataAssinatura: diasAtras(300),
       dataVigenciaFim: diasNoFuturo(5),
       fornecedorId: papelaria.id,
@@ -407,7 +407,7 @@ async function main() {
       itens: {
         create: {
           descricao: "Caneta esferográfica azul (demo)",
-          categoria: "Material de escritório",
+          categoria: "material-escritorio",
           unidade: "unidade",
           quantidadeRegistrada: 10000,
           valorUnitario: "1.35",
@@ -426,7 +426,7 @@ async function main() {
       objeto: "Registro de preços para material de construção",
       status: "APROVADA",
       origem: "MANUAL",
-      categoria: "Material de construção",
+      categoria: "material-construcao",
       dataAssinatura: diasAtras(250),
       dataVigenciaFim: diasNoFuturo(240),
       fornecedorId: construtora.id,
@@ -435,7 +435,7 @@ async function main() {
       itens: {
         create: {
           descricao: "Cimento CP-II 50kg (demo)",
-          categoria: "Material de construção",
+          categoria: "material-construcao",
           unidade: "saco",
           quantidadeRegistrada: 18000,
           valorUnitario: "32.00",
@@ -454,7 +454,7 @@ async function main() {
       objeto: "Registro de preços para lâmpadas e material elétrico",
       status: "PENDENTE",
       origem: "MANUAL",
-      categoria: "Material elétrico",
+      categoria: "material-eletrico",
       dataAssinatura: diasAtras(10),
       dataVigenciaFim: diasNoFuturo(355),
       fornecedorId: construtora.id,
@@ -463,7 +463,7 @@ async function main() {
       itens: {
         create: {
           descricao: "Lâmpada LED 20W (demo)",
-          categoria: "Material elétrico",
+          categoria: "material-eletrico",
           unidade: "unidade",
           quantidadeRegistrada: 3000,
           valorUnitario: "18.50",
@@ -482,7 +482,7 @@ async function main() {
       objeto: "Registro de preços para material hospitalar descartável",
       status: "APROVADA",
       origem: "MANUAL",
-      categoria: "Material hospitalar",
+      categoria: "material-hospitalar",
       dataAssinatura: diasAtras(400),
       dataVigenciaFim: diasAtras(20),
       fornecedorId: techmed.id,
@@ -491,7 +491,7 @@ async function main() {
       itens: {
         create: {
           descricao: "Máscara cirúrgica descartável (demo)",
-          categoria: "Material hospitalar",
+          categoria: "material-hospitalar",
           unidade: "caixa",
           quantidadeRegistrada: 20000,
           valorUnitario: "9.90",
@@ -511,7 +511,7 @@ async function main() {
       objeto: "Registro de preços para luvas cirúrgicas",
       status: "REJEITADA",
       origem: "MANUAL",
-      categoria: "Material hospitalar",
+      categoria: "material-hospitalar",
       dataAssinatura: diasAtras(15),
       dataVigenciaFim: diasNoFuturo(350),
       fornecedorId: techmed.id,
@@ -520,7 +520,7 @@ async function main() {
       itens: {
         create: {
           descricao: "Luva cirúrgica látex P (demo)",
-          categoria: "Material hospitalar",
+          categoria: "material-hospitalar",
           unidade: "caixa",
           quantidadeRegistrada: 15000,
           valorUnitario: "0.85",
@@ -539,7 +539,7 @@ async function main() {
       objeto: "Registro de preços para equipamentos de informática",
       status: "APROVADA",
       origem: "PNCP",
-      categoria: "Equipamento de TI",
+      categoria: "equipamento-ti",
       numeroControlePncp: "00456789000110-1-000123/2025",
       dataAssinatura: diasAtras(200),
       dataVigenciaFim: diasNoFuturo(120),
@@ -549,7 +549,7 @@ async function main() {
       itens: {
         create: {
           descricao: "Notebook 8GB RAM (demo)",
-          categoria: "Equipamento de TI",
+          categoria: "equipamento-ti",
           unidade: "unidade",
           quantidadeRegistrada: 500,
           valorUnitario: "3450.00",
@@ -561,7 +561,7 @@ async function main() {
     include: { itens: true },
   });
 
-  // 8. Vigente — popula o tema "Material elétrico" com uma ata disponível
+  // 8. Vigente — popula o tema "material-eletrico" com uma ata disponível
   //    de verdade (a única outra do tema é PENDENTE e não aparece no
   //    catálogo).
   await prisma.ata.create({
@@ -570,7 +570,7 @@ async function main() {
       objeto: "Registro de preços para fiação e disjuntores elétricos",
       status: "APROVADA",
       origem: "MANUAL",
-      categoria: "Material elétrico",
+      categoria: "material-eletrico",
       dataAssinatura: diasAtras(90),
       dataVigenciaFim: diasNoFuturo(180),
       fornecedorId: eletricaFortaleza.id,
@@ -580,7 +580,7 @@ async function main() {
         create: [
           {
             descricao: "Disjuntor bipolar 40A (demo)",
-            categoria: "Material elétrico",
+            categoria: "material-eletrico",
             unidade: "unidade",
             quantidadeRegistrada: 2000,
             valorUnitario: "22.50",
@@ -589,7 +589,7 @@ async function main() {
           },
           {
             descricao: "Cabo flexível 2,5mm (demo)",
-            categoria: "Material elétrico",
+            categoria: "material-eletrico",
             unidade: "metro",
             quantidadeRegistrada: 12000,
             valorUnitario: "3.10",
@@ -601,7 +601,7 @@ async function main() {
     },
   });
 
-  // 9. Vigente — popula o tema "Material hospitalar" com uma ata
+  // 9. Vigente — popula o tema "material-hospitalar" com uma ata
   //    disponível de verdade (as outras duas do tema estão vencida e
   //    rejeitada).
   await prisma.ata.create({
@@ -610,7 +610,7 @@ async function main() {
       objeto: "Registro de preços para insumos hospitalares básicos",
       status: "APROVADA",
       origem: "MANUAL",
-      categoria: "Material hospitalar",
+      categoria: "material-hospitalar",
       dataAssinatura: diasAtras(60),
       dataVigenciaFim: diasNoFuturo(300),
       fornecedorId: hospitalarVida.id,
@@ -620,7 +620,7 @@ async function main() {
         create: [
           {
             descricao: "Seringa descartável 5ml (demo)",
-            categoria: "Material hospitalar",
+            categoria: "material-hospitalar",
             unidade: "unidade",
             quantidadeRegistrada: 40000,
             valorUnitario: "0.65",
@@ -629,7 +629,7 @@ async function main() {
           },
           {
             descricao: "Álcool em gel 70% 500ml (demo)",
-            categoria: "Material hospitalar",
+            categoria: "material-hospitalar",
             unidade: "unidade",
             quantidadeRegistrada: 8000,
             valorUnitario: "7.40",
@@ -641,14 +641,14 @@ async function main() {
     },
   });
 
-  // 10. Novo tema "Veículos e frota" — sem nenhuma ata antes deste seed.
+  // 10. Novo tema "veiculos" — sem nenhuma ata antes deste seed.
   await prisma.ata.create({
     data: {
       numero: "014-demo/2025",
       objeto: "Registro de preços para veículos de passeio e utilitários",
       status: "APROVADA",
       origem: "MANUAL",
-      categoria: "Veículos e frota",
+      categoria: "veiculos",
       dataAssinatura: diasAtras(120),
       dataVigenciaFim: diasNoFuturo(210),
       fornecedorId: frotaNacional.id,
@@ -658,7 +658,7 @@ async function main() {
         create: [
           {
             descricao: "Veículo utilitário compacto (demo)",
-            categoria: "Veículos e frota",
+            categoria: "veiculos",
             unidade: "unidade",
             quantidadeRegistrada: 25,
             valorUnitario: "89900.00",
@@ -670,14 +670,14 @@ async function main() {
     },
   });
 
-  // 11. Novo tema "Combustível" — sem nenhuma ata antes deste seed.
+  // 11. Novo tema "combustivel" — sem nenhuma ata antes deste seed.
   await prisma.ata.create({
     data: {
       numero: "015-demo/2025",
       objeto: "Registro de preços para combustíveis automotivos",
       status: "APROVADA",
       origem: "MANUAL",
-      categoria: "Combustível",
+      categoria: "combustivel",
       dataAssinatura: diasAtras(45),
       dataVigenciaFim: diasNoFuturo(140),
       fornecedorId: postoRota.id,
@@ -687,7 +687,7 @@ async function main() {
         create: [
           {
             descricao: "Gasolina comum (demo)",
-            categoria: "Combustível",
+            categoria: "combustivel",
             unidade: "litro",
             quantidadeRegistrada: 60000,
             valorUnitario: "6.15",
@@ -696,7 +696,7 @@ async function main() {
           },
           {
             descricao: "Óleo diesel S10 (demo)",
-            categoria: "Combustível",
+            categoria: "combustivel",
             unidade: "litro",
             quantidadeRegistrada: 40000,
             valorUnitario: "6.45",
@@ -708,7 +708,7 @@ async function main() {
     },
   });
 
-  // 12. Novo tema "Limpeza e conservação" — sem nenhuma ata antes deste
+  // 12. Novo tema "limpeza" — sem nenhuma ata antes deste
   //     seed.
   await prisma.ata.create({
     data: {
@@ -716,7 +716,7 @@ async function main() {
       objeto: "Registro de preços para materiais de limpeza e conservação",
       status: "APROVADA",
       origem: "MANUAL",
-      categoria: "Limpeza e conservação",
+      categoria: "limpeza",
       dataAssinatura: diasAtras(75),
       dataVigenciaFim: diasNoFuturo(160),
       fornecedorId: limpaTudo.id,
@@ -726,7 +726,7 @@ async function main() {
         create: [
           {
             descricao: "Detergente neutro 5L (demo)",
-            categoria: "Limpeza e conservação",
+            categoria: "limpeza",
             unidade: "unidade",
             quantidadeRegistrada: 3000,
             valorUnitario: "18.90",
@@ -735,7 +735,7 @@ async function main() {
           },
           {
             descricao: "Sabão em pó 1kg (demo)",
-            categoria: "Limpeza e conservação",
+            categoria: "limpeza",
             unidade: "unidade",
             quantidadeRegistrada: 5000,
             valorUnitario: "9.75",

@@ -117,18 +117,71 @@ model Ata {
   dataVigenciaFim    DateTime
   fornecedorId       String
   orgaoGerenciadorId String
+  // Reivindicação pelo vendedor (2026-10-01): "a partir do momento que
+  // ele pegou uma ata ela fica com ele para vender para aqueles
+  // municípios" — nulo = disponível no pool pra qualquer vendedor pegar;
+  // preenchido = exclusiva desse vendedor daí em diante (não existe
+  // "devolver" ainda, decisão de produto em aberto se precisar).
+  vendedorId         String?
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
   isSeed             Boolean   @default(false)
 
   fornecedor       Fornecedor      @relation(fields: [fornecedorId], references: [id])
   orgaoGerenciador Orgao           @relation("OrgaoGerenciador", fields: [orgaoGerenciadorId], references: [id])
+  vendedor         Vendedor?       @relation(fields: [vendedorId], references: [id])
   itens            Item[]
   documentos       DocumentoAta[]
   interacoesPontoFocal InteracaoPontoFocal[]
+  oportunidades        OportunidadeVenda[]
 
   @@unique([numero, orgaoGerenciadorId])
   @@map("atas")
+}
+
+// Login próprio do vendedor da Tech 10 (2026-10-01) — painel de fluxo:
+// pega uma ata disponível, e o sistema já levanta os municípios
+// compatíveis (ver OportunidadeVenda) pra trabalhar num Kanban.
+model Vendedor {
+  id        String   @id @default(cuid())
+  nome      String
+  email     String   @unique
+  senhaHash String
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  isSeed    Boolean  @default(false)
+
+  atas          Ata[]
+  oportunidades OportunidadeVenda[]
+
+  @@map("vendedores")
+}
+
+// O card do Kanban: um por par (ata, município) — criado automaticamente
+// quando o vendedor reivindica a ata (um por município da lista "já
+// contrataram" dessa categoria), e também manualmente pelo vendedor pra
+// perseguir uma "possível oportunidade" especulativa.
+// `estagio` é vocabulário fixo em src/lib/oportunidades.ts (mesmo
+// racional de Item.categoria) — não enum do Prisma, pra evoluir sem
+// migração.
+model OportunidadeVenda {
+  id               String    @id @default(cuid())
+  ataId            String
+  entidadeAlvoId   String
+  vendedorId       String
+  estagio          String    @default("a_contatar")
+  observacoes      String?
+  proximoContatoEm DateTime?
+  criadoEm         DateTime  @default(now())
+  atualizadoEm     DateTime  @updatedAt
+  isSeed           Boolean   @default(false)
+
+  ata          Ata          @relation(fields: [ataId], references: [id])
+  entidadeAlvo EntidadeAlvo @relation(fields: [entidadeAlvoId], references: [id])
+  vendedor     Vendedor     @relation(fields: [vendedorId], references: [id])
+
+  @@unique([ataId, entidadeAlvoId])
+  @@map("oportunidades_venda")
 }
 
 // Anexo da ata (edital, ofício, ata digitalizada) — decisão de 2026-09-04:
@@ -295,6 +348,7 @@ model EntidadeAlvo {
 
   contatos       PontoFocal[]
   historicoConsumo HistoricoConsumoCategoria[]
+  oportunidades    OportunidadeVenda[]
 
   @@map("entidades_alvo")
 }

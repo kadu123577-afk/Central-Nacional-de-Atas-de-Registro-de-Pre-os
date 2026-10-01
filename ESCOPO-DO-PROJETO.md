@@ -633,6 +633,85 @@ até agora já aplicados.
 
 ---
 
+## 5A. Tela 5 — Vendedor (Tech 10, autenticado)
+
+**Status: ✅ Construída** (2026-10-01).
+
+Pivô de produto explicado pelo usuário: "esse programa na verdade será
+apenas para os vendedores da TECH 10, tipo um dashboard de fluxo onde as
+atas serão inseridas depois disso os municípios com suas necessidades
+(...) irá criar uma espécie de match entre um e outro para conseguirmos
+vender as atas das empresas vencedoras que cadastramos". O match
+ata↔município já existia (§5, `/admin/atas/[ataId]/municipios`) só como
+visualização — faltava um dono (vendedor) e um fluxo de trabalho
+(Kanban) pra virar operação de venda de verdade.
+
+### Modelo de dados novo (migração `20261001000000_vendedores_oportunidades`)
+- `Vendedor` — login próprio (mesmo padrão de sessão por cookie HMAC de
+  Admin/Fornecedor/Órgão). Criado via `npx tsx prisma/seed-vendedor.ts`
+  (`npm run seed:vendedor`) — não existe cadastro público, mesma razão
+  do admin.
+- `Ata.vendedorId` (nulo = disponível no pool pra qualquer vendedor
+  pegar; preenchido = exclusiva desse vendedor — "a partir do momento
+  que ele pegou uma ata ela fica com ele", confirmado pelo usuário).
+  Reivindicação é atômica (`updateMany` com `vendedorId: null` na
+  condição), evita dois vendedores pegarem a mesma ata numa corrida.
+  Não existe "devolver" uma ata ainda — decisão de produto em aberto se
+  vier a ser necessário.
+- `OportunidadeVenda` — o card do Kanban, um por par (ata, município).
+  `estagio` é vocabulário fixo em `src/lib/oportunidades.ts` ("A
+  contatar → Em negociação → Aderiu/Recusou", exatamente como pedido),
+  mesmo racional de `src/lib/categorias.ts` (não é enum do Prisma, pra
+  evoluir sem migração). Criado automaticamente — um por município da
+  lista "já contrataram" (candidatos fortes) — quando o vendedor
+  reivindica a ata; a lista especulativa ("possível oportunidade") fica
+  disponível pra adicionar manualmente, não entope o Kanban sozinha.
+- Cada mudança de estágio também grava uma `InteracaoPontoFocal` (o
+  histórico por contato que já existia) — painel de contatos do admin e
+  Kanban do vendedor nunca desencontram, uma só fonte de verdade.
+
+### Páginas
+| Rota | Função | Status |
+|---|---|---|
+| `/vendedor/login` | Login | ✅ Completo |
+| `/vendedor` | Painel — atas disponíveis (pool) + minhas atas (reivindicadas) | ✅ Completo |
+| `/vendedor/atas/[ataId]` | Kanban de 4 colunas — um card por município, com observação/próximo passo editável inline, e seção de oportunidades especulativas pra adicionar manualmente | ✅ Completo |
+
+### Achado e corrigido nesta rodada
+**Bug real, severo, pré-existente**: `prisma/seed.ts` (dataset de
+demonstração) gravava `Ata.categoria` como **rótulo** ("Material de
+construção") em vez de **slug** ("material-construcao") — o mesmo bug
+de rótulo/slug já corrigido nos formulários em 2026-09-26, mas que
+tinha escapado do seed. Resultado prático: toda ata de demonstração
+tinha zero match com qualquer município, silenciosamente — só foi
+descoberto ao testar o Kanban ao vivo com dado real e ver zero
+oportunidade em "já contrataram" onde deveria haver centenas. Corrigido
+nas 8 ocorrências de categoria no seed; banco de demonstração recriado
+(`seed:limpar` + `seed`) pra confirmar o match funcionando de ponta a
+ponta (ex.: ata de "limpeza" → 190 municípios reais com histórico de
+contratação dessa categoria, verificado ao vivo com Playwright,
+incluindo mover um card de estágio e ver o reflexo tanto no Kanban
+quanto no histórico de interação do contato).
+
+**Ajuste de usabilidade**: colunas do Kanban ganharam rolagem interna
+(`max-h-[70vh] overflow-y-auto`) — categorias como "veículos" têm 530
+municípios compatíveis; sem limite de altura, a coluna "A contatar"
+ficava maior que a tela toda.
+
+### Não construído ainda, decisões em aberto
+- Gestão de contas de vendedor pela própria tela de admin (hoje só via
+  script `seed:vendedor`, mesmo padrão do admin) — cadastro público de
+  vendedor seria risco de segurança sem revisão antes.
+- "Devolver" uma ata já reivindicada (ex.: vendedor saiu da empresa,
+  ata precisa voltar pro pool) — não existe hoje, fica registrado como
+  decisão pendente.
+- Admin não tem hoje nenhum selo mostrando qual vendedor está com qual
+  ata nas telas que ele já usa (`/atas`, `/admin/atas/[ataId]/municipios`)
+  — útil pra supervisão, mas não pedido explicitamente, não construído
+  por enquanto.
+
+---
+
 ## 6. Telas transversais — faltam em qualquer perfil
 
 Levantadas na primeira rodada de gap-analysis. Status em 2026-09-04:
@@ -835,3 +914,36 @@ Levantadas na primeira rodada de gap-analysis. Status em 2026-09-04:
     precisão (`licenciamento-ambiental` e `apostilas`, 3 cada) —
     registrado como possível candidato a afrouxar de novo, se o uso
     real mostrar que ficou rigoroso demais.
+- **2026-10-01 — Levantamento de contatos de prefeitura concluído
+  (100%)** — iniciado por outra sessão (196/1.073 municípios, arquivo
+  `levantamento-prefeituras-progresso.md`), terminado nesta sessão em 6
+  lotes de agentes em segundo plano: prefeito, secretários de
+  Administração/Finanças, Saúde e Educação, telefone, e-mail, site
+  oficial, fonte e confiança, pra todos os 1.073 municípios (1.442
+  `PontoFocal` no total). Novo `prisma/importar-contatos-prefeituras.ts`
+  (idempotente, casa por UF+nome) lê o markdown de cada lote e importa
+  pro banco incrementalmente — nenhum progresso foi perdido nas duas
+  interrupções por limite de uso da sessão no meio do trabalho. Regras
+  seguidas à risca em todos os lotes: nunca inventar dado ("não
+  encontrado" quando sem fonte confiável), sempre citar fonte, cuidado
+  explícito com municípios homônimos entre estados e nomes de secretário
+  "vazando" de outro município em buscas amplas (pelo menos 2 casos
+  reais pegos e corrigidos).
+- **2026-10-01 — Corrigido menu do admin: link de Atas estava faltando**
+  — achado real do usuário ("tá faltando as atas dentro do sistema").
+  A tela `/atas` já existia e funcionava (lista completa + categoria +
+  match ata↔município), mas nenhum dos 13 arquivos que duplicam o array
+  de navegação do admin (não há componente de menu compartilhado) tinha
+  o link — ninguém conseguia chegar lá a não ser digitando a URL direto.
+  Adicionado "Atas" logo após "Painel" nos 13 arquivos.
+- **2026-10-01 — Tela 5 (Vendedor) + bug de categoria no seed** — ver §5A
+  pro detalhe completo. Resumo: pivô de produto pra "dashboard de fluxo"
+  do time comercial da Tech 10 (reivindicar ata, Kanban de 4 estágios
+  por município compatível); achado e corrigido no caminho um bug real
+  e severo pré-existente no `prisma/seed.ts` (categoria gravada como
+  rótulo, não slug — zero match em qualquer ata de demonstração, nunca
+  detectado antes por falta de uma tela que realmente exercitasse o
+  match com clique de verdade). Verificado ao vivo com Playwright,
+  ponta a ponta, com dado real (ata de "limpeza" → 190 municípios
+  compatíveis, card movido de estágio, histórico de interação do
+  contato refletindo a mudança).
