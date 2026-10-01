@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { vendedorIdLogado } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -65,28 +66,30 @@ export default async function MunicipiosVendedorPage({
       ) : (
         <ul className="flex flex-col gap-3">
           {municipios.map((m) => (
-            <li key={m.id} className="painel p-4">
-              <p className="text-sm font-medium" style={{ color: "var(--cor-texto)" }}>
-                {m.nome}
-                {m.uf ? `/${m.uf}` : ""}
-              </p>
-              {m.historicoConsumo.length === 0 ? (
-                <p className="mt-1 text-xs" style={{ color: "var(--cor-texto-3)" }}>
-                  Raio-X ainda não identificou necessidades.
+            <li key={m.id} className="painel p-4 transition-colors hover:border-[var(--cor-borda-forte)]">
+              <Link href={`/vendedor/municipios/${m.id}`} className="block">
+                <p className="text-sm font-medium" style={{ color: "var(--cor-texto)" }}>
+                  {m.nome}
+                  {m.uf ? `/${m.uf}` : ""}
                 </p>
-              ) : (
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {m.historicoConsumo.map((h) => (
-                    <span
-                      key={h.categoria}
-                      className="eyebrow rounded-full border px-2 py-0.5"
-                      style={{ borderColor: "var(--cor-borda-forte)", color: "var(--cor-texto-2)" }}
-                    >
-                      {ROTULO_CATEGORIA_CONSUMO[h.categoria] ?? h.categoria}
-                    </span>
-                  ))}
-                </div>
-              )}
+                {m.historicoConsumo.length === 0 ? (
+                  <p className="mt-1 text-xs" style={{ color: "var(--cor-texto-3)" }}>
+                    Raio-X ainda não identificou necessidades.
+                  </p>
+                ) : (
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {m.historicoConsumo.map((h) => (
+                      <span
+                        key={h.categoria}
+                        className="eyebrow rounded-full border px-2 py-0.5"
+                        style={{ borderColor: "var(--cor-borda-forte)", color: "var(--cor-texto-2)" }}
+                      >
+                        {ROTULO_CATEGORIA_CONSUMO[h.categoria] ?? h.categoria}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </Link>
             </li>
           ))}
         </ul>
