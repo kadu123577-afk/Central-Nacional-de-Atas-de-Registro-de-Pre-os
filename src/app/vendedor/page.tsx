@@ -8,10 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { VazioComAcao } from "@/components/ui/vazio-com-acao";
 import { corDaCategoria, rotuloDaCategoria } from "@/lib/categorias";
 import { logoutVendedor, reivindicarAta } from "./actions";
+import { NAV_VENDEDOR } from "./nav";
 
 export const dynamic = "force-dynamic";
-
-const NAV_VENDEDOR = [{ rotulo: "Painel", href: "/vendedor" }];
 
 /**
  * Painel de fluxo do vendedor (2026-10-01) — "uma espécie de match entre

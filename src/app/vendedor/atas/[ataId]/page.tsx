@@ -8,11 +8,10 @@ import { VazioComAcao } from "@/components/ui/vazio-com-acao";
 import { ESTAGIOS_OPORTUNIDADE, ROTULO_ESTAGIO_OPORTUNIDADE } from "@/lib/oportunidades";
 import { buscarMunicipiosCompativeis } from "@/lib/match-ata-municipio";
 import { adicionarOportunidadeManual, logoutVendedor } from "../../actions";
+import { NAV_VENDEDOR } from "../../nav";
 import { CartaoOportunidade } from "./cartao-oportunidade";
 
 export const dynamic = "force-dynamic";
-
-const NAV_VENDEDOR = [{ rotulo: "Painel", href: "/vendedor" }];
 
 /**
  * Kanban de uma ata reivindicada (2026-10-01) — "A Contatar → Em

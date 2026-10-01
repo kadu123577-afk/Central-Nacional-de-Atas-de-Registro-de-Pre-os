@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import {
   criarSessaoVendedor,
   encerrarSessaoVendedor,
+  hashSenha,
   verificarSenha,
   vendedorIdLogado,
 } from "@/lib/auth";
@@ -14,9 +15,43 @@ import {
   estagioOportunidadeValido,
   RESULTADO_INTERACAO_POR_ESTAGIO,
 } from "@/lib/oportunidades";
+import type { EstadoTrocarSenha } from "@/components/ui/formulario-trocar-senha";
 
 export interface EstadoLoginVendedor {
   erro?: string;
+}
+
+export async function trocarSenhaVendedor(
+  _estadoAnterior: EstadoTrocarSenha,
+  formData: FormData,
+): Promise<EstadoTrocarSenha> {
+  const vendedorId = await vendedorIdLogado();
+  if (!vendedorId) redirect("/vendedor/login");
+
+  const senhaAtual = String(formData.get("senhaAtual") ?? "");
+  const senhaNova = String(formData.get("senhaNova") ?? "");
+  const confirmacao = String(formData.get("confirmacaoSenhaNova") ?? "");
+
+  if (senhaNova.length < 8) {
+    return { erro: "A nova senha precisa ter ao menos 8 caracteres." };
+  }
+  if (senhaNova !== confirmacao) {
+    return { erro: "A confirmação não bate com a nova senha." };
+  }
+
+  const vendedor = await prisma.vendedor.findUnique({ where: { id: vendedorId } });
+  if (!vendedor) {
+    return { erro: "Conta inválida." };
+  }
+
+  const senhaAtualCorreta = await verificarSenha(senhaAtual, vendedor.senhaHash);
+  if (!senhaAtualCorreta) {
+    return { erro: "Senha atual incorreta." };
+  }
+
+  const senhaHash = await hashSenha(senhaNova);
+  await prisma.vendedor.update({ where: { id: vendedorId }, data: { senhaHash } });
+  return { sucesso: true };
 }
 
 export async function loginVendedor(
