@@ -2,11 +2,19 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { adminIdLogado } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { alternarStatusFornecedor, alternarStatusOrgao, logoutAdmin } from "../actions";
+import {
+  alternarStatusFornecedor,
+  alternarStatusOrgao,
+  alternarStatusVendedor,
+  devolverAtaAoPool,
+  logoutAdmin,
+} from "../actions";
 import { AppShell } from "@/components/ui/app-shell";
 import { Secao } from "@/components/ui/secao";
 import { Badge } from "@/components/ui/badge";
 import { VazioComAcao } from "@/components/ui/vazio-com-acao";
+import { ROTULO_TIPO_VENDEDOR } from "@/lib/vendedores";
+import { FormularioNovoVendedor } from "./formulario-vendedor";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +22,7 @@ const NAV_ADMIN = [
   { rotulo: "Painel", href: "/admin" },
   { rotulo: "Atas", href: "/atas" },
   { rotulo: "Contas a receber", href: "/admin/faturamento" },
+  { rotulo: "Recebíveis — vendedores", href: "/admin/recebiveis-vendedores" },
   { rotulo: "Usuários", href: "/admin/usuarios" },
   { rotulo: "Fornecedores", href: "/admin/fornecedores" },
   { rotulo: "Municípios/Entidades", href: "/admin/entidades" },
@@ -27,9 +36,13 @@ export default async function GestaoUsuariosPage() {
     redirect("/admin/login");
   }
 
-  const [fornecedores, orgaos] = await Promise.all([
+  const [fornecedores, orgaos, vendedores] = await Promise.all([
     prisma.fornecedor.findMany({ orderBy: { razaoSocial: "asc" } }),
     prisma.orgao.findMany({ orderBy: { nome: "asc" } }),
+    prisma.vendedor.findMany({
+      include: { atas: { select: { id: true, numero: true } } },
+      orderBy: { nome: "asc" },
+    }),
   ]);
 
   return (
@@ -58,6 +71,61 @@ export default async function GestaoUsuariosPage() {
           ← Painel
         </Link>
       </div>
+
+      <Secao titulo={`Vendedores (${vendedores.length})`}>
+        {vendedores.length === 0 ? (
+          <div className="mt-3">
+            <VazioComAcao titulo="Nenhum vendedor cadastrado" descricao="" />
+          </div>
+        ) : (
+          <ul className="mt-3 flex flex-col gap-2">
+            {vendedores.map((v) => (
+              <li key={v.id} className="painel flex flex-col gap-3 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-medium" style={{ color: "var(--cor-texto)" }}>
+                      {v.nome}
+                    </p>
+                    <p className="text-xs" style={{ color: "var(--cor-texto-3)" }}>
+                      {v.email} · {ROTULO_TIPO_VENDEDOR[v.tipo as keyof typeof ROTULO_TIPO_VENDEDOR] ?? v.tipo}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Badge tom={v.ativo ? "neutro" : "critico"}>{v.ativo ? "Ativo" : "Desativado"}</Badge>
+                    <form action={alternarStatusVendedor}>
+                      <input type="hidden" name="vendedorId" value={v.id} />
+                      <button
+                        type="submit"
+                        className={v.ativo ? "botao-atas critico" : "botao-atas secundario"}
+                      >
+                        {v.ativo ? "Desativar" : "Reativar"}
+                      </button>
+                    </form>
+                  </div>
+                </div>
+                {v.atas.length > 0 && (
+                  <div className="flex flex-wrap gap-2 border-t pt-3" style={{ borderColor: "var(--cor-borda)" }}>
+                    {v.atas.map((a) => (
+                      <form key={a.id} action={devolverAtaAoPool} className="flex items-center gap-1.5">
+                        <input type="hidden" name="ataId" value={a.id} />
+                        <span className="eyebrow" style={{ color: "var(--cor-texto-3)" }}>
+                          Ata {a.numero}
+                        </span>
+                        <button type="submit" className="eyebrow underline" style={{ color: "var(--cor-alerta)" }}>
+                          devolver ao pool
+                        </button>
+                      </form>
+                    ))}
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+        <div className="mt-4">
+          <FormularioNovoVendedor />
+        </div>
+      </Secao>
 
       <Secao titulo={`Fornecedores (${fornecedores.length})`}>
         {fornecedores.length === 0 ? (

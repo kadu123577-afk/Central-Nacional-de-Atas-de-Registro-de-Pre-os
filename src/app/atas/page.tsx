@@ -170,6 +170,14 @@ export default async function AtasPage({
                     Sem categoria
                   </span>
                 )}
+                {ata.origem === "CIABC" && (
+                  <span
+                    className="eyebrow rounded-full border px-2.5 py-0.5"
+                    style={{ borderColor: "var(--cor-atencao)", color: "var(--cor-atencao)" }}
+                  >
+                    CIABC
+                  </span>
+                )}
                 <Link href={`/admin/atas/${ata.id}/municipios`} className="botao-atas secundario">
                   Municípios com necessidade
                 </Link>

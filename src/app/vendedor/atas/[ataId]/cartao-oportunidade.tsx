@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ESTAGIOS_OPORTUNIDADE, ROTULO_ESTAGIO_OPORTUNIDADE } from "@/lib/oportunidades";
 import { ROTULO_CATEGORIA_CONSUMO } from "@/lib/classificador-objeto";
+import { Cifra } from "@/components/ui/valores";
 import { moverEstagioOportunidade } from "../../actions";
 
 interface Contato {
@@ -24,6 +25,8 @@ interface Props {
   estagioAtual: string;
   corEstagio: string;
   observacoesAtuais: string | null;
+  valorAderidoAtual: string | null;
+  percentualComissaoAtual: string | null;
   contatos: Contato[];
   necessidades: Necessidade[];
 }
@@ -40,10 +43,13 @@ export function CartaoOportunidade({
   estagioAtual,
   corEstagio,
   observacoesAtuais,
+  valorAderidoAtual,
+  percentualComissaoAtual,
   contatos,
   necessidades,
 }: Props) {
   const [aberto, setAberto] = useState(false);
+  const [estagioSelecionado, setEstagioSelecionado] = useState(estagioAtual);
   const acaoComId = moverEstagioOportunidade.bind(null, oportunidadeId);
 
   return (
@@ -66,6 +72,12 @@ export function CartaoOportunidade({
         <p className="mt-1 text-xs" style={{ color: "var(--cor-texto-3)" }}>
           {contatos[0].cargo}: {contatos[0].nomeContato}
           {contatos[0].telefone ? ` · ${contatos[0].telefone}` : ""}
+        </p>
+      )}
+      {!aberto && valorAderidoAtual && (
+        <p className="mt-1 text-xs" style={{ color: "var(--cor-marca-clara)" }}>
+          Aderiu <Cifra valor={valorAderidoAtual} />
+          {percentualComissaoAtual ? ` · ${(Number(percentualComissaoAtual) * 100).toFixed(2)}% comissão` : ""}
         </p>
       )}
       {!aberto && observacoesAtuais && (
@@ -129,7 +141,12 @@ export function CartaoOportunidade({
               <span className="mb-1 block font-medium" style={{ color: "var(--cor-texto-2)" }}>
                 Estágio
               </span>
-              <select name="estagio" defaultValue={estagioAtual} className="campo-atas">
+              <select
+                name="estagio"
+                defaultValue={estagioAtual}
+                onChange={(e) => setEstagioSelecionado(e.target.value)}
+                className="campo-atas"
+              >
                 {ESTAGIOS_OPORTUNIDADE.map((e) => (
                   <option key={e} value={e}>
                     {ROTULO_ESTAGIO_OPORTUNIDADE[e]}
@@ -137,6 +154,46 @@ export function CartaoOportunidade({
                 ))}
               </select>
             </label>
+            {estagioSelecionado === "aderiu" && (
+              <div
+                className="flex flex-col gap-2 rounded-[var(--raio)] border p-2"
+                style={{ borderColor: "var(--cor-marca-clara)" }}
+              >
+                <p className="text-xs" style={{ color: "var(--cor-texto-3)" }}>
+                  Controle de recebíveis — obrigatório pra marcar como aderiu.
+                </p>
+                <label className="block text-xs">
+                  <span className="mb-1 block font-medium" style={{ color: "var(--cor-texto-2)" }}>
+                    Valor aderido (R$)
+                  </span>
+                  <input
+                    name="valorAderido"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    required
+                    defaultValue={valorAderidoAtual ?? ""}
+                    className="campo-atas"
+                  />
+                </label>
+                <label className="block text-xs">
+                  <span className="mb-1 block font-medium" style={{ color: "var(--cor-texto-2)" }}>
+                    Percentual de comissão (%)
+                  </span>
+                  <input
+                    name="percentualComissao"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    required
+                    defaultValue={
+                      percentualComissaoAtual ? String(Number(percentualComissaoAtual) * 100) : ""
+                    }
+                    className="campo-atas"
+                  />
+                </label>
+              </div>
+            )}
             <label className="block text-xs">
               <span className="mb-1 block font-medium" style={{ color: "var(--cor-texto-2)" }}>
                 Observação / próximo passo

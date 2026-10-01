@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { adminIdLogado } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { logoutAdmin } from "../actions";
+import { atualizarContatoTecnicoFornecedor, logoutAdmin } from "../actions";
 import { AppShell } from "@/components/ui/app-shell";
 import { Secao } from "@/components/ui/secao";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +15,7 @@ const NAV_ADMIN = [
   { rotulo: "Painel", href: "/admin" },
   { rotulo: "Atas", href: "/atas" },
   { rotulo: "Contas a receber", href: "/admin/faturamento" },
+  { rotulo: "Recebíveis — vendedores", href: "/admin/recebiveis-vendedores" },
   { rotulo: "Usuários", href: "/admin/usuarios" },
   { rotulo: "Fornecedores", href: "/admin/fornecedores" },
   { rotulo: "Municípios/Entidades", href: "/admin/entidades" },
@@ -122,6 +123,48 @@ export default async function FornecedoresPage() {
                       UFs com ata gerenciadora: {[...ufs].sort().join(", ")}
                     </p>
                   )}
+
+                  <form
+                    action={atualizarContatoTecnicoFornecedor}
+                    className="mt-3 flex flex-col gap-2 border-t pt-3 sm:flex-row sm:items-end"
+                    style={{ borderColor: "var(--cor-borda)" }}
+                  >
+                    <input type="hidden" name="fornecedorId" value={f.id} />
+                    <label className="block flex-1 text-xs">
+                      <span className="mb-1 block font-medium" style={{ color: "var(--cor-texto-2)" }}>
+                        Contato técnico — nome
+                      </span>
+                      <input
+                        name="contatoTecnicoNome"
+                        defaultValue={f.contatoTecnicoNome ?? ""}
+                        className="campo-atas"
+                      />
+                    </label>
+                    <label className="block flex-1 text-xs">
+                      <span className="mb-1 block font-medium" style={{ color: "var(--cor-texto-2)" }}>
+                        Telefone
+                      </span>
+                      <input
+                        name="contatoTecnicoTelefone"
+                        defaultValue={f.contatoTecnicoTelefone ?? ""}
+                        className="campo-atas"
+                      />
+                    </label>
+                    <label className="block flex-1 text-xs">
+                      <span className="mb-1 block font-medium" style={{ color: "var(--cor-texto-2)" }}>
+                        E-mail
+                      </span>
+                      <input
+                        name="contatoTecnicoEmail"
+                        type="email"
+                        defaultValue={f.contatoTecnicoEmail ?? ""}
+                        className="campo-atas"
+                      />
+                    </label>
+                    <button type="submit" className="botao-atas secundario">
+                      Salvar
+                    </button>
+                  </form>
                 </li>
               );
             })}

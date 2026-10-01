@@ -16,6 +16,7 @@ import { resultadoInteracaoValido } from "@/lib/pontos-focais";
 import { tipoEntidadeAlvoValido } from "@/lib/entidades-alvo";
 import { calcularRaioXConsumo } from "@/lib/raio-x-consumo";
 import { CATEGORIAS_ATAS } from "@/lib/categorias";
+import { tipoVendedorValido } from "@/lib/vendedores";
 
 export interface EstadoLoginAdmin {
   erro?: string;
@@ -224,6 +225,99 @@ export async function alternarStatusFornecedor(formData: FormData): Promise<void
     data: { ativo: !fornecedor.ativo },
   });
   revalidatePath("/admin/usuarios");
+}
+
+export interface EstadoCriarVendedor {
+  erro?: string;
+}
+
+/** Cadastro de vendedor pelo admin (2026-10-01) — até aqui só existia via
+ * seed; sem isso o time comercial não consegue crescer o time dentro do
+ * sistema. Tipo (interno/externo) é obrigatório desde a criação. */
+export async function criarVendedorAdmin(
+  _estadoAnterior: EstadoCriarVendedor,
+  formData: FormData,
+): Promise<EstadoCriarVendedor> {
+  await exigirAdmin();
+
+  const nome = String(formData.get("nome") ?? "").trim();
+  const email = String(formData.get("email") ?? "").trim();
+  const senha = String(formData.get("senha") ?? "");
+  const tipo = String(formData.get("tipo") ?? "").trim();
+
+  if (!nome || !email) {
+    return { erro: "Informe nome e e-mail." };
+  }
+  if (senha.length < 8) {
+    return { erro: "A senha precisa ter ao menos 8 caracteres." };
+  }
+  if (!tipoVendedorValido(tipo)) {
+    return { erro: "Selecione um tipo de vendedor válido." };
+  }
+
+  const senhaHash = await hashSenha(senha);
+  try {
+    await prisma.vendedor.create({
+      data: { nome, email, senhaHash, tipo },
+    });
+  } catch {
+    return { erro: "Já existe um vendedor com esse e-mail." };
+  }
+
+  revalidatePath("/admin/usuarios");
+  return {};
+}
+
+export async function alternarStatusVendedor(formData: FormData): Promise<void> {
+  await exigirAdmin();
+  const vendedorId = String(formData.get("vendedorId") ?? "");
+  if (!vendedorId) return;
+
+  const vendedor = await prisma.vendedor.findUnique({ where: { id: vendedorId } });
+  if (!vendedor) return;
+
+  await prisma.vendedor.update({
+    where: { id: vendedorId },
+    data: { ativo: !vendedor.ativo },
+  });
+  revalidatePath("/admin/usuarios");
+}
+
+/** Devolve a ata pro pool (2026-10-01) — hoje não existia nenhuma forma de
+ * tirar uma ata de um vendedor que saiu ou não está trabalhando nela. Não
+ * apaga as oportunidades já criadas, só libera a ata pra outro vendedor
+ * poder reivindicar de novo. */
+export async function devolverAtaAoPool(formData: FormData): Promise<void> {
+  await exigirAdmin();
+  const ataId = String(formData.get("ataId") ?? "");
+  if (!ataId) return;
+
+  await prisma.ata.update({ where: { id: ataId }, data: { vendedorId: null } });
+  revalidatePath("/admin/usuarios");
+}
+
+/** Canal de contato técnico do fornecedor (2026-10-01, pedido explícito):
+ * o vendedor precisa conseguir falar com alguém técnico da empresa
+ * vencedora da ata pra organizar a adesão com o ente, não só com o
+ * município. Campo de contato simples, sem login próprio. */
+export async function atualizarContatoTecnicoFornecedor(formData: FormData): Promise<void> {
+  await exigirAdmin();
+  const fornecedorId = String(formData.get("fornecedorId") ?? "");
+  if (!fornecedorId) return;
+
+  const contatoTecnicoNome = String(formData.get("contatoTecnicoNome") ?? "").trim();
+  const contatoTecnicoTelefone = String(formData.get("contatoTecnicoTelefone") ?? "").trim();
+  const contatoTecnicoEmail = String(formData.get("contatoTecnicoEmail") ?? "").trim();
+
+  await prisma.fornecedor.update({
+    where: { id: fornecedorId },
+    data: {
+      contatoTecnicoNome: contatoTecnicoNome || null,
+      contatoTecnicoTelefone: contatoTecnicoTelefone || null,
+      contatoTecnicoEmail: contatoTecnicoEmail || null,
+    },
+  });
+  revalidatePath("/admin/fornecedores");
 }
 
 export async function alternarStatusOrgao(formData: FormData): Promise<void> {
@@ -491,6 +585,52 @@ export async function marcarFaturamentoComoPendente(
   return {};
 }
 
+export interface EstadoLancarLiquidacao {
+  erro?: string;
+}
+
+/**
+ * Controle de recebíveis (2026-10-01, pedido explícito): "temos x% desses
+ * 50mi para receber após a liquidação da nota fiscal por esse município,
+ * seja o valor de 50mi ou menos". Cada liquidação é um lançamento de NF —
+ * pode ter várias parciais pra uma mesma oportunidade. O valor a receber
+ * nunca é calculado sobre o valor aderido (que é só o teto), sempre sobre
+ * a soma do que foi liquidado de verdade.
+ */
+export async function lancarLiquidacao(
+  oportunidadeId: string,
+  _estadoAnterior: EstadoLancarLiquidacao,
+  formData: FormData,
+): Promise<EstadoLancarLiquidacao> {
+  await exigirAdmin();
+
+  const valorBruto = String(formData.get("valorLiquidado") ?? "").trim();
+  const numeroNotaFiscal = String(formData.get("numeroNotaFiscal") ?? "").trim();
+  const dataLiquidacao = String(formData.get("dataLiquidacao") ?? "");
+  const valorNumero = Number(valorBruto);
+
+  if (!valorBruto || !Number.isFinite(valorNumero) || valorNumero <= 0 || !dataLiquidacao) {
+    return { erro: "Informe um valor liquidado válido e a data." };
+  }
+
+  const oportunidade = await prisma.oportunidadeVenda.findUnique({ where: { id: oportunidadeId } });
+  if (!oportunidade || oportunidade.estagio !== "aderiu") {
+    return { erro: "Esta oportunidade não está marcada como aderida." };
+  }
+
+  await prisma.liquidacao.create({
+    data: {
+      oportunidadeId,
+      valorLiquidado: valorBruto,
+      numeroNotaFiscal: numeroNotaFiscal || null,
+      dataLiquidacao: new Date(dataLiquidacao),
+    },
+  });
+
+  revalidatePath("/admin/recebiveis-vendedores");
+  return {};
+}
+
 export interface EstadoRaioXConsumo {
   erro?: string;
 }
@@ -606,6 +746,8 @@ export async function cadastrarAtaComoAdmin(
   const ataCategoria = String(formData.get("ataCategoria") ?? "").trim();
   const dataAssinatura = String(formData.get("dataAssinatura") ?? "");
   const dataVigenciaFim = String(formData.get("dataVigenciaFim") ?? "");
+  const origemBruta = String(formData.get("origem") ?? "MANUAL").trim();
+  const origem = origemBruta === "CIABC" ? "CIABC" : "MANUAL";
 
   const itensDescricao = formData.getAll("itemDescricao[]").map((v) => String(v).trim());
   const itensCategoria = formData.getAll("itemCategoria[]").map((v) => String(v).trim());
@@ -690,6 +832,7 @@ export async function cadastrarAtaComoAdmin(
         numero,
         objeto,
         categoria: ataCategoria,
+        origem,
         dataAssinatura: new Date(dataAssinatura),
         dataVigenciaFim: new Date(dataVigenciaFim),
         fornecedorId: fornecedor.id,

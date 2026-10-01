@@ -27,6 +27,10 @@ enum OrigemAta {
   // PNCP (dadosabertos.compras.gov.br) — decisão de 2026-09-04 de usar as
   // duas fontes em vez de substituir uma pela outra.
   COMPRAS_GOV
+  // Atas repassadas pelo CIABC (2026-10-01) — cadastro continua manual
+  // (mesmo formulário de MANUAL), só muda a origem pra diferenciar na
+  // listagem de onde a ata veio.
+  CIABC
 }
 
 enum EstagioAdesao {
@@ -68,6 +72,14 @@ model Fornecedor {
   // sem apagar nada (atas/adesões/faturamento já existentes continuam
   // intactos, só a conta para de conseguir entrar).
   ativo       Boolean  @default(true)
+
+  // Canal de contato técnico (2026-10-01) — pedido explícito: o vendedor
+  // precisa conseguir falar com alguém técnico da empresa que venceu a
+  // ata (não só com o município) pra organizar a adesão. Campo livre,
+  // sem login próprio — só informação de contato exibida pro vendedor.
+  contatoTecnicoNome     String?
+  contatoTecnicoTelefone String?
+  contatoTecnicoEmail    String?
 
   atas Ata[]
 
@@ -148,6 +160,10 @@ model Vendedor {
   email     String   @unique
   senhaHash String
   ativo     Boolean  @default(true)
+  // Consultor de vendas empresarial interno ou externo (2026-10-01,
+  // pedido explícito) — vocabulário fixo em src/lib/vendedores.ts, mesmo
+  // racional de categoria/estágio (não enum, evolui sem migração).
+  tipo      String   @default("interno")
   createdAt DateTime @default(now())
   isSeed    Boolean  @default(false)
 
@@ -172,6 +188,13 @@ model OportunidadeVenda {
   estagio          String    @default("a_contatar")
   observacoes      String?
   proximoContatoEm DateTime?
+  // Controle de recebíveis (2026-10-01, pedido explícito) — preenchidos
+  // quando o estágio vira "aderiu": valor que o ente efetivamente aderiu
+  // (pode ser menor que o valor total da ata) e o percentual que a
+  // Tech 10 recebe sobre o que for liquidado desse valor (ver Liquidacao
+  // — o aderido é só o teto, a receita de verdade nasce da liquidação).
+  valorAderido        Decimal? @db.Decimal(14, 2)
+  percentualComissao  Decimal? @db.Decimal(5, 4)
   criadoEm         DateTime  @default(now())
   atualizadoEm     DateTime  @updatedAt
   isSeed           Boolean   @default(false)
@@ -179,9 +202,28 @@ model OportunidadeVenda {
   ata          Ata          @relation(fields: [ataId], references: [id])
   entidadeAlvo EntidadeAlvo @relation(fields: [entidadeAlvoId], references: [id])
   vendedor     Vendedor     @relation(fields: [vendedorId], references: [id])
+  liquidacoes  Liquidacao[]
 
   @@unique([ataId, entidadeAlvoId])
   @@map("oportunidades_venda")
+}
+
+// Cada nota fiscal liquidada pelo ente dentro do valor aderido (2026-10-01)
+// — um ente pode aderir 50mi e usar só 30mi de fato; a Tech 10 só recebe
+// sobre o que foi liquidado, não sobre o valor aderido (que é só o teto).
+// Pode ter várias liquidações parciais por oportunidade.
+model Liquidacao {
+  id               String   @id @default(cuid())
+  oportunidadeId   String
+  valorLiquidado   Decimal  @db.Decimal(14, 2)
+  numeroNotaFiscal String?
+  dataLiquidacao   DateTime
+  criadoEm         DateTime @default(now())
+  isSeed           Boolean  @default(false)
+
+  oportunidade OportunidadeVenda @relation(fields: [oportunidadeId], references: [id])
+
+  @@map("liquidacoes")
 }
 
 // Anexo da ata (edital, ofício, ata digitalizada) — decisão de 2026-09-04:

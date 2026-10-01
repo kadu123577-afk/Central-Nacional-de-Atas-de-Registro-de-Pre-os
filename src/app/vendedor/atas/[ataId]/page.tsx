@@ -107,6 +107,22 @@ export default async function KanbanAtaPage({ params }: { params: Promise<{ ataI
         </Link>
       </div>
 
+      {(ata.fornecedor.contatoTecnicoNome ||
+        ata.fornecedor.contatoTecnicoTelefone ||
+        ata.fornecedor.contatoTecnicoEmail) && (
+        <div
+          className="painel flex flex-wrap items-center gap-x-4 gap-y-1 p-3 text-xs"
+          style={{ color: "var(--cor-texto-2)" }}
+        >
+          <span className="eyebrow" style={{ color: "var(--cor-texto-3)" }}>
+            Contato técnico do fornecedor
+          </span>
+          {ata.fornecedor.contatoTecnicoNome && <span>{ata.fornecedor.contatoTecnicoNome}</span>}
+          {ata.fornecedor.contatoTecnicoTelefone && <span>{ata.fornecedor.contatoTecnicoTelefone}</span>}
+          {ata.fornecedor.contatoTecnicoEmail && <span>{ata.fornecedor.contatoTecnicoEmail}</span>}
+        </div>
+      )}
+
       {oportunidades.length === 0 ? (
         <VazioComAcao
           titulo="Nenhum município com necessidade confirmada ainda"
@@ -136,6 +152,8 @@ export default async function KanbanAtaPage({ params }: { params: Promise<{ ataI
                     estagioAtual={o.estagio}
                     corEstagio={COR_ESTAGIO_OPORTUNIDADE[estagio]}
                     observacoesAtuais={o.observacoes}
+                    valorAderidoAtual={o.valorAderido ? o.valorAderido.toString() : null}
+                    percentualComissaoAtual={o.percentualComissao ? o.percentualComissao.toString() : null}
                     contatos={(contatosPorEntidade.get(o.entidadeAlvoId) ?? []).map((c) => ({
                       cargo: c.cargo,
                       nomeContato: c.nomeContato,

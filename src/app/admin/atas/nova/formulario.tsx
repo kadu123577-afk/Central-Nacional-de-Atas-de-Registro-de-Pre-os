@@ -13,6 +13,7 @@ const NAV_ADMIN = [
   { rotulo: "Painel", href: "/admin" },
   { rotulo: "Atas", href: "/atas" },
   { rotulo: "Contas a receber", href: "/admin/faturamento" },
+  { rotulo: "Recebíveis — vendedores", href: "/admin/recebiveis-vendedores" },
   { rotulo: "Usuários", href: "/admin/usuarios" },
   { rotulo: "Fornecedores", href: "/admin/fornecedores" },
   { rotulo: "Municípios/Entidades", href: "/admin/entidades" },
@@ -99,6 +100,15 @@ export function FormularioNovaAtaAdmin() {
           <div className="flex flex-col gap-4">
             <Campo label="Número" name="numero" required />
             <Campo label="Objeto" name="objeto" required />
+            <label className="block text-sm">
+              <span className="mb-1 block font-medium" style={{ color: "var(--cor-texto-2)" }}>
+                Origem
+              </span>
+              <select name="origem" className="campo-atas" defaultValue="MANUAL">
+                <option value="MANUAL">Cadastro manual</option>
+                <option value="CIABC">CIABC</option>
+              </select>
+            </label>
             <label className="block text-sm">
               <span className="mb-1 block font-medium" style={{ color: "var(--cor-texto-2)" }}>
                 Tema da ata

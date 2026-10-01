@@ -57,12 +57,18 @@ export default async function DashboardVendedorPage() {
     let valorEmAberto = 0;
     let aderidas = 0;
     for (const o of ata.oportunidades) {
-      const valor = ata.categoria ? (valorPorEntidadeCategoria.get(`${o.entidadeAlvoId}|${ata.categoria}`) ?? 0) : 0;
       if (o.estagio === "aderiu") {
-        valorFechado += valor;
+        // Valor real registrado na adesão, nunca a estimativa — é o que
+        // vale pro controle de recebíveis (ver /admin/recebiveis).
+        valorFechado += o.valorAderido ? Number(o.valorAderido) : 0;
         aderidas += 1;
       } else if (o.estagio === "a_contatar" || o.estagio === "em_negociacao") {
-        valorEmAberto += valor;
+        // Aqui ainda não existe valor real — é só um indicativo de
+        // apetite de mercado (última contratação dessa categoria nesse
+        // município, não o valor desta ata).
+        valorEmAberto += ata.categoria
+          ? (valorPorEntidadeCategoria.get(`${o.entidadeAlvoId}|${ata.categoria}`) ?? 0)
+          : 0;
       }
     }
     return {
@@ -116,10 +122,13 @@ export default async function DashboardVendedorPage() {
         </div>
         <div className="painel flex flex-col justify-between gap-4 p-8">
           <p className="eyebrow" style={{ color: "var(--cor-texto-3)" }}>
-            Valor ainda em aberto
+            Valor estimado em aberto
           </p>
           <p className="marca whitespace-nowrap text-3xl" style={{ color: "var(--cor-texto)" }}>
             <Cifra valor={valorEmAbertoGeral} />
+          </p>
+          <p className="text-xs" style={{ color: "var(--cor-texto-3)" }}>
+            Estimativa pelo histórico de consumo — não é o valor real da ata.
           </p>
         </div>
       </div>
@@ -139,7 +148,7 @@ export default async function DashboardVendedorPage() {
                   <th>Categoria</th>
                   <th>Aderiram</th>
                   <th>Valor já fechado</th>
-                  <th>Valor ainda em aberto</th>
+                  <th>Valor estimado em aberto</th>
                 </tr>
               </thead>
               <tbody>

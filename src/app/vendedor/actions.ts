@@ -176,9 +176,32 @@ export async function moverEstagioOportunidade(
 
   const observacoesLimpa = observacoes.trim() || null;
 
+  // Controle de recebíveis (2026-10-01) — "Aderiu" exige registrar o
+  // valor que o ente aderiu e o percentual de comissão da Tech 10 sobre
+  // o que vier a ser liquidado disso. Sem os dois, não deixa marcar como
+  // aderiu: senão o admin não teria base nenhuma pra cobrar depois.
+  let valorAderido: string | undefined;
+  let percentualComissao: string | undefined;
+  if (novoEstagio === "aderiu") {
+    const valorBruto = String(formData.get("valorAderido") ?? "").trim();
+    const percentualBruto = String(formData.get("percentualComissao") ?? "").trim();
+    const valorNumero = Number(valorBruto);
+    const percentualNumero = Number(percentualBruto);
+    if (!valorBruto || !Number.isFinite(valorNumero) || valorNumero <= 0) return;
+    if (!percentualBruto || !Number.isFinite(percentualNumero) || percentualNumero <= 0) return;
+    valorAderido = valorBruto;
+    // Percentual digitado em % (ex.: 0,5 = meio por cento) — guardado
+    // como fração (0,005) pra multiplicar direto pelo valor liquidado.
+    percentualComissao = String(percentualNumero / 100);
+  }
+
   await prisma.oportunidadeVenda.update({
     where: { id: oportunidadeId },
-    data: { estagio: novoEstagio, observacoes: observacoesLimpa },
+    data: {
+      estagio: novoEstagio,
+      observacoes: observacoesLimpa,
+      ...(valorAderido ? { valorAderido, percentualComissao } : {}),
+    },
   });
 
   const contatoPrincipal = await prisma.pontoFocal.findFirst({
