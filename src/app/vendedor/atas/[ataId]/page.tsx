@@ -42,21 +42,32 @@ export default async function KanbanAtaPage({ params }: { params: Promise<{ ataI
   });
 
   const entidadeIds = oportunidades.map((o) => o.entidadeAlvoId);
+
+  // Todos os contatos ativos (prefeito + secretários) — não só um
+  // representante. É justamente o dado que deu mais trabalho levantar.
   const contatos = await prisma.pontoFocal.findMany({
     where: { entidadeAlvoId: { in: entidadeIds }, ativo: true },
     orderBy: { createdAt: "asc" },
   });
-  const contatoPorEntidade = new Map<string, (typeof contatos)[number]>();
+  const contatosPorEntidade = new Map<string, typeof contatos>();
   for (const c of contatos) {
-    if (!contatoPorEntidade.has(c.entidadeAlvoId)) contatoPorEntidade.set(c.entidadeAlvoId, c);
+    const lista = contatosPorEntidade.get(c.entidadeAlvoId) ?? [];
+    lista.push(c);
+    contatosPorEntidade.set(c.entidadeAlvoId, lista);
   }
 
-  const historicoPorEntidade = new Map<string, Date>();
-  if (ata.categoria) {
-    const historico = await prisma.historicoConsumoCategoria.findMany({
-      where: { entidadeAlvoId: { in: entidadeIds }, categoria: ata.categoria },
-    });
-    for (const h of historico) historicoPorEntidade.set(h.entidadeAlvoId, h.ultimaContratacao);
+  // Raio-X completo (todas as categorias já identificadas pro
+  // município, não só a desta ata) — "as necessidades que esses
+  // municípios podem ter", não só o sinal que trouxe ele pro Kanban.
+  const historico = await prisma.historicoConsumoCategoria.findMany({
+    where: { entidadeAlvoId: { in: entidadeIds } },
+    orderBy: { ultimaContratacao: "desc" },
+  });
+  const necessidadesPorEntidade = new Map<string, typeof historico>();
+  for (const h of historico) {
+    const lista = necessidadesPorEntidade.get(h.entidadeAlvoId) ?? [];
+    lista.push(h);
+    necessidadesPorEntidade.set(h.entidadeAlvoId, lista);
   }
 
   const porEstagio = Object.fromEntries(
@@ -74,6 +85,7 @@ export default async function KanbanAtaPage({ params }: { params: Promise<{ ataI
     <AppShell
       area="Vendedor"
       itens={NAV_VENDEDOR}
+      larguraMaxima="max-w-7xl"
       rodape={
         <form action={logoutVendedor}>
           <button type="submit" className="botao-atas link">
@@ -114,14 +126,16 @@ export default async function KanbanAtaPage({ params }: { params: Promise<{ ataI
                     uf={o.entidadeAlvo.uf}
                     estagioAtual={o.estagio}
                     observacoesAtuais={o.observacoes}
-                    contatoPrincipal={contatoPorEntidade.get(o.entidadeAlvoId) ?? null}
-                    sinalDeNecessidade={
-                      historicoPorEntidade.has(o.entidadeAlvoId)
-                        ? `Última contratação dessa categoria: ${historicoPorEntidade
-                            .get(o.entidadeAlvoId)!
-                            .toLocaleDateString("pt-BR")}`
-                        : null
-                    }
+                    contatos={(contatosPorEntidade.get(o.entidadeAlvoId) ?? []).map((c) => ({
+                      cargo: c.cargo,
+                      nomeContato: c.nomeContato,
+                      telefone: c.telefone,
+                      email: c.email,
+                    }))}
+                    necessidades={(necessidadesPorEntidade.get(o.entidadeAlvoId) ?? []).map((h) => ({
+                      categoria: h.categoria,
+                      ultimaContratacao: h.ultimaContratacao,
+                    }))}
                   />
                 ))}
               </ul>

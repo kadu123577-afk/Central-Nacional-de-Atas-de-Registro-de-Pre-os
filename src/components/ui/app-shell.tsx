@@ -14,11 +14,16 @@ export function AppShell({
   itens,
   rodape,
   children,
+  // Telas de formulário/texto corrido ficam melhores estreitas (leitura);
+  // um Kanban de várias colunas precisa da tela inteira, senão as colunas
+  // ficam espremidas e sobra vão enorme nas laterais.
+  larguraMaxima = "max-w-4xl",
 }: {
   area: string;
   itens: ItemNav[];
   rodape?: React.ReactNode;
   children: React.ReactNode;
+  larguraMaxima?: string;
 }) {
   const pathname = usePathname();
 
@@ -56,7 +61,7 @@ export function AppShell({
       </aside>
 
       <main className="flex-1 px-8 py-8">
-        <div className="mx-auto flex max-w-4xl flex-col gap-5">{children}</div>
+        <div className={`mx-auto flex ${larguraMaxima} flex-col gap-5`}>{children}</div>
       </main>
     </div>
   );
