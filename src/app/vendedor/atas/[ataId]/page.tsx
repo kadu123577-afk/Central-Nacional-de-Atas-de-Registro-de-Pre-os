@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { AppShell } from "@/components/ui/app-shell";
 import { Secao } from "@/components/ui/secao";
 import { VazioComAcao } from "@/components/ui/vazio-com-acao";
-import { ESTAGIOS_OPORTUNIDADE, ROTULO_ESTAGIO_OPORTUNIDADE } from "@/lib/oportunidades";
+import { COR_ESTAGIO_OPORTUNIDADE, ESTAGIOS_OPORTUNIDADE, ROTULO_ESTAGIO_OPORTUNIDADE } from "@/lib/oportunidades";
 import { buscarMunicipiosCompativeis } from "@/lib/match-ata-municipio";
 import { adicionarOportunidadeManual, logoutVendedor } from "../../actions";
 import { NAV_VENDEDOR } from "../../nav";
@@ -115,7 +115,17 @@ export default async function KanbanAtaPage({ params }: { params: Promise<{ ataI
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
           {ESTAGIOS_OPORTUNIDADE.map((estagio) => (
-            <Secao key={estagio} titulo={`${ROTULO_ESTAGIO_OPORTUNIDADE[estagio]} (${porEstagio[estagio].length})`}>
+            <Secao
+              key={estagio}
+              titulo={`${ROTULO_ESTAGIO_OPORTUNIDADE[estagio]} (${porEstagio[estagio].length})`}
+              acao={
+                <span
+                  aria-hidden
+                  className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
+                  style={{ background: COR_ESTAGIO_OPORTUNIDADE[estagio] }}
+                />
+              }
+            >
               <ul className="flex max-h-[70vh] flex-col gap-2 overflow-y-auto pr-1">
                 {porEstagio[estagio].map((o) => (
                   <CartaoOportunidade
@@ -124,6 +134,7 @@ export default async function KanbanAtaPage({ params }: { params: Promise<{ ataI
                     nomeMunicipio={o.entidadeAlvo.nome}
                     uf={o.entidadeAlvo.uf}
                     estagioAtual={o.estagio}
+                    corEstagio={COR_ESTAGIO_OPORTUNIDADE[estagio]}
                     observacoesAtuais={o.observacoes}
                     contatos={(contatosPorEntidade.get(o.entidadeAlvoId) ?? []).map((c) => ({
                       cargo: c.cargo,

@@ -25,6 +25,15 @@ export function estagioOportunidadeValido(valor: string): valor is EstagioOportu
   return (ESTAGIOS_OPORTUNIDADE as readonly string[]).includes(valor);
 }
 
+/** Cor de cada estágio no Kanban — leitura visual instantânea (verde =
+ * ganhou, vermelho = perdeu) sem precisar ler o texto do card. */
+export const COR_ESTAGIO_OPORTUNIDADE: Record<EstagioOportunidade, string> = {
+  a_contatar: "var(--cor-texto-3)",
+  em_negociacao: "var(--cor-atencao)",
+  aderiu: "var(--cor-marca-clara)",
+  recusado: "var(--cor-critico)",
+};
+
 /**
  * Cada mudança de estágio também vira uma InteracaoPontoFocal (histórico
  * já existente por contato) — assim o painel de contatos e o Kanban

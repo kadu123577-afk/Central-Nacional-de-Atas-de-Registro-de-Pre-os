@@ -23,6 +23,9 @@ export default async function DashboardVendedorPage() {
   const vendedorId = await vendedorIdLogado();
   if (!vendedorId) redirect("/vendedor/login");
 
+  const vendedor = await prisma.vendedor.findUnique({ where: { id: vendedorId } });
+  if (!vendedor) redirect("/vendedor/login");
+
   const minhasAtas = await prisma.ata.findMany({
     where: { vendedorId },
     include: {
@@ -75,10 +78,12 @@ export default async function DashboardVendedorPage() {
   const valorFechadoGeral = linhasPorAta.reduce((soma, l) => soma + l.valorFechado, 0);
   const valorEmAbertoGeral = linhasPorAta.reduce((soma, l) => soma + l.valorEmAberto, 0);
 
+  const primeiroNome = vendedor.nome.split(" ")[0];
+
   return (
-    <AppShell area="Vendedor" itens={NAV_VENDEDOR} larguraMaxima="max-w-7xl">
+    <AppShell area={`Vendedor — ${vendedor.nome}`} itens={NAV_VENDEDOR} larguraMaxima="max-w-7xl">
       <h1 className="marca text-2xl" style={{ color: "var(--cor-texto)" }}>
-        Dashboard
+        Olá, {primeiroNome}
       </h1>
 
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
@@ -147,7 +152,23 @@ export default async function DashboardVendedorPage() {
                     </td>
                     <td>{ata.categoria ? rotuloDaCategoria(ata.categoria) : "Sem categoria"}</td>
                     <td>
-                      {aderidas}/{total}
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="h-1.5 w-20 overflow-hidden rounded-full"
+                          style={{ background: "var(--cor-superficie-2)" }}
+                        >
+                          <div
+                            className="h-full rounded-full"
+                            style={{
+                              width: total > 0 ? `${(aderidas / total) * 100}%` : "0%",
+                              background: "var(--cor-marca-clara)",
+                            }}
+                          />
+                        </div>
+                        <span className="whitespace-nowrap text-xs" style={{ color: "var(--cor-texto-2)" }}>
+                          {aderidas}/{total}
+                        </span>
+                      </div>
                     </td>
                     <td>
                       <Cifra valor={valorFechado} />

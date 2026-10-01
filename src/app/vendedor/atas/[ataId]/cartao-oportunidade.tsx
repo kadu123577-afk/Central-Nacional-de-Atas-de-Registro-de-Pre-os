@@ -22,6 +22,7 @@ interface Props {
   nomeMunicipio: string;
   uf: string | null;
   estagioAtual: string;
+  corEstagio: string;
   observacoesAtuais: string | null;
   contatos: Contato[];
   necessidades: Necessidade[];
@@ -37,6 +38,7 @@ export function CartaoOportunidade({
   nomeMunicipio,
   uf,
   estagioAtual,
+  corEstagio,
   observacoesAtuais,
   contatos,
   necessidades,
@@ -45,7 +47,7 @@ export function CartaoOportunidade({
   const acaoComId = moverEstagioOportunidade.bind(null, oportunidadeId);
 
   return (
-    <li className="painel p-3">
+    <li className="painel p-3" style={{ borderLeft: `3px solid ${corEstagio}` }}>
       <button
         type="button"
         onClick={() => setAberto((a) => !a)}
