@@ -76,41 +76,44 @@ export default async function DashboardVendedorPage() {
   const valorEmAbertoGeral = linhasPorAta.reduce((soma, l) => soma + l.valorEmAberto, 0);
 
   return (
-    <AppShell area="Vendedor" itens={NAV_VENDEDOR}>
+    <AppShell area="Vendedor" itens={NAV_VENDEDOR} larguraMaxima="max-w-7xl">
       <h1 className="marca text-2xl" style={{ color: "var(--cor-texto)" }}>
         Dashboard
       </h1>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="painel p-4">
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+        <div className="painel flex flex-col justify-between gap-4 p-8">
           <p className="eyebrow" style={{ color: "var(--cor-texto-3)" }}>
             Atas reivindicadas
           </p>
-          <p className="marca text-3xl" style={{ color: "var(--cor-texto)" }}>
+          <p className="marca text-5xl" style={{ color: "var(--cor-texto)" }}>
             {minhasAtas.length}
           </p>
         </div>
-        <div className="painel p-4">
+        <div className="painel flex flex-col justify-between gap-4 p-8">
           <p className="eyebrow" style={{ color: "var(--cor-texto-3)" }}>
             Atas vendidas (1+ adesão)
           </p>
-          <p className="marca text-3xl" style={{ color: "var(--cor-marca-clara)" }}>
+          <p className="marca text-5xl" style={{ color: "var(--cor-marca-clara)" }}>
             {totalAtasVendidas}
           </p>
         </div>
-        <div className="painel p-4">
+        <div className="painel flex flex-col justify-between gap-4 p-8">
           <p className="eyebrow" style={{ color: "var(--cor-texto-3)" }}>
             Valor já fechado
           </p>
-          <p className="marca text-3xl" style={{ color: "var(--cor-marca-clara)" }}>
+          <p
+            className="marca whitespace-nowrap text-3xl"
+            style={{ color: "var(--cor-marca-clara)" }}
+          >
             <Cifra valor={valorFechadoGeral} />
           </p>
         </div>
-        <div className="painel p-4">
+        <div className="painel flex flex-col justify-between gap-4 p-8">
           <p className="eyebrow" style={{ color: "var(--cor-texto-3)" }}>
             Valor ainda em aberto
           </p>
-          <p className="marca text-3xl" style={{ color: "var(--cor-texto)" }}>
+          <p className="marca whitespace-nowrap text-3xl" style={{ color: "var(--cor-texto)" }}>
             <Cifra valor={valorEmAbertoGeral} />
           </p>
         </div>
