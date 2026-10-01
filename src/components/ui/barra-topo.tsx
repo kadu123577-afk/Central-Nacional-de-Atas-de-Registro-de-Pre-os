@@ -43,7 +43,7 @@ export function BarraTopo() {
           {CATEGORIAS_ATAS.map((c) => (
             <Link
               key={c.slug}
-              href={`/catalogo?categoria=${encodeURIComponent(c.rotulo)}`}
+              href={`/catalogo?categoria=${encodeURIComponent(c.slug)}`}
               className="eyebrow whitespace-nowrap"
               style={{ color: "var(--cor-texto-2)" }}
             >

@@ -94,3 +94,32 @@ export function corDaCategoria(rotuloOuSlug: string): string {
   }
   return CORES_RESERVA[Math.abs(hash) % CORES_RESERVA.length];
 }
+
+/**
+ * `Ata.categoria` guarda o slug ("material-construcao"), não o rótulo
+ * legível ("Material de construção") — achado real (2026-10-01): várias
+ * telas públicas (catálogo, detalhe da ata) mostravam o slug cru pro
+ * usuário final. Esta função resolve de volta pro rótulo; se não achar
+ * (categoria desconhecida), devolve o valor original em vez de quebrar.
+ */
+export function rotuloDaCategoria(rotuloOuSlug: string): string {
+  const conhecida = CATEGORIAS_ATAS.find(
+    (c) => c.rotulo === rotuloOuSlug || c.slug === rotuloOuSlug,
+  );
+  return conhecida?.rotulo ?? rotuloOuSlug;
+}
+
+/**
+ * O inverso — texto digitado livremente numa busca (rótulo, ou o
+ * próprio slug) vira o slug exato, se bater com uma categoria
+ * conhecida. Usado pra filtro de banco, já que `Ata.categoria` só tem o
+ * slug — sem isso, buscar "material de construção" no catálogo público
+ * não encontrava nada salvo como "material-construcao".
+ */
+export function resolverSlugCategoria(texto: string): string | null {
+  const alvo = texto.trim().toLowerCase();
+  const conhecida = CATEGORIAS_ATAS.find(
+    (c) => c.rotulo.toLowerCase() === alvo || c.slug.toLowerCase() === alvo || c.rotuloCurto?.toLowerCase() === alvo,
+  );
+  return conhecida?.slug ?? null;
+}

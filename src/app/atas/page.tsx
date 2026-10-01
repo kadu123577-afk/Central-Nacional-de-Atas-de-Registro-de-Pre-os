@@ -10,7 +10,7 @@ import { Numero } from "@/components/ui/valores";
 import { VazioComAcao } from "@/components/ui/vazio-com-acao";
 import { tomStatusAta } from "@/lib/severidade";
 import { ESFERAS_ORGAO } from "@/lib/esferas";
-import { corDaCategoria } from "@/lib/categorias";
+import { corDaCategoria, rotuloDaCategoria } from "@/lib/categorias";
 
 // Depende sempre de dados atuais do banco — nunca pré-renderizar em build.
 export const dynamic = "force-dynamic";
@@ -163,7 +163,7 @@ export default async function AtasPage({
                     className="eyebrow rounded-full border px-2.5 py-0.5"
                     style={{ borderColor: corDaCategoria(ata.categoria), color: corDaCategoria(ata.categoria) }}
                   >
-                    {ata.categoria}
+                    {rotuloDaCategoria(ata.categoria)}
                   </span>
                 ) : (
                   <span className="text-xs" style={{ color: "var(--cor-texto-3)" }}>

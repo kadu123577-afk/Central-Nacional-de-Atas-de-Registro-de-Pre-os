@@ -25,7 +25,7 @@ export default async function Home() {
     CATEGORIAS_ATAS.map(async (c) => ({
       ...c,
       total: await prisma.ata.count({
-        where: { categoria: c.rotulo, ...ataDisponivel, isSeed: false },
+        where: { categoria: c.slug, ...ataDisponivel, isSeed: false },
       }),
     })),
   );
@@ -41,7 +41,7 @@ export default async function Home() {
 
   const atasVitrine = destaque
     ? await prisma.ata.findMany({
-        where: { categoria: destaque.rotulo, ...ataDisponivel, isSeed: false },
+        where: { categoria: destaque.slug, ...ataDisponivel, isSeed: false },
         include: { _count: { select: { itens: true } } },
         orderBy: { dataVigenciaFim: "asc" },
         take: 3,
@@ -52,7 +52,7 @@ export default async function Home() {
     categoriasEmDestaque.map(async (c) => ({
       categoria: c,
       atas: await prisma.ata.findMany({
-        where: { categoria: c.rotulo, ...ataDisponivel, isSeed: false },
+        where: { categoria: c.slug, ...ataDisponivel, isSeed: false },
         include: { fornecedor: true, orgaoGerenciador: true, _count: { select: { itens: true } } },
         take: 4,
         orderBy: { dataVigenciaFim: "asc" },
@@ -84,7 +84,7 @@ export default async function Home() {
               {destaque && (
                 <Link
                   key={destaque.slug}
-                  href={`/catalogo?categoria=${encodeURIComponent(destaque.rotulo)}`}
+                  href={`/catalogo?categoria=${encodeURIComponent(destaque.slug)}`}
                   className="painel relative flex min-h-72 flex-col justify-between gap-4 border-l-[3px] p-5 transition-colors hover:border-[var(--cor-borda-forte)] lg:col-span-2 lg:row-span-2"
                   style={{ borderLeftColor: corDaCategoria(destaque.rotulo) }}
                 >
@@ -121,7 +121,7 @@ export default async function Home() {
               {resto.map((c) => (
                 <Link
                   key={c.slug}
-                  href={`/catalogo?categoria=${encodeURIComponent(c.rotulo)}`}
+                  href={`/catalogo?categoria=${encodeURIComponent(c.slug)}`}
                   className="painel relative flex min-h-32 flex-col justify-end border-l-[3px] p-5 transition-colors hover:border-[var(--cor-borda-forte)]"
                   style={{ borderLeftColor: corDaCategoria(c.rotulo) }}
                 >

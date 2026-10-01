@@ -6,7 +6,7 @@ import { AppShell } from "@/components/ui/app-shell";
 import { Secao } from "@/components/ui/secao";
 import { Badge } from "@/components/ui/badge";
 import { VazioComAcao } from "@/components/ui/vazio-com-acao";
-import { corDaCategoria } from "@/lib/categorias";
+import { corDaCategoria, rotuloDaCategoria } from "@/lib/categorias";
 import { logoutVendedor, reivindicarAta } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -92,7 +92,7 @@ export default async function PainelVendedorPage() {
                           className="eyebrow rounded-full border px-2.5 py-0.5"
                           style={{ borderColor: corDaCategoria(ata.categoria), color: corDaCategoria(ata.categoria) }}
                         >
-                          {ata.categoria}
+                          {rotuloDaCategoria(ata.categoria)}
                         </span>
                       )}
                       <Badge tom="marca">
@@ -132,7 +132,7 @@ export default async function PainelVendedorPage() {
                       className="eyebrow rounded-full border px-2.5 py-0.5"
                       style={{ borderColor: corDaCategoria(ata.categoria), color: corDaCategoria(ata.categoria) }}
                     >
-                      {ata.categoria}
+                      {rotuloDaCategoria(ata.categoria)}
                     </span>
                   )}
                   <form action={reivindicarAta.bind(null, ata.id)}>

@@ -5,6 +5,7 @@ import { Logo } from "@/components/ui/logo";
 import { Secao } from "@/components/ui/secao";
 import { Badge } from "@/components/ui/badge";
 import { SeloCategoria } from "@/components/ui/selo-categoria";
+import { rotuloDaCategoria, resolverSlugCategoria } from "@/lib/categorias";
 import { Cifra } from "@/components/ui/valores";
 import { VazioComAcao } from "@/components/ui/vazio-com-acao";
 
@@ -50,7 +51,12 @@ export default async function CatalogoPage({
       <Secao titulo="Buscar">
         <form className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <input name="q" defaultValue={q} placeholder="Buscar um item específico" className="campo-atas col-span-2 sm:col-span-1" />
-          <input name="categoria" defaultValue={categoria} placeholder="Tema da ata" className="campo-atas" />
+          <input
+            name="categoria"
+            defaultValue={categoria ? rotuloDaCategoria(categoria) : ""}
+            placeholder="Tema da ata"
+            className="campo-atas"
+          />
           <input
             name="uf"
             defaultValue={uf}
@@ -148,7 +154,9 @@ async function ListaDeAtas({
   const where: Prisma.AtaWhereInput = {
     ...ataDisponivel,
     ...(uf ? { orgaoGerenciador: { uf } } : {}),
-    ...(categoria ? { categoria: { contains: categoria, mode: "insensitive" } } : {}),
+    ...(categoria
+      ? { categoria: resolverSlugCategoria(categoria) ?? { contains: categoria, mode: "insensitive" } }
+      : {}),
     ...(valorMax && !Number.isNaN(Number(valorMax))
       ? { itens: { some: { valorUnitario: { lte: new Prisma.Decimal(valorMax) } } } }
       : {}),
@@ -185,7 +193,7 @@ async function ListaDeAtas({
           </div>
           {ata.categoria && (
             <div className="mt-1">
-              <SeloCategoria categoria={ata.categoria} />
+              <SeloCategoria categoria={rotuloDaCategoria(ata.categoria)} />
             </div>
           )}
           <p className="mt-2 text-sm" style={{ color: "var(--cor-texto-2)" }}>

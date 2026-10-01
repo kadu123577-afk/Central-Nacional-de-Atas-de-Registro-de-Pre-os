@@ -7,7 +7,7 @@ import { AppShell } from "@/components/ui/app-shell";
 import { Secao } from "@/components/ui/secao";
 import { Badge } from "@/components/ui/badge";
 import { VazioComAcao } from "@/components/ui/vazio-com-acao";
-import { corDaCategoria } from "@/lib/categorias";
+import { corDaCategoria, rotuloDaCategoria } from "@/lib/categorias";
 import { buscarMunicipiosCompativeis } from "@/lib/match-ata-municipio";
 import { FormularioCategoriaAta } from "./formulario-categoria";
 
@@ -145,7 +145,7 @@ export default async function MunicipiosCompativeisPage({
                 className="eyebrow rounded-full border px-2.5 py-0.5"
                 style={{ borderColor: corDaCategoria(ata.categoria), color: corDaCategoria(ata.categoria) }}
               >
-                {ata.categoria}
+                {rotuloDaCategoria(ata.categoria)}
               </span>
             }
           >

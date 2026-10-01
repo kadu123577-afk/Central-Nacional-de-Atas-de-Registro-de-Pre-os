@@ -9,6 +9,7 @@ import { Logo } from "@/components/ui/logo";
 import { Secao } from "@/components/ui/secao";
 import { Badge } from "@/components/ui/badge";
 import { SeloCategoria } from "@/components/ui/selo-categoria";
+import { rotuloDaCategoria } from "@/lib/categorias";
 import { Cifra, Numero } from "@/components/ui/valores";
 import { BarraConsumo } from "@/components/ui/barra-consumo";
 
@@ -73,7 +74,7 @@ export default async function DetalheAtaPage({
           <span>/</span>
           {ata.categoria ? (
             <Link href={`/catalogo?categoria=${encodeURIComponent(ata.categoria)}`} className="underline">
-              {ata.categoria}
+              {rotuloDaCategoria(ata.categoria)}
             </Link>
           ) : (
             <span>Sem tema classificado</span>
@@ -92,7 +93,7 @@ export default async function DetalheAtaPage({
           <h1 className="marca text-2xl" style={{ color: "var(--cor-texto)" }}>
             Ata {ata.numero}
           </h1>
-          {ata.categoria && <SeloCategoria categoria={ata.categoria} />}
+          {ata.categoria && <SeloCategoria categoria={rotuloDaCategoria(ata.categoria)} />}
           {ata.origem === "PNCP" && <Badge tom="marca">Importado do PNCP</Badge>}
           {ata.origem === "COMPRAS_GOV" && <Badge tom="marca">Importado do Compras.gov.br</Badge>}
           <Badge tom={tomVig}>{rotuloVigencia}</Badge>
@@ -165,7 +166,7 @@ export default async function DetalheAtaPage({
                     <Cifra valor={item.valorUnitario} /> / {item.unidade}
                   </span>
                 </div>
-                <p className="eyebrow mt-1">{item.categoria}</p>
+                <p className="eyebrow mt-1">{item.categoria ? rotuloDaCategoria(item.categoria) : null}</p>
                 <p className="mt-2 text-sm" style={{ color: "var(--cor-texto-2)" }}>
                   Saldo agregado disponível:{" "}
                   <strong style={{ color: "var(--cor-texto)" }}>
