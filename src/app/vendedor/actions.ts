@@ -158,21 +158,28 @@ export async function adicionarOportunidadeManual(
  * o primeiro contato ativo do município como representante. Assim o
  * painel de contatos e o Kanban nunca desencontram.
  */
+export interface EstadoMoverEstagio {
+  erro?: string;
+}
+
 export async function moverEstagioOportunidade(
   oportunidadeId: string,
+  _estadoAnterior: EstadoMoverEstagio,
   formData: FormData,
-): Promise<void> {
+): Promise<EstadoMoverEstagio> {
   const vendedorId = await vendedorIdLogado();
   if (!vendedorId) redirect("/vendedor/login");
 
   const novoEstagio = String(formData.get("estagio") ?? "");
   const observacoes = String(formData.get("observacoes") ?? "");
-  if (!estagioOportunidadeValido(novoEstagio)) return;
+  if (!estagioOportunidadeValido(novoEstagio)) return { erro: "Estágio inválido." };
 
   const oportunidade = await prisma.oportunidadeVenda.findUnique({
     where: { id: oportunidadeId },
   });
-  if (!oportunidade || oportunidade.vendedorId !== vendedorId) return;
+  if (!oportunidade || oportunidade.vendedorId !== vendedorId) {
+    return { erro: "Oportunidade não encontrada." };
+  }
 
   const observacoesLimpa = observacoes.trim() || null;
 
@@ -187,12 +194,33 @@ export async function moverEstagioOportunidade(
     const percentualBruto = String(formData.get("percentualComissao") ?? "").trim();
     const valorNumero = Number(valorBruto);
     const percentualNumero = Number(percentualBruto);
-    if (!valorBruto || !Number.isFinite(valorNumero) || valorNumero <= 0) return;
-    if (!percentualBruto || !Number.isFinite(percentualNumero) || percentualNumero <= 0) return;
+    if (!valorBruto || !Number.isFinite(valorNumero) || valorNumero <= 0) {
+      return { erro: "Informe um valor aderido maior que zero." };
+    }
+    if (!percentualBruto || !Number.isFinite(percentualNumero) || percentualNumero <= 0) {
+      return { erro: "Informe um percentual de comissão maior que zero." };
+    }
+    if (percentualNumero > 100) {
+      return { erro: "O percentual de comissão não pode passar de 100%." };
+    }
     valorAderido = valorBruto;
     // Percentual digitado em % (ex.: 0,5 = meio por cento) — guardado
     // como fração (0,005) pra multiplicar direto pelo valor liquidado.
     percentualComissao = String(percentualNumero / 100);
+  }
+
+  // Saindo de "aderiu": os dados de recebível deixam de valer e são
+  // limpos — mas só se nenhuma nota fiscal já foi liquidada em cima deles,
+  // senão o admin perderia a base do que já foi (ou será) cobrado.
+  let limparRecebivel = false;
+  if (oportunidade.estagio === "aderiu" && novoEstagio !== "aderiu") {
+    const liquidacoes = await prisma.liquidacao.count({ where: { oportunidadeId } });
+    if (liquidacoes > 0) {
+      return {
+        erro: `Esta oportunidade já tem ${liquidacoes} liquidação(ões) registrada(s) e não pode sair de "Aderiu". Fale com o administrador.`,
+      };
+    }
+    limparRecebivel = true;
   }
 
   await prisma.oportunidadeVenda.update({
@@ -201,6 +229,7 @@ export async function moverEstagioOportunidade(
       estagio: novoEstagio,
       observacoes: observacoesLimpa,
       ...(valorAderido ? { valorAderido, percentualComissao } : {}),
+      ...(limparRecebivel ? { valorAderido: null, percentualComissao: null } : {}),
     },
   });
 
@@ -220,4 +249,5 @@ export async function moverEstagioOportunidade(
   }
 
   revalidatePath(`/vendedor/atas/${oportunidade.ataId}`);
+  return {};
 }

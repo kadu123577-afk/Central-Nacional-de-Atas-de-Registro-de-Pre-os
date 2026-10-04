@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useActionState, useState } from "react";
 import { ESTAGIOS_OPORTUNIDADE, ROTULO_ESTAGIO_OPORTUNIDADE } from "@/lib/oportunidades";
 import { ROTULO_CATEGORIA_CONSUMO } from "@/lib/classificador-objeto";
 import { Cifra } from "@/components/ui/valores";
-import { moverEstagioOportunidade } from "../../actions";
+import { moverEstagioOportunidade, type EstadoMoverEstagio } from "../../actions";
 
 interface Contato {
   cargo: string;
@@ -51,6 +51,7 @@ export function CartaoOportunidade({
   const [aberto, setAberto] = useState(false);
   const [estagioSelecionado, setEstagioSelecionado] = useState(estagioAtual);
   const acaoComId = moverEstagioOportunidade.bind(null, oportunidadeId);
+  const [estado, formAction, pendente] = useActionState<EstadoMoverEstagio, FormData>(acaoComId, {});
 
   return (
     <li className="painel p-3" style={{ borderLeft: `3px solid ${corEstagio}` }}>
@@ -136,7 +137,7 @@ export function CartaoOportunidade({
             )}
           </div>
 
-          <form action={acaoComId} className="flex flex-col gap-2 border-t pt-3" style={{ borderColor: "var(--cor-borda)" }}>
+          <form action={formAction} className="flex flex-col gap-2 border-t pt-3" style={{ borderColor: "var(--cor-borda)" }}>
             <label className="block text-xs">
               <span className="mb-1 block font-medium" style={{ color: "var(--cor-texto-2)" }}>
                 Estágio
@@ -205,8 +206,20 @@ export function CartaoOportunidade({
                 className="campo-atas"
               />
             </label>
-            <button type="submit" className="botao-atas secundario">
-              Salvar
+            {estado.erro && (
+              <p
+                className="rounded-[var(--raio)] border px-3 py-2 text-xs"
+                style={{
+                  borderColor: "var(--cor-critico)",
+                  background: "var(--cor-critico-fundo)",
+                  color: "var(--cor-critico)",
+                }}
+              >
+                {estado.erro}
+              </p>
+            )}
+            <button type="submit" disabled={pendente} className="botao-atas secundario">
+              {pendente ? "Salvando..." : "Salvar"}
             </button>
           </form>
         </div>
