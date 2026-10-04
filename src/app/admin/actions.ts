@@ -19,6 +19,7 @@ import { CATEGORIAS_ATAS } from "@/lib/categorias";
 import { tipoVendedorValido } from "@/lib/vendedores";
 import { interpretarPercentualComissao } from "@/lib/comissao";
 import { calcularPrazo } from "@/lib/negociacao";
+import { statusCobrancaValido, tipoLiquidacaoValido } from "@/lib/recebiveis";
 import { expirarOportunidadesVencidas } from "@/lib/negociacao-expiracao";
 import { ITENS_CONFORMIDADE, itensPendentes, type RespostasConformidade } from "@/lib/conformidade";
 
@@ -812,8 +813,10 @@ export async function lancarLiquidacao(
   const valorBruto = String(formData.get("valorLiquidado") ?? "").trim();
   const numeroNotaFiscal = String(formData.get("numeroNotaFiscal") ?? "").trim();
   const dataLiquidacao = String(formData.get("dataLiquidacao") ?? "");
-  const valorNumero = Number(valorBruto);
+  const tipo = String(formData.get("tipo") ?? "original");
+  const valorNumero = Number(valorBruto.replace(",", "."));
 
+  if (!tipoLiquidacaoValido(tipo)) return { erro: "Tipo de liquidação inválido." };
   if (!valorBruto || !Number.isFinite(valorNumero) || valorNumero <= 0 || !dataLiquidacao) {
     return { erro: "Informe um valor liquidado válido e a data." };
   }
@@ -826,9 +829,53 @@ export async function lancarLiquidacao(
   await prisma.liquidacao.create({
     data: {
       oportunidadeId,
-      valorLiquidado: valorBruto,
+      valorLiquidado: String(valorNumero),
+      tipo,
       numeroNotaFiscal: numeroNotaFiscal || null,
       dataLiquidacao: new Date(dataLiquidacao),
+    },
+  });
+
+  revalidatePath("/admin/recebiveis-vendedores");
+  return {};
+}
+
+export interface EstadoCobrancaLiquidacao {
+  erro?: string;
+}
+
+/**
+ * Cobrança da comissão por liquidação (2026-10-04, SCP cl. 4): a sócia
+ * ostensiva emite a nota fiscal de serviço ao fornecedor depois da
+ * liquidação do empenho. Fluxo: A cobrar → Cobrada → Recebida; cobrada e
+ * recebida exigem o número da nota fiscal da comissão.
+ */
+export async function atualizarCobrancaLiquidacao(
+  liquidacaoId: string,
+  _estadoAnterior: EstadoCobrancaLiquidacao,
+  formData: FormData,
+): Promise<EstadoCobrancaLiquidacao> {
+  await exigirAdmin();
+
+  const statusCobranca = String(formData.get("statusCobranca") ?? "");
+  const notaFiscalComissao = String(formData.get("notaFiscalComissao") ?? "").trim() || null;
+  if (!statusCobrancaValido(statusCobranca)) return { erro: "Status de cobrança inválido." };
+  if (statusCobranca !== "pendente" && !notaFiscalComissao) {
+    return { erro: "Informe o número da nota fiscal da comissão para marcar como cobrada ou recebida." };
+  }
+
+  const liquidacao = await prisma.liquidacao.findUnique({ where: { id: liquidacaoId } });
+  if (!liquidacao) return { erro: "Liquidação não encontrada." };
+
+  const agora = new Date();
+  await prisma.liquidacao.update({
+    where: { id: liquidacaoId },
+    data: {
+      statusCobranca,
+      notaFiscalComissao: statusCobranca === "pendente" ? null : notaFiscalComissao,
+      dataCobranca:
+        statusCobranca === "pendente" ? null : (liquidacao.dataCobranca ?? agora),
+      dataRecebimento: statusCobranca === "recebida" ? (liquidacao.dataRecebimento ?? agora) : null,
     },
   });
 

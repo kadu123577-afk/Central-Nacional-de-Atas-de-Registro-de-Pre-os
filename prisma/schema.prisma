@@ -224,13 +224,24 @@ model OportunidadeVenda {
 // sobre o que foi liquidado, não sobre o valor aderido (que é só o teto).
 // Pode ter várias liquidações parciais por oportunidade.
 model Liquidacao {
-  id               String   @id @default(cuid())
-  oportunidadeId   String
-  valorLiquidado   Decimal  @db.Decimal(14, 2)
-  numeroNotaFiscal String?
-  dataLiquidacao   DateTime
-  criadoEm         DateTime @default(now())
-  isSeed           Boolean  @default(false)
+  id                 String    @id @default(cuid())
+  oportunidadeId     String
+  valorLiquidado     Decimal   @db.Decimal(14, 2)
+  numeroNotaFiscal   String?
+  dataLiquidacao     DateTime
+  criadoEm           DateTime  @default(now())
+  isSeed             Boolean   @default(false)
+  // Cascata e cobrança (2026-10-04, SCP cl. 4): a comissão incide igual
+  // sobre o fornecimento original, aditivos e renovações — "tipo" só
+  // distingue a origem do valor. A cobrança da comissão segue
+  // pendente → cobrada → recebida, com a nota fiscal de serviço que a
+  // sócia ostensiva emite ao fornecedor (vocabulário em
+  // src/lib/recebiveis.ts).
+  tipo               String    @default("original")
+  statusCobranca     String    @default("pendente")
+  notaFiscalComissao String?
+  dataCobranca       DateTime?
+  dataRecebimento    DateTime?
 
   oportunidade OportunidadeVenda @relation(fields: [oportunidadeId], references: [id])
 

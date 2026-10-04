@@ -2,13 +2,30 @@
 
 import { useActionState, useState } from "react";
 import { Cifra } from "@/components/ui/valores";
-import { lancarLiquidacao, type EstadoLancarLiquidacao } from "../actions";
+import {
+  ROTULO_STATUS_COBRANCA,
+  ROTULO_TIPO_LIQUIDACAO,
+  STATUS_COBRANCA,
+  TIPOS_LIQUIDACAO,
+  resumirComissao,
+  type StatusCobranca,
+  type TipoLiquidacao,
+} from "@/lib/recebiveis";
+import {
+  atualizarCobrancaLiquidacao,
+  lancarLiquidacao,
+  type EstadoCobrancaLiquidacao,
+  type EstadoLancarLiquidacao,
+} from "../actions";
 
 interface Liquidacao {
   id: string;
   valorLiquidado: string;
   numeroNotaFiscal: string | null;
   dataLiquidacao: string;
+  tipo: string;
+  statusCobranca: string;
+  notaFiscalComissao: string | null;
 }
 
 interface Props {
@@ -24,11 +41,14 @@ interface Props {
 }
 
 const estadoInicial: EstadoLancarLiquidacao = {};
+const estadoCobrancaInicial: EstadoCobrancaLiquidacao = {};
 
 /** Linha de uma oportunidade aderida — lançar liquidação de NF é o que
  * transforma "aderiu" em "temos a receber de verdade" (pedido explícito
  * do usuário: o valor a receber é sempre sobre o liquidado, nunca sobre
- * o valor aderido, que é só o teto). */
+ * o valor aderido, que é só o teto). A comissão vale igual para o
+ * fornecimento original, aditivos e renovações (cascata, SCP cl. 4) e é
+ * cobrada por liquidação: a cobrar → cobrada → recebida. */
 export function LinhaRecebivel({
   oportunidadeId,
   nomeMunicipio,
@@ -46,7 +66,10 @@ export function LinhaRecebivel({
 
   const somaLiquidado = liquidacoes.reduce((soma, l) => soma + Number(l.valorLiquidado), 0);
   const percentual = Number(percentualComissao);
-  const valorAReceber = somaLiquidado * percentual;
+  const resumo = resumirComissao(
+    liquidacoes.map((l) => ({ valorLiquidado: Number(l.valorLiquidado), statusCobranca: l.statusCobranca })),
+    percentual,
+  );
 
   return (
     <li className="painel p-4">
@@ -79,10 +102,10 @@ export function LinhaRecebivel({
           </div>
           <div>
             <p className="eyebrow" style={{ color: "var(--cor-texto-3)" }}>
-              A receber
+              Falta receber
             </p>
             <p className="font-medium" style={{ color: "var(--cor-marca-clara)" }}>
-              <Cifra valor={valorAReceber} />
+              <Cifra valor={resumo.faltaReceber} />
             </p>
           </div>
           <span className="eyebrow" style={{ color: "var(--cor-texto-3)" }}>
@@ -95,26 +118,35 @@ export function LinhaRecebivel({
         <div className="mt-4 flex flex-col gap-4 border-t pt-4" style={{ borderColor: "var(--cor-borda)" }}>
           <div>
             <p className="eyebrow mb-2" style={{ color: "var(--cor-texto-3)" }}>
-              Liquidações lançadas ({liquidacoes.length}) — {(percentual * 100).toFixed(2)}% de comissão
+              Liquidações lançadas ({liquidacoes.length}) — {(percentual * 100).toFixed(2)}% de comissão · devida{" "}
+              <Cifra valor={resumo.devida} /> · recebida <Cifra valor={resumo.recebida} />
             </p>
             {liquidacoes.length === 0 ? (
               <p className="text-xs" style={{ color: "var(--cor-texto-3)" }}>
                 Nenhuma nota fiscal liquidada ainda pra este município.
               </p>
             ) : (
-              <ul className="flex flex-col gap-1.5">
+              <ul className="flex flex-col gap-3">
                 {liquidacoes.map((l) => (
-                  <li key={l.id} className="text-xs" style={{ color: "var(--cor-texto-2)" }}>
-                    <Cifra valor={l.valorLiquidado} />
-                    {l.numeroNotaFiscal ? ` · NF ${l.numeroNotaFiscal}` : ""} ·{" "}
-                    {new Date(l.dataLiquidacao).toLocaleDateString("pt-BR")}
-                  </li>
+                  <LinhaLiquidacao key={l.id} liquidacao={l} percentual={percentual} />
                 ))}
               </ul>
             )}
           </div>
 
           <form action={formAction} className="flex flex-col gap-2 sm:flex-row sm:items-end">
+            <label className="block flex-1 text-xs">
+              <span className="mb-1 block font-medium" style={{ color: "var(--cor-texto-2)" }}>
+                Tipo
+              </span>
+              <select name="tipo" defaultValue="original" className="campo-atas">
+                {TIPOS_LIQUIDACAO.map((t) => (
+                  <option key={t} value={t}>
+                    {ROTULO_TIPO_LIQUIDACAO[t]}
+                  </option>
+                ))}
+              </select>
+            </label>
             <label className="block flex-1 text-xs">
               <span className="mb-1 block font-medium" style={{ color: "var(--cor-texto-2)" }}>
                 Valor liquidado (R$)
@@ -144,6 +176,46 @@ export function LinhaRecebivel({
           )}
         </div>
       )}
+    </li>
+  );
+}
+
+function LinhaLiquidacao({ liquidacao: l, percentual }: { liquidacao: Liquidacao; percentual: number }) {
+  const acaoComId = atualizarCobrancaLiquidacao.bind(null, l.id);
+  const [estado, formAction, pendente] = useActionState(acaoComId, estadoCobrancaInicial);
+  const tipo = l.tipo as TipoLiquidacao;
+  const status = l.statusCobranca as StatusCobranca;
+
+  return (
+    <li className="text-xs" style={{ color: "var(--cor-texto-2)" }}>
+      <p>
+        <Cifra valor={l.valorLiquidado} />
+        {l.numeroNotaFiscal ? ` · NF ${l.numeroNotaFiscal}` : ""} ·{" "}
+        {new Date(l.dataLiquidacao).toLocaleDateString("pt-BR")} · {ROTULO_TIPO_LIQUIDACAO[tipo] ?? l.tipo} · comissão{" "}
+        <Cifra valor={Number(l.valorLiquidado) * percentual} />
+      </p>
+      <form action={formAction} className="mt-1 flex flex-wrap items-center gap-2">
+        <select name="statusCobranca" defaultValue={status} className="campo-atas" style={{ width: "auto" }}>
+          {STATUS_COBRANCA.map((s) => (
+            <option key={s} value={s}>
+              {ROTULO_STATUS_COBRANCA[s]}
+            </option>
+          ))}
+        </select>
+        <input
+          name="notaFiscalComissao"
+          defaultValue={l.notaFiscalComissao ?? ""}
+          placeholder="NF da comissão"
+          className="campo-atas"
+          style={{ width: "10rem" }}
+        />
+        <button type="submit" disabled={pendente} className="botao-atas secundario">
+          {pendente ? "..." : "Atualizar cobrança"}
+        </button>
+        {estado.erro && (
+          <span style={{ color: "var(--cor-critico)" }}>{estado.erro}</span>
+        )}
+      </form>
     </li>
   );
 }

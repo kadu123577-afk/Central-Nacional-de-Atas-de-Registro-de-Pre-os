@@ -30,3 +30,9 @@ que interessa nos pontos parcialmente corretos. Um commit + push por etapa.
 - Sigilo: o vendedor só vê seus próprios municípios na ata; os outros aparecem só como "em negociação", sem dizer quem.
 - "Tirar da ata" (admin → Usuários) expira os cards abertos daquele vendedor; `aderiu`/`recusado` ficam.
 - Atas antigas já "pegas" sem nenhum município ativo voltam ao pool na primeira expiração.
+
+## Detalhes da Etapa 4 (como ficou)
+- `Liquidacao.tipo`: fornecimento original / aditivo / renovação — a comissão é a mesma nos três (cascata).
+- Cobrança por liquidação: **A cobrar → Cobrada → Recebida**; cobrada/recebida exigem o nº da NF da comissão (datas automáticas).
+- Tela de recebíveis: total aderido, liquidado, **comissão recebida** e **falta receber**; por linha, comissão devida/recebida.
+- Limites de 50%/200%: já existem em `src/lib/saldo.ts` (fluxo do órgão); aqui seguem como item informativo do checklist, sem trava no valor aderido.

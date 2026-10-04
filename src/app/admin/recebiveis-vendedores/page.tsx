@@ -8,6 +8,7 @@ import { Secao } from "@/components/ui/secao";
 import { CartaoIndicador } from "@/components/ui/cartao-indicador";
 import { Cifra } from "@/components/ui/valores";
 import { VazioComAcao } from "@/components/ui/vazio-com-acao";
+import { resumirComissao } from "@/lib/recebiveis";
 import { LinhaRecebivel } from "./linha-recebivel";
 
 export const dynamic = "force-dynamic";
@@ -55,17 +56,24 @@ export default async function RecebiveisVendedoresPage() {
   const linhas = oportunidadesAderidas.map((o) => {
     const somaLiquidado = o.liquidacoes.reduce((soma, l) => soma + Number(l.valorLiquidado), 0);
     const percentual = o.percentualComissao ? Number(o.percentualComissao) : 0;
+    const comissao = resumirComissao(
+      o.liquidacoes.map((l) => ({ valorLiquidado: Number(l.valorLiquidado), statusCobranca: l.statusCobranca })),
+      percentual,
+    );
     return {
       oportunidade: o,
       valorAderido: o.valorAderido ? Number(o.valorAderido) : 0,
       somaLiquidado,
-      valorAReceber: somaLiquidado * percentual,
+      valorAReceber: comissao.devida,
+      valorRecebido: comissao.recebida,
     };
   });
 
   const totalAderido = linhas.reduce((soma, l) => soma + l.valorAderido, 0);
   const totalLiquidado = linhas.reduce((soma, l) => soma + l.somaLiquidado, 0);
-  const totalAReceber = linhas.reduce((soma, l) => soma + l.valorAReceber, 0);
+  const totalComissaoDevida = linhas.reduce((soma, l) => soma + l.valorAReceber, 0);
+  const totalRecebido = linhas.reduce((soma, l) => soma + l.valorRecebido, 0);
+  const totalFaltaReceber = totalComissaoDevida - totalRecebido;
 
   // Resumo por vendedor — "qual o vendedor que vendeu", agregado.
   const porVendedor = new Map<
@@ -116,13 +124,14 @@ export default async function RecebiveisVendedoresPage() {
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <CartaoIndicador rotulo="Total aderido" valor={<Cifra valor={totalAderido} />} tom="neutro" />
         <CartaoIndicador rotulo="Total liquidado" valor={<Cifra valor={totalLiquidado} />} tom="neutro" />
+        <CartaoIndicador rotulo="Comissão recebida" valor={<Cifra valor={totalRecebido} />} tom="neutro" />
         <CartaoIndicador
-          rotulo="Total a receber"
-          valor={<Cifra valor={totalAReceber} />}
-          tom={totalAReceber > 0 ? "atencao" : "neutro"}
+          rotulo="Falta receber (comissão)"
+          valor={<Cifra valor={totalFaltaReceber} />}
+          tom={totalFaltaReceber > 0 ? "atencao" : "neutro"}
         />
       </div>
 
@@ -135,7 +144,7 @@ export default async function RecebiveisVendedoresPage() {
                   <th>Vendedor</th>
                   <th>Atas/municípios aderidos</th>
                   <th>Valor aderido</th>
-                  <th>A receber</th>
+                  <th>Comissão devida</th>
                 </tr>
               </thead>
               <tbody>
@@ -181,6 +190,9 @@ export default async function RecebiveisVendedoresPage() {
                   valorLiquidado: l.valorLiquidado.toString(),
                   numeroNotaFiscal: l.numeroNotaFiscal,
                   dataLiquidacao: l.dataLiquidacao.toISOString(),
+                  tipo: l.tipo,
+                  statusCobranca: l.statusCobranca,
+                  notaFiscalComissao: l.notaFiscalComissao,
                 }))}
               />
             ))}
