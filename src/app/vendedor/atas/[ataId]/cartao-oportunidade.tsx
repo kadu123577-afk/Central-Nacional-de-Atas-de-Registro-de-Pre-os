@@ -33,6 +33,7 @@ interface Props {
   valorAderidoAtual: string | null;
   percentualComissaoAtual: string | null;
   percentualContrato: string | null;
+  prazoEm: string | null;
   contatos: Contato[];
   necessidades: Necessidade[];
 }
@@ -52,6 +53,7 @@ export function CartaoOportunidade({
   valorAderidoAtual,
   percentualComissaoAtual,
   percentualContrato,
+  prazoEm,
   contatos,
   necessidades,
 }: Props) {
@@ -80,6 +82,11 @@ export function CartaoOportunidade({
         <p className="mt-1 text-xs" style={{ color: "var(--cor-texto-3)" }}>
           {contatos[0].cargo}: {contatos[0].nomeContato}
           {contatos[0].telefone ? ` · ${contatos[0].telefone}` : ""}
+        </p>
+      )}
+      {!aberto && prazoEm && (
+        <p className="mt-1 text-xs" style={{ color: "var(--cor-texto-3)" }}>
+          Prazo: {new Date(prazoEm).toLocaleDateString("pt-BR")}
         </p>
       )}
       {!aberto && valorAderidoAtual && (

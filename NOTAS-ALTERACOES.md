@@ -22,3 +22,11 @@ que interessa nos pontos parcialmente corretos. Um commit + push por etapa.
 - Recusa automática de ata sem estimativa de quantidades: vira alerta.
 - Bloquear a *visualização* da ata sem contrato: bloqueia só pegar/negociar.
 - Cláusulas societárias (multas, não concorrência, remuneração fixa, Licitanet): não são requisito de software.
+
+## Detalhes da Etapa 3 (como ficou)
+- Não existe mais "pegar a ata" exclusivo: o vendedor **pede municípios** (`PedidoNegociacao`), o admin libera em `/admin/negociacoes`. Aprovar cria o card do Kanban com prazo de 10 dias.
+- Dois vendedores na mesma ata só em municípios diferentes: se o município já está com outro vendedor, o pedido é negado automaticamente (com motivo).
+- Prazo de 10 dias **renova a cada movimento** no Kanban (decisão: é "prazo sem avanço"); `aderiu`/`recusado` não têm prazo. Expiração é "preguiçosa" (roda ao abrir as telas), sem agendador.
+- Sigilo: o vendedor só vê seus próprios municípios na ata; os outros aparecem só como "em negociação", sem dizer quem.
+- "Tirar da ata" (admin → Usuários) expira os cards abertos daquele vendedor; `aderiu`/`recusado` ficam.
+- Atas antigas já "pegas" sem nenhum município ativo voltam ao pool na primeira expiração.

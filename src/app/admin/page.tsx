@@ -34,6 +34,7 @@ const NAV_ADMIN = [
   { rotulo: "Atas", href: "/atas" },
   { rotulo: "Contas a receber", href: "/admin/faturamento" },
   { rotulo: "Recebíveis — vendedores", href: "/admin/recebiveis-vendedores" },
+  { rotulo: "Negociações", href: "/admin/negociacoes" },
   { rotulo: "Usuários", href: "/admin/usuarios" },
   { rotulo: "Fornecedores", href: "/admin/fornecedores" },
   { rotulo: "Municípios/Entidades", href: "/admin/entidades" },

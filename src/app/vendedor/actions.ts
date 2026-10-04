@@ -10,7 +10,8 @@ import {
   vendedorIdLogado,
 } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { buscarMunicipiosCompativeis } from "@/lib/match-ata-municipio";
+import { prazoParaEstagio } from "@/lib/negociacao";
+import { expirarOportunidadesVencidas } from "@/lib/negociacao-expiracao";
 import {
   estagioOportunidadeValido,
   RESULTADO_INTERACAO_POR_ESTAGIO,
@@ -84,80 +85,63 @@ export async function logoutVendedor(): Promise<void> {
   redirect("/vendedor/login");
 }
 
-/**
- * "A partir do momento que ele pegou uma ata ela fica com ele para
- * vender para aqueles municípios" (2026-10-01) — reivindicação exclusiva
- * e atômica (updateMany com vendedorId: null na condição evita dois
- * vendedores pegarem a mesma ata numa corrida). Ao reivindicar, já cria
- * uma oportunidade (card do Kanban) pra cada município da lista "já
- * contrataram" dessa categoria — os candidatos fortes, não os
- * especulativos (esses o vendedor adiciona manualmente se quiser
- * perseguir, ver `adicionarOportunidadeManual`).
- */
-export async function reivindicarAta(ataId: string): Promise<void> {
-  const vendedorId = await vendedorIdLogado();
-  if (!vendedorId) redirect("/vendedor/login");
-
-  const ata = await prisma.ata.findUnique({
-    where: { id: ataId },
-    include: { contrato: true },
-  });
-  if (!ata) return;
-  // Portão (2026-10-04): ata não aprovada ou sem contrato não pode ser pega.
-  if (ata.status !== "APROVADA" || !ata.contrato) {
-    revalidatePath("/vendedor");
-    return;
-  }
-
-  const resultado = await prisma.ata.updateMany({
-    where: { id: ataId, vendedorId: null },
-    data: { vendedorId },
-  });
-  if (resultado.count === 0) {
-    // Outro vendedor já pegou antes (ou é o mesmo vendedor clicando de
-    // novo) — não faz nada, não é erro.
-    revalidatePath("/vendedor");
-    return;
-  }
-
-  if (ata.categoria) {
-    const { jaContrataram } = await buscarMunicipiosCompativeis(ata.categoria);
-    if (jaContrataram.length > 0) {
-      await prisma.oportunidadeVenda.createMany({
-        data: jaContrataram.map((m) => ({
-          ataId,
-          entidadeAlvoId: m.id,
-          vendedorId,
-        })),
-        skipDuplicates: true,
-      });
-    }
-  }
-
-  revalidatePath("/vendedor");
-  redirect(`/vendedor/atas/${ataId}`);
+export interface EstadoSolicitarMunicipios {
+  erro?: string;
 }
 
-/** Adiciona manualmente um município da lista especulativa ("possível
- * oportunidade") ao Kanban — o vendedor decide perseguir, não é
- * automático como os candidatos fortes. */
-export async function adicionarOportunidadeManual(
+/**
+ * Pedido de negociação (2026-10-04): a ata não é mais "pega" de forma
+ * exclusiva — o vendedor pede os municípios em que quer negociar e o admin
+ * libera (inclusive dois vendedores na mesma ata em municípios diferentes).
+ * Só atas aprovadas e com contrato de intermediação aceitam pedido. Um
+ * município que já está em negociação (por qualquer vendedor) ou que já
+ * tem pedido meu aguardando liberação é ignorado.
+ */
+export async function solicitarMunicipios(
   ataId: string,
-  entidadeAlvoId: string,
-): Promise<void> {
+  _estadoAnterior: EstadoSolicitarMunicipios,
+  formData: FormData,
+): Promise<EstadoSolicitarMunicipios> {
   const vendedorId = await vendedorIdLogado();
   if (!vendedorId) redirect("/vendedor/login");
 
-  const ata = await prisma.ata.findUnique({ where: { id: ataId } });
-  if (!ata || ata.vendedorId !== vendedorId) return;
+  await expirarOportunidadesVencidas();
 
-  await prisma.oportunidadeVenda.upsert({
-    where: { ataId_entidadeAlvoId: { ataId, entidadeAlvoId } },
-    update: {},
-    create: { ataId, entidadeAlvoId, vendedorId },
+  const ata = await prisma.ata.findUnique({ where: { id: ataId }, include: { contrato: true } });
+  if (!ata || ata.status !== "APROVADA" || !ata.contrato) {
+    return { erro: "Esta ata não está liberada para negociação." };
+  }
+
+  const ids = [...new Set(formData.getAll("entidadeAlvoId").map(String).filter(Boolean))];
+  if (ids.length === 0) return { erro: "Escolha ao menos um município." };
+
+  const [existentes, ocupados, meusPendentes] = await Promise.all([
+    prisma.entidadeAlvo.findMany({ where: { id: { in: ids } }, select: { id: true } }),
+    prisma.oportunidadeVenda.findMany({
+      where: { ataId, entidadeAlvoId: { in: ids }, expiradaEm: null },
+      select: { entidadeAlvoId: true },
+    }),
+    prisma.pedidoNegociacao.findMany({
+      where: { ataId, vendedorId, entidadeAlvoId: { in: ids }, status: "pendente" },
+      select: { entidadeAlvoId: true },
+    }),
+  ]);
+  const bloqueados = new Set([
+    ...ocupados.map((o) => o.entidadeAlvoId),
+    ...meusPendentes.map((p) => p.entidadeAlvoId),
+  ]);
+  const livres = existentes.map((e) => e.id).filter((id) => !bloqueados.has(id));
+  if (livres.length === 0) {
+    return { erro: "Os municípios escolhidos já estão em negociação ou aguardando liberação." };
+  }
+
+  await prisma.pedidoNegociacao.createMany({
+    data: livres.map((entidadeAlvoId) => ({ ataId, vendedorId, entidadeAlvoId })),
   });
 
-  revalidatePath(`/vendedor/atas/${ataId}`);
+  revalidatePath("/vendedor");
+  revalidatePath("/admin/negociacoes");
+  redirect("/vendedor");
 }
 
 /**
@@ -187,6 +171,9 @@ export async function moverEstagioOportunidade(
   });
   if (!oportunidade || oportunidade.vendedorId !== vendedorId) {
     return { erro: "Oportunidade não encontrada." };
+  }
+  if (oportunidade.expiradaEm) {
+    return { erro: "O prazo deste município venceu. Faça um novo pedido de negociação." };
   }
 
   const observacoesLimpa = observacoes.trim() || null;
@@ -240,6 +227,7 @@ export async function moverEstagioOportunidade(
     data: {
       estagio: novoEstagio,
       observacoes: observacoesLimpa,
+      prazoEm: prazoParaEstagio(novoEstagio),
       ...(valorAderido ? { valorAderido, percentualComissao } : {}),
       ...(limparRecebivel ? { valorAderido: null, percentualComissao: null } : {}),
     },

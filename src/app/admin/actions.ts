@@ -18,6 +18,8 @@ import { calcularRaioXConsumo } from "@/lib/raio-x-consumo";
 import { CATEGORIAS_ATAS } from "@/lib/categorias";
 import { tipoVendedorValido } from "@/lib/vendedores";
 import { interpretarPercentualComissao } from "@/lib/comissao";
+import { calcularPrazo } from "@/lib/negociacao";
+import { expirarOportunidadesVencidas } from "@/lib/negociacao-expiracao";
 import { ITENS_CONFORMIDADE, itensPendentes, type RespostasConformidade } from "@/lib/conformidade";
 
 export interface EstadoLoginAdmin {
@@ -275,17 +277,115 @@ export async function alternarStatusVendedor(formData: FormData): Promise<void> 
   revalidatePath("/admin/usuarios");
 }
 
-/** Devolve a ata pro pool (2026-10-01) — hoje não existia nenhuma forma de
- * tirar uma ata de um vendedor que saiu ou não está trabalhando nela. Não
- * apaga as oportunidades já criadas, só libera a ata pra outro vendedor
- * poder reivindicar de novo. */
+/**
+ * Tira um vendedor de uma ata (2026-10-01, ajustado em 2026-10-04 pra
+ * negociação por município): expira as oportunidades ainda abertas desse
+ * vendedor na ata (aderiu/recusado ficam — são histórico e recebível) e
+ * libera os municípios pra novo pedido. Não apaga nada.
+ */
 export async function devolverAtaAoPool(formData: FormData): Promise<void> {
   await exigirAdmin();
   const ataId = String(formData.get("ataId") ?? "");
-  if (!ataId) return;
+  const vendedorId = String(formData.get("vendedorId") ?? "");
+  if (!ataId || !vendedorId) return;
 
-  await prisma.ata.update({ where: { id: ataId }, data: { vendedorId: null } });
+  await prisma.oportunidadeVenda.updateMany({
+    where: {
+      ataId,
+      vendedorId,
+      expiradaEm: null,
+      estagio: { in: ["a_contatar", "em_negociacao"] },
+    },
+    data: { expiradaEm: new Date() },
+  });
+  await expirarOportunidadesVencidas();
   revalidatePath("/admin/usuarios");
+  revalidatePath("/admin/negociacoes");
+  revalidatePath("/vendedor");
+}
+
+/**
+ * Decisão do admin sobre os pedidos de negociação de um vendedor numa ata
+ * (2026-10-04): aprova ou nega os municípios marcados. Aprovar cria a
+ * oportunidade (card do Kanban) com prazo de 10 dias — mas se outro
+ * vendedor já negocia aquele município, o pedido é negado na hora (dois
+ * vendedores na mesma ata só em municípios diferentes).
+ */
+export async function decidirPedidosNegociacao(formData: FormData): Promise<void> {
+  await exigirAdmin();
+  const ataId = String(formData.get("ataId") ?? "");
+  const vendedorId = String(formData.get("vendedorId") ?? "");
+  const decisao = String(formData.get("decisao") ?? "");
+  const motivo = String(formData.get("motivo") ?? "").trim() || null;
+  const pedidoIds = formData.getAll("pedidoId").map(String).filter(Boolean);
+  if (!ataId || !vendedorId || pedidoIds.length === 0) return;
+  if (decisao !== "aprovar" && decisao !== "negar") return;
+
+  const agora = new Date();
+  const pedidos = await prisma.pedidoNegociacao.findMany({
+    where: { id: { in: pedidoIds }, ataId, vendedorId, status: "pendente" },
+  });
+
+  for (const pedido of pedidos) {
+    if (decisao === "negar") {
+      await prisma.pedidoNegociacao.update({
+        where: { id: pedido.id },
+        data: { status: "negado", motivo, decididoEm: agora },
+      });
+      continue;
+    }
+
+    const ativa = await prisma.oportunidadeVenda.findUnique({
+      where: { ataId_entidadeAlvoId: { ataId, entidadeAlvoId: pedido.entidadeAlvoId } },
+    });
+    if (ativa && !ativa.expiradaEm && ativa.vendedorId !== vendedorId) {
+      await prisma.pedidoNegociacao.update({
+        where: { id: pedido.id },
+        data: {
+          status: "negado",
+          motivo: "Município já está em negociação por outro vendedor.",
+          decididoEm: agora,
+        },
+      });
+      continue;
+    }
+
+    if (!ativa) {
+      await prisma.oportunidadeVenda.create({
+        data: {
+          ataId,
+          entidadeAlvoId: pedido.entidadeAlvoId,
+          vendedorId,
+          prazoEm: calcularPrazo(agora),
+        },
+      });
+    } else if (ativa.expiradaEm) {
+      // Reaproveita o card expirado (mesma ata+município): reinicia no
+      // começo do funil, sem dados de adesão.
+      await prisma.oportunidadeVenda.update({
+        where: { id: ativa.id },
+        data: {
+          vendedorId,
+          estagio: "a_contatar",
+          expiradaEm: null,
+          prazoEm: calcularPrazo(agora),
+          valorAderido: null,
+          percentualComissao: null,
+        },
+      });
+    }
+    await prisma.pedidoNegociacao.update({
+      where: { id: pedido.id },
+      data: { status: "aprovado", decididoEm: agora },
+    });
+  }
+
+  if (decisao === "aprovar") {
+    await prisma.ata.updateMany({ where: { id: ataId, vendedorId: null }, data: { vendedorId } });
+  }
+
+  revalidatePath("/admin/negociacoes");
+  revalidatePath("/vendedor");
 }
 
 /** Canal de contato técnico do fornecedor (2026-10-01, pedido explícito):

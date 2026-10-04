@@ -108,7 +108,7 @@ model Orgao {
 }
 
 model Ata {
-  id               String    @id @default(cuid())
+  id                 String    @id @default(cuid())
   numero             String
   objeto             String
   status             StatusAta @default(PENDENTE)
@@ -139,15 +139,16 @@ model Ata {
   updatedAt          DateTime  @updatedAt
   isSeed             Boolean   @default(false)
 
-  fornecedor       Fornecedor      @relation(fields: [fornecedorId], references: [id])
-  orgaoGerenciador Orgao           @relation("OrgaoGerenciador", fields: [orgaoGerenciadorId], references: [id])
-  vendedor         Vendedor?       @relation(fields: [vendedorId], references: [id])
-  itens            Item[]
-  documentos       DocumentoAta[]
+  fornecedor           Fornecedor             @relation(fields: [fornecedorId], references: [id])
+  orgaoGerenciador     Orgao                  @relation("OrgaoGerenciador", fields: [orgaoGerenciadorId], references: [id])
+  vendedor             Vendedor?              @relation(fields: [vendedorId], references: [id])
+  itens                Item[]
+  documentos           DocumentoAta[]
   interacoesPontoFocal InteracaoPontoFocal[]
   oportunidades        OportunidadeVenda[]
   contrato             ContratoIntermediacao?
   conformidade         ConformidadeAta?
+  pedidosNegociacao    PedidoNegociacao[]
 
   @@unique([numero, orgaoGerenciadorId])
   @@map("atas")
@@ -169,8 +170,9 @@ model Vendedor {
   createdAt DateTime @default(now())
   isSeed    Boolean  @default(false)
 
-  atas          Ata[]
-  oportunidades OportunidadeVenda[]
+  atas              Ata[]
+  oportunidades     OportunidadeVenda[]
+  pedidosNegociacao PedidoNegociacao[]
 
   @@map("vendedores")
 }
@@ -183,23 +185,30 @@ model Vendedor {
 // racional de Item.categoria) — não enum do Prisma, pra evoluir sem
 // migração.
 model OportunidadeVenda {
-  id               String    @id @default(cuid())
-  ataId            String
-  entidadeAlvoId   String
-  vendedorId       String
-  estagio          String    @default("a_contatar")
-  observacoes      String?
-  proximoContatoEm DateTime?
+  id                 String    @id @default(cuid())
+  ataId              String
+  entidadeAlvoId     String
+  vendedorId         String
+  estagio            String    @default("a_contatar")
+  observacoes        String?
+  proximoContatoEm   DateTime?
   // Controle de recebíveis (2026-10-01, pedido explícito) — preenchidos
   // quando o estágio vira "aderiu": valor que o ente efetivamente aderiu
   // (pode ser menor que o valor total da ata) e o percentual que a
   // Tech 10 recebe sobre o que for liquidado desse valor (ver Liquidacao
   // — o aderido é só o teto, a receita de verdade nasce da liquidação).
-  valorAderido        Decimal? @db.Decimal(14, 2)
-  percentualComissao  Decimal? @db.Decimal(5, 4)
-  criadoEm         DateTime  @default(now())
-  atualizadoEm     DateTime  @updatedAt
-  isSeed           Boolean   @default(false)
+  valorAderido       Decimal?  @db.Decimal(14, 2)
+  percentualComissao Decimal?  @db.Decimal(5, 4)
+  // Prazo de negociação (2026-10-04): 10 dias a partir da liberação pelo
+  // admin, renovado a cada movimento no Kanban; vencido sem avanço, a
+  // oportunidade expira (expiradaEm) e o município volta a ficar livre
+  // pra novo pedido. Nulo = sem prazo (oportunidades anteriores / estágio
+  // final).
+  prazoEm            DateTime?
+  expiradaEm         DateTime?
+  criadoEm           DateTime  @default(now())
+  atualizadoEm       DateTime  @updatedAt
+  isSeed             Boolean   @default(false)
 
   ata          Ata          @relation(fields: [ataId], references: [id])
   entidadeAlvo EntidadeAlvo @relation(fields: [entidadeAlvoId], references: [id])
@@ -251,15 +260,15 @@ model DocumentoAta {
 }
 
 model Item {
-  id                    String  @id @default(cuid())
-  ataId                 String
-  descricao             String
-  categoria             String
-  marca                 String?
-  unidade               String
-  quantidadeRegistrada  Int
-  valorUnitario         Decimal @db.Decimal(14, 2)
-  isSeed                Boolean @default(false)
+  id                   String  @id @default(cuid())
+  ataId                String
+  descricao            String
+  categoria            String
+  marca                String?
+  unidade              String
+  quantidadeRegistrada Int
+  valorUnitario        Decimal @db.Decimal(14, 2)
+  isSeed               Boolean @default(false)
 
   ata     Ata      @relation(fields: [ataId], references: [id])
   adesoes Adesao[]
@@ -272,10 +281,10 @@ model Item {
 // junto com cada adesão aceita — evita recalcular a soma de todas as
 // adesões a cada checagem da trava do art. 86.
 model Saldo {
-  id                   String   @id @default(cuid())
-  itemId               String   @unique
-  quantidadeConsumida  Int      @default(0)
-  atualizadoEm         DateTime @updatedAt
+  id                  String   @id @default(cuid())
+  itemId              String   @unique
+  quantidadeConsumida Int      @default(0)
+  atualizadoEm        DateTime @updatedAt
 
   item Item @relation(fields: [itemId], references: [id])
 
@@ -283,17 +292,17 @@ model Saldo {
 }
 
 model Adesao {
-  id                  String        @id @default(cuid())
-  itemId              String
-  orgaoAderenteId     String
+  id                   String        @id @default(cuid())
+  itemId               String
+  orgaoAderenteId      String
   quantidadeSolicitada Int
-  estagio             EstagioAdesao @default(MAPEADA)
-  createdAt           DateTime      @default(now())
-  updatedAt           DateTime      @updatedAt
-  isSeed              Boolean       @default(false)
+  estagio              EstagioAdesao @default(MAPEADA)
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+  isSeed               Boolean       @default(false)
 
-  item          Item                @relation(fields: [itemId], references: [id])
-  orgaoAderente Orgao               @relation("OrgaoAderente", fields: [orgaoAderenteId], references: [id])
+  item          Item              @relation(fields: [itemId], references: [id])
+  orgaoAderente Orgao             @relation("OrgaoAderente", fields: [orgaoAderenteId], references: [id])
   historico     AdesaoHistorico[]
   faturamento   Faturamento?
 
@@ -302,12 +311,12 @@ model Adesao {
 
 // Trilha de auditoria exigida pelo plano: quem mudou o estágio e quando.
 model AdesaoHistorico {
-  id              String        @id @default(cuid())
+  id              String         @id @default(cuid())
   adesaoId        String
   estagioAnterior EstagioAdesao?
   estagioNovo     EstagioAdesao
   alteradoPor     String
-  alteradoEm      DateTime      @default(now())
+  alteradoEm      DateTime       @default(now())
 
   adesao Adesao @relation(fields: [adesaoId], references: [id])
 
@@ -355,44 +364,45 @@ model Faturamento {
 // os dois níveis numa linha só (esfera/uf/município junto com o
 // contato) — separado agora em duas tabelas.
 model EntidadeAlvo {
-  id        String   @id @default(cuid())
-  nome      String
+  id                  String    @id @default(cuid())
+  nome                String
   // Tipo livre (não enum, mesmo racional de src/lib/categorias.ts):
   // "municipal" | "estadual" | "federal" | "ministerio" | "secretaria" —
   // a separação ministerial/secretaria/municipal/estadual/federal pedida
   // nas notas de voz. Esfera (quando existe) usa o vocabulário de
   // src/lib/esferas.ts.
-  tipo      String
-  esfera    String?
-  uf        String?
-  municipio String?
-  endereco  String?
+  tipo                String
+  esfera              String?
+  uf                  String?
+  municipio           String?
+  endereco            String?
   // Código do município no IBGE — só preenchido pra entidade tipo
   // "municipal" vinda do levantamento de dados (2026-09-05, ver
   // prisma/seed-municipios-alvo.ts). Chave de upsert segura: permite
   // rodar o levantamento de novo (lote 2, lote 3...) sem duplicar
   // município já cadastrado.
-  codigoIbgeMunicipio String? @unique
+  codigoIbgeMunicipio String?   @unique
   // CNPJ da prefeitura — enriquecido automaticamente a partir do SICONFI
   // (Tesouro Nacional), cruzando por `codigoIbgeMunicipio`. É a chave
   // usada pra puxar o histórico de contratos no PNCP (raio-X de
   // consumo, 2026-09-25) — sem ela não dá pra saber o que o município já
   // contratou antes.
-  cnpj      String?  @unique
+  cnpj                String?   @unique
   // Quando o raio-X de consumo rodou pela última vez pra esta entidade —
   // marcado mesmo quando o resultado foi "nenhuma categoria
   // identificada" (sem isso, o script de lote reprocessava esses
   // municípios pra sempre, já que zero categoria = zero linha em
   // HistoricoConsumoCategoria = "parece que nunca rodou").
-  raioXAtualizadoEm DateTime?
-  ativo     Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  isSeed    Boolean  @default(false)
+  raioXAtualizadoEm   DateTime?
+  ativo               Boolean   @default(true)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  isSeed              Boolean   @default(false)
 
-  contatos       PontoFocal[]
-  historicoConsumo HistoricoConsumoCategoria[]
-  oportunidades    OportunidadeVenda[]
+  contatos          PontoFocal[]
+  historicoConsumo  HistoricoConsumoCategoria[]
+  oportunidades     OportunidadeVenda[]
+  pedidosNegociacao PedidoNegociacao[]
 
   @@map("entidades_alvo")
 }
@@ -469,14 +479,14 @@ model Parceiro {
 // demais pra fazer isso pra 1000+ municípios de uma vez, só faz sentido
 // por demanda, um município de cada vez.
 model HistoricoConsumoCategoria {
-  id               String   @id @default(cuid())
-  entidadeAlvoId   String
-  categoria        String
-  ultimaContratacao DateTime
-  valorUltimaContratacao Decimal @db.Decimal(14, 2)
+  id                          String   @id @default(cuid())
+  entidadeAlvoId              String
+  categoria                   String
+  ultimaContratacao           DateTime
+  valorUltimaContratacao      Decimal  @db.Decimal(14, 2)
   quantidadeContratosNaJanela Int
-  objetoUltimaContratacao String
-  atualizadoEm     DateTime @updatedAt
+  objetoUltimaContratacao     String
+  atualizadoEm                DateTime @updatedAt
 
   entidadeAlvo EntidadeAlvo @relation(fields: [entidadeAlvoId], references: [id])
 
@@ -524,4 +534,29 @@ model ConformidadeAta {
   ata Ata @relation(fields: [ataId], references: [id])
 
   @@map("conformidades_ata")
+}
+
+// Pedido do vendedor pra negociar uma ata num município (2026-10-04): a
+// ata não some pros outros vendedores — ela aparece "em negociação" e o
+// admin decide se libera o município (inclusive pra dois vendedores na
+// mesma ata, em municípios diferentes). Aprovado vira OportunidadeVenda.
+// status: "pendente" | "aprovado" | "negado" (vocabulário em
+// src/lib/negociacao.ts).
+model PedidoNegociacao {
+  id             String    @id @default(cuid())
+  ataId          String
+  vendedorId     String
+  entidadeAlvoId String
+  status         String    @default("pendente")
+  motivo         String?
+  criadoEm       DateTime  @default(now())
+  decididoEm     DateTime?
+
+  ata          Ata          @relation(fields: [ataId], references: [id])
+  vendedor     Vendedor     @relation(fields: [vendedorId], references: [id])
+  entidadeAlvo EntidadeAlvo @relation(fields: [entidadeAlvoId], references: [id])
+
+  @@index([status])
+  @@index([vendedorId])
+  @@map("pedidos_negociacao")
 }

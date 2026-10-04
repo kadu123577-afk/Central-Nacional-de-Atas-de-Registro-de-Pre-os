@@ -27,10 +27,11 @@ export default async function DashboardVendedorPage() {
   if (!vendedor) redirect("/vendedor/login");
 
   const minhasAtas = await prisma.ata.findMany({
-    where: { vendedorId },
+    where: { oportunidades: { some: { vendedorId, expiradaEm: null } } },
     include: {
       fornecedor: true,
-      oportunidades: true,
+      // Só os municípios deste vendedor (a ata pode ter outros vendedores).
+      oportunidades: { where: { vendedorId, expiradaEm: null } },
     },
     orderBy: { createdAt: "desc" },
   });

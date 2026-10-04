@@ -6,8 +6,8 @@ import { AppShell } from "@/components/ui/app-shell";
 import { Secao } from "@/components/ui/secao";
 import { VazioComAcao } from "@/components/ui/vazio-com-acao";
 import { COR_ESTAGIO_OPORTUNIDADE, ESTAGIOS_OPORTUNIDADE, ROTULO_ESTAGIO_OPORTUNIDADE } from "@/lib/oportunidades";
-import { buscarMunicipiosCompativeis } from "@/lib/match-ata-municipio";
-import { adicionarOportunidadeManual, logoutVendedor } from "../../actions";
+import { expirarOportunidadesVencidas } from "@/lib/negociacao-expiracao";
+import { logoutVendedor } from "../../actions";
 import { NAV_VENDEDOR } from "../../nav";
 import { CartaoOportunidade } from "./cartao-oportunidade";
 
@@ -25,20 +25,24 @@ export default async function KanbanAtaPage({ params }: { params: Promise<{ ataI
   }
 
   const { ataId } = await params;
+  await expirarOportunidadesVencidas();
   const ata = await prisma.ata.findUnique({
     where: { id: ataId },
     include: { fornecedor: true, contrato: true },
   });
   if (!ata) notFound();
-  if (ata.vendedorId !== vendedorId) {
-    redirect("/vendedor");
-  }
 
+  // Só enxerga os municípios liberados pra ele (sigilo entre vendedores);
+  // sem nenhum município ativo nesta ata, volta pro painel.
   const oportunidades = await prisma.oportunidadeVenda.findMany({
-    where: { ataId },
+    where: { ataId, vendedorId, expiradaEm: null },
     include: { entidadeAlvo: true },
     orderBy: { criadoEm: "asc" },
   });
+
+  if (oportunidades.length === 0) {
+    redirect("/vendedor");
+  }
 
   const entidadeIds = oportunidades.map((o) => o.entidadeAlvoId);
 
@@ -73,13 +77,6 @@ export default async function KanbanAtaPage({ params }: { params: Promise<{ ataI
     ESTAGIOS_OPORTUNIDADE.map((e) => [e, oportunidades.filter((o) => o.estagio === e)]),
   ) as Record<string, typeof oportunidades>;
 
-  // Lista especulativa (ver buscarMunicipiosCompativeis) menos quem já
-  // está no Kanban — pra oferecer "adicionar" só de quem falta.
-  const idsNoKanban = new Set(entidadeIds);
-  const especulativos = ata.categoria
-    ? (await buscarMunicipiosCompativeis(ata.categoria)).nuncaContrataram.filter((m) => !idsNoKanban.has(m.id))
-    : [];
-
   return (
     <AppShell
       area="Vendedor"
@@ -102,9 +99,14 @@ export default async function KanbanAtaPage({ params }: { params: Promise<{ ataI
             {ata.objeto}
           </p>
         </div>
-        <Link href="/vendedor" className="botao-atas link">
-          ← Painel
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link href={`/vendedor/atas/${ataId}/solicitar`} className="botao-atas secundario">
+            Pedir mais municípios
+          </Link>
+          <Link href="/vendedor" className="botao-atas link">
+            ← Painel
+          </Link>
+        </div>
       </div>
 
       {(ata.fornecedor.contatoTecnicoNome ||
@@ -154,6 +156,7 @@ export default async function KanbanAtaPage({ params }: { params: Promise<{ ataI
                     observacoesAtuais={o.observacoes}
                     valorAderidoAtual={o.valorAderido ? o.valorAderido.toString() : null}
                     percentualComissaoAtual={o.percentualComissao ? o.percentualComissao.toString() : null}
+                    prazoEm={o.prazoEm ? o.prazoEm.toISOString() : null}
                     percentualContrato={ata.contrato ? ata.contrato.percentualComissao.toString() : null}
                     contatos={(contatosPorEntidade.get(o.entidadeAlvoId) ?? []).map((c) => ({
                       cargo: c.cargo,
@@ -173,29 +176,6 @@ export default async function KanbanAtaPage({ params }: { params: Promise<{ ataI
         </div>
       )}
 
-      {especulativos.length > 0 && (
-        <Secao titulo={`Possíveis oportunidades (${especulativos.length}) — ainda não confirmadas`}>
-          <p className="mb-3 text-xs" style={{ color: "var(--cor-texto-3)" }}>
-            Raio-X rodou e não achou contratação dessa categoria — pode ser necessidade nova, ou o
-            classificador não ter pego o contrato certo. Adicione ao Kanban só se quiser perseguir.
-          </p>
-          <ul className="flex flex-wrap gap-2">
-            {especulativos.map((m) => (
-              <li key={m.id}>
-                <form action={adicionarOportunidadeManual.bind(null, ataId, m.id)}>
-                  <button
-                    type="submit"
-                    className="eyebrow inline-flex items-center gap-1 rounded-full border px-2.5 py-1"
-                    style={{ borderColor: "var(--cor-borda-forte)", color: "var(--cor-texto-2)" }}
-                  >
-                    + {m.nome}
-                  </button>
-                </form>
-              </li>
-            ))}
-          </ul>
-        </Secao>
-      )}
     </AppShell>
   );
 }

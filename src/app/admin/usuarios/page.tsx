@@ -23,12 +23,19 @@ const NAV_ADMIN = [
   { rotulo: "Atas", href: "/atas" },
   { rotulo: "Contas a receber", href: "/admin/faturamento" },
   { rotulo: "Recebíveis — vendedores", href: "/admin/recebiveis-vendedores" },
+  { rotulo: "Negociações", href: "/admin/negociacoes" },
   { rotulo: "Usuários", href: "/admin/usuarios" },
   { rotulo: "Fornecedores", href: "/admin/fornecedores" },
   { rotulo: "Municípios/Entidades", href: "/admin/entidades" },
   { rotulo: "Parceiros", href: "/admin/parceiros" },
   { rotulo: "Perfil", href: "/admin/perfil" },
 ];
+
+/** Atas distintas em que o vendedor tem município ativo (negociação). */
+function atasDoVendedor(v: { oportunidades: { ata: { id: string; numero: string } }[] }) {
+  const porId = new Map(v.oportunidades.map((o) => [o.ata.id, o.ata]));
+  return [...porId.values()];
+}
 
 export default async function GestaoUsuariosPage() {
   const adminId = await adminIdLogado();
@@ -40,7 +47,12 @@ export default async function GestaoUsuariosPage() {
     prisma.fornecedor.findMany({ orderBy: { razaoSocial: "asc" } }),
     prisma.orgao.findMany({ orderBy: { nome: "asc" } }),
     prisma.vendedor.findMany({
-      include: { atas: { select: { id: true, numero: true } } },
+      include: {
+        oportunidades: {
+          where: { expiradaEm: null },
+          select: { ata: { select: { id: true, numero: true } } },
+        },
+      },
       orderBy: { nome: "asc" },
     }),
   ]);
@@ -103,16 +115,17 @@ export default async function GestaoUsuariosPage() {
                     </form>
                   </div>
                 </div>
-                {v.atas.length > 0 && (
+                {atasDoVendedor(v).length > 0 && (
                   <div className="flex flex-wrap gap-2 border-t pt-3" style={{ borderColor: "var(--cor-borda)" }}>
-                    {v.atas.map((a) => (
+                    {atasDoVendedor(v).map((a) => (
                       <form key={a.id} action={devolverAtaAoPool} className="flex items-center gap-1.5">
                         <input type="hidden" name="ataId" value={a.id} />
+                        <input type="hidden" name="vendedorId" value={v.id} />
                         <span className="eyebrow" style={{ color: "var(--cor-texto-3)" }}>
                           Ata {a.numero}
                         </span>
                         <button type="submit" className="eyebrow underline" style={{ color: "var(--cor-alerta)" }}>
-                          devolver ao pool
+                          tirar da ata
                         </button>
                       </form>
                     ))}
