@@ -17,6 +17,7 @@ import { tipoEntidadeAlvoValido } from "@/lib/entidades-alvo";
 import { calcularRaioXConsumo } from "@/lib/raio-x-consumo";
 import { CATEGORIAS_ATAS } from "@/lib/categorias";
 import { tipoVendedorValido } from "@/lib/vendedores";
+import { interpretarPercentualComissao } from "@/lib/comissao";
 
 export interface EstadoLoginAdmin {
   erro?: string;
@@ -318,6 +319,59 @@ export async function atualizarContatoTecnicoFornecedor(formData: FormData): Pro
     },
   });
   revalidatePath("/admin/fornecedores");
+}
+
+export interface EstadoContratoIntermediacao {
+  erro?: string;
+  sucesso?: boolean;
+}
+
+/**
+ * Contrato de intermediação da ata (2026-10-04, SCP cl. 4 / Projeto RNA
+ * §2): o percentual de 3% a 15% é pactuado pelo admin com o fornecedor e
+ * fica aqui — o vendedor não digita comissão. Um contrato por ata (upsert).
+ */
+export async function salvarContratoIntermediacao(
+  ataId: string,
+  _estadoAnterior: EstadoContratoIntermediacao,
+  formData: FormData,
+): Promise<EstadoContratoIntermediacao> {
+  await exigirAdmin();
+
+  const ata = await prisma.ata.findUnique({ where: { id: ataId } });
+  if (!ata) return { erro: "Ata não encontrada." };
+
+  const percentual = interpretarPercentualComissao(String(formData.get("percentualComissao") ?? ""));
+  if (!percentual.ok) return { erro: percentual.erro };
+
+  const dataAssinaturaTexto = String(formData.get("dataAssinatura") ?? "");
+  if (!dataAssinaturaTexto) return { erro: "Informe a data de assinatura do contrato." };
+  const dataAssinatura = new Date(dataAssinaturaTexto);
+  if (Number.isNaN(dataAssinatura.getTime())) return { erro: "Data de assinatura inválida." };
+
+  const vigenciaTexto = String(formData.get("vigenciaFim") ?? "");
+  const vigenciaFim = vigenciaTexto ? new Date(vigenciaTexto) : null;
+  if (vigenciaFim && (Number.isNaN(vigenciaFim.getTime()) || vigenciaFim < dataAssinatura)) {
+    return { erro: "A vigência não pode terminar antes da assinatura." };
+  }
+
+  const observacoes = String(formData.get("observacoes") ?? "").trim() || null;
+  const dados = {
+    percentualComissao: percentual.fracao,
+    dataAssinatura,
+    vigenciaFim,
+    observacoes,
+  };
+
+  await prisma.contratoIntermediacao.upsert({
+    where: { ataId },
+    update: dados,
+    create: { ataId, ...dados },
+  });
+
+  revalidatePath(`/admin/atas/${ataId}/contrato`);
+  revalidatePath("/vendedor");
+  return { sucesso: true };
 }
 
 export async function alternarStatusOrgao(formData: FormData): Promise<void> {

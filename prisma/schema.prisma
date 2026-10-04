@@ -146,6 +146,7 @@ model Ata {
   documentos       DocumentoAta[]
   interacoesPontoFocal InteracaoPontoFocal[]
   oportunidades        OportunidadeVenda[]
+  contrato             ContratoIntermediacao?
 
   @@unique([numero, orgaoGerenciadorId])
   @@map("atas")
@@ -480,4 +481,23 @@ model HistoricoConsumoCategoria {
 
   @@unique([entidadeAlvoId, categoria])
   @@map("historico_consumo_categoria")
+}
+
+// Contrato de intermediação com o fornecedor da ata (2026-10-04, SCP cl. 4
+// e Projeto RNA §2): nenhuma abordagem a município sem ele. O percentual
+// (3%–15%) é pactuado pelo admin com o fornecedor — não é digitado pelo
+// vendedor; a oportunidade só copia esse valor quando vira "aderiu".
+model ContratoIntermediacao {
+  id                 String    @id @default(cuid())
+  ataId              String    @unique
+  percentualComissao Decimal   @db.Decimal(5, 4)
+  dataAssinatura     DateTime
+  vigenciaFim        DateTime?
+  observacoes        String?
+  criadoEm           DateTime  @default(now())
+  atualizadoEm       DateTime  @updatedAt
+
+  ata Ata @relation(fields: [ataId], references: [id])
+
+  @@map("contratos_intermediacao")
 }

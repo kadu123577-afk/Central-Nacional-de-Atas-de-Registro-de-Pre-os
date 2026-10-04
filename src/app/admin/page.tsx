@@ -203,6 +203,9 @@ export default async function PainelAdminPage() {
                       Completar
                     </Link>
                   )}
+                  <Link href={`/admin/atas/${ata.id}/contrato`} className="botao-atas secundario">
+                    Contrato
+                  </Link>
                   <form action={aprovarAta}>
                     <input type="hidden" name="ataId" value={ata.id} />
                     <button type="submit" className="botao-atas">

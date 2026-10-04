@@ -27,7 +27,7 @@ export default async function KanbanAtaPage({ params }: { params: Promise<{ ataI
   const { ataId } = await params;
   const ata = await prisma.ata.findUnique({
     where: { id: ataId },
-    include: { fornecedor: true },
+    include: { fornecedor: true, contrato: true },
   });
   if (!ata) notFound();
   if (ata.vendedorId !== vendedorId) {
@@ -154,6 +154,7 @@ export default async function KanbanAtaPage({ params }: { params: Promise<{ ataI
                     observacoesAtuais={o.observacoes}
                     valorAderidoAtual={o.valorAderido ? o.valorAderido.toString() : null}
                     percentualComissaoAtual={o.percentualComissao ? o.percentualComissao.toString() : null}
+                    percentualContrato={ata.contrato ? ata.contrato.percentualComissao.toString() : null}
                     contatos={(contatosPorEntidade.get(o.entidadeAlvoId) ?? []).map((c) => ({
                       cargo: c.cargo,
                       nomeContato: c.nomeContato,

@@ -183,30 +183,34 @@ export async function moverEstagioOportunidade(
 
   const observacoesLimpa = observacoes.trim() || null;
 
-  // Controle de recebíveis (2026-10-01) — "Aderiu" exige registrar o
-  // valor que o ente aderiu e o percentual de comissão da Tech 10 sobre
-  // o que vier a ser liquidado disso. Sem os dois, não deixa marcar como
-  // aderiu: senão o admin não teria base nenhuma pra cobrar depois.
+  // Controle de recebíveis — "Aderiu" exige o valor que o ente aderiu e
+  // um contrato de intermediação cadastrado na ata (2026-10-04): o
+  // percentual de comissão vem do contrato pactuado com o fornecedor, não
+  // é digitado pelo vendedor. Fica copiado na oportunidade (não muda se o
+  // contrato for reeditado depois da adesão).
   let valorAderido: string | undefined;
   let percentualComissao: string | undefined;
   if (novoEstagio === "aderiu") {
-    const valorBruto = String(formData.get("valorAderido") ?? "").trim();
-    const percentualBruto = String(formData.get("percentualComissao") ?? "").trim();
+    const valorBruto = String(formData.get("valorAderido") ?? "").trim().replace(",", ".");
     const valorNumero = Number(valorBruto);
-    const percentualNumero = Number(percentualBruto);
     if (!valorBruto || !Number.isFinite(valorNumero) || valorNumero <= 0) {
       return { erro: "Informe um valor aderido maior que zero." };
     }
-    if (!percentualBruto || !Number.isFinite(percentualNumero) || percentualNumero <= 0) {
-      return { erro: "Informe um percentual de comissão maior que zero." };
-    }
-    if (percentualNumero > 100) {
-      return { erro: "O percentual de comissão não pode passar de 100%." };
-    }
     valorAderido = valorBruto;
-    // Percentual digitado em % (ex.: 0,5 = meio por cento) — guardado
-    // como fração (0,005) pra multiplicar direto pelo valor liquidado.
-    percentualComissao = String(percentualNumero / 100);
+
+    if (oportunidade.estagio === "aderiu" && oportunidade.percentualComissao) {
+      percentualComissao = oportunidade.percentualComissao.toString();
+    } else {
+      const contrato = await prisma.contratoIntermediacao.findUnique({
+        where: { ataId: oportunidade.ataId },
+      });
+      if (!contrato) {
+        return {
+          erro: "Esta ata ainda não tem contrato de intermediação cadastrado. Peça ao administrador antes de marcar como Aderiu.",
+        };
+      }
+      percentualComissao = contrato.percentualComissao.toString();
+    }
   }
 
   // Saindo de "aderiu": os dados de recebível deixam de valer e são

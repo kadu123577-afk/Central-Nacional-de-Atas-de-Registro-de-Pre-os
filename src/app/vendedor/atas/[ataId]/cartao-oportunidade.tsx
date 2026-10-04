@@ -6,6 +6,11 @@ import { ROTULO_CATEGORIA_CONSUMO } from "@/lib/classificador-objeto";
 import { Cifra } from "@/components/ui/valores";
 import { moverEstagioOportunidade, type EstadoMoverEstagio } from "../../actions";
 
+/** Fração do banco (0.075) → "7,5%" sem lixo de ponto flutuante. */
+function formatarPercentual(fracao: string): string {
+  return `${String(Number((Number(fracao) * 100).toFixed(2))).replace(".", ",")}%`;
+}
+
 interface Contato {
   cargo: string;
   nomeContato: string;
@@ -27,6 +32,7 @@ interface Props {
   observacoesAtuais: string | null;
   valorAderidoAtual: string | null;
   percentualComissaoAtual: string | null;
+  percentualContrato: string | null;
   contatos: Contato[];
   necessidades: Necessidade[];
 }
@@ -45,6 +51,7 @@ export function CartaoOportunidade({
   observacoesAtuais,
   valorAderidoAtual,
   percentualComissaoAtual,
+  percentualContrato,
   contatos,
   necessidades,
 }: Props) {
@@ -78,7 +85,7 @@ export function CartaoOportunidade({
       {!aberto && valorAderidoAtual && (
         <p className="mt-1 text-xs" style={{ color: "var(--cor-marca-clara)" }}>
           Aderiu <Cifra valor={valorAderidoAtual} />
-          {percentualComissaoAtual ? ` · ${(Number(percentualComissaoAtual) * 100).toFixed(2)}% comissão` : ""}
+          {percentualComissaoAtual ? ` · ${formatarPercentual(percentualComissaoAtual)} comissão` : ""}
         </p>
       )}
       {!aberto && observacoesAtuais && (
@@ -177,22 +184,16 @@ export function CartaoOportunidade({
                     className="campo-atas"
                   />
                 </label>
-                <label className="block text-xs">
-                  <span className="mb-1 block font-medium" style={{ color: "var(--cor-texto-2)" }}>
-                    Percentual de comissão (%)
-                  </span>
-                  <input
-                    name="percentualComissao"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    required
-                    defaultValue={
-                      percentualComissaoAtual ? String(Number(percentualComissaoAtual) * 100) : ""
-                    }
-                    className="campo-atas"
-                  />
-                </label>
+                {percentualContrato ? (
+                  <p className="text-xs" style={{ color: "var(--cor-texto-2)" }}>
+                    Comissão pactuada no contrato: {formatarPercentual(percentualContrato)}
+                  </p>
+                ) : (
+                  <p className="text-xs" style={{ color: "var(--cor-critico)" }}>
+                    Esta ata ainda não tem contrato de intermediação — peça ao administrador para cadastrar
+                    antes de marcar como Aderiu.
+                  </p>
+                )}
               </div>
             )}
             <label className="block text-xs">
