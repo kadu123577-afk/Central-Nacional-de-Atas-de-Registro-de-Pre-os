@@ -32,7 +32,9 @@ export default async function PainelVendedorPage() {
 
   const [disponiveis, minhasAtas] = await Promise.all([
     prisma.ata.findMany({
-      where: { vendedorId: null },
+      // Portão (2026-10-04): só ata aprovada pelo gestor E com contrato de
+      // intermediação cadastrado chega ao pool do vendedor.
+      where: { vendedorId: null, status: "APROVADA", contrato: { isNot: null } },
       include: { fornecedor: true, orgaoGerenciador: true },
       orderBy: { createdAt: "desc" },
     }),

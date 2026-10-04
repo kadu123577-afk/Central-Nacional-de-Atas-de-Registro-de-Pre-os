@@ -18,6 +18,7 @@ import { calcularRaioXConsumo } from "@/lib/raio-x-consumo";
 import { CATEGORIAS_ATAS } from "@/lib/categorias";
 import { tipoVendedorValido } from "@/lib/vendedores";
 import { interpretarPercentualComissao } from "@/lib/comissao";
+import { ITENS_CONFORMIDADE, itensPendentes, type RespostasConformidade } from "@/lib/conformidade";
 
 export interface EstadoLoginAdmin {
   erro?: string;
@@ -186,16 +187,6 @@ async function exigirAdmin(): Promise<void> {
   }
 }
 
-export async function aprovarAta(formData: FormData): Promise<void> {
-  await exigirAdmin();
-  const ataId = String(formData.get("ataId") ?? "");
-  if (!ataId) return;
-
-  await prisma.ata.update({ where: { id: ataId }, data: { status: "APROVADA" } });
-  revalidatePath("/admin");
-  revalidatePath("/catalogo");
-}
-
 export async function rejeitarAta(formData: FormData): Promise<void> {
   await exigirAdmin();
   const ataId = String(formData.get("ataId") ?? "");
@@ -319,6 +310,66 @@ export async function atualizarContatoTecnicoFornecedor(formData: FormData): Pro
     },
   });
   revalidatePath("/admin/fornecedores");
+}
+
+export interface EstadoAnaliseAta {
+  erro?: string;
+  mensagem?: string;
+}
+
+/**
+ * Análise de conformidade da ata (2026-10-04, SCP cl. 8): o gestor marca o
+ * checklist, escreve o parecer e salva ou aprova. Itens desmarcados não
+ * impedem a aprovação — exigem parecer justificando (aprovação com
+ * ressalva); a decisão jurídica é do gestor, o sistema só alerta.
+ */
+export async function analisarAta(
+  ataId: string,
+  _estadoAnterior: EstadoAnaliseAta,
+  formData: FormData,
+): Promise<EstadoAnaliseAta> {
+  await exigirAdmin();
+  const adminId = await adminIdLogado();
+
+  const ata = await prisma.ata.findUnique({ where: { id: ataId } });
+  if (!ata) return { erro: "Ata não encontrada." };
+
+  const respostas = Object.fromEntries(
+    ITENS_CONFORMIDADE.map((i) => [i.campo, formData.get(i.campo) === "on"]),
+  ) as RespostasConformidade;
+  const parecer = String(formData.get("parecer") ?? "").trim() || null;
+  const decisao = String(formData.get("decisao") ?? "salvar");
+
+  const pendentes = itensPendentes(respostas);
+  if (decisao === "aprovar" && pendentes.length > 0 && !parecer) {
+    return {
+      erro: `Há ${pendentes.length} item(ns) do checklist não confirmado(s). Para aprovar com ressalva, escreva o parecer justificando.`,
+    };
+  }
+
+  const dados = { ...respostas, parecer, responsavelId: adminId };
+  await prisma.conformidadeAta.upsert({
+    where: { ataId },
+    update: dados,
+    create: { ataId, ...dados },
+  });
+
+  if (decisao === "aprovar") {
+    await prisma.ata.update({ where: { id: ataId }, data: { status: "APROVADA" } });
+  }
+
+  revalidatePath(`/admin/atas/${ataId}/analise`);
+  revalidatePath("/admin");
+  revalidatePath("/catalogo");
+  revalidatePath("/vendedor");
+  return {
+    mensagem:
+      decisao === "aprovar"
+        ? pendentes.length > 0
+          ? "Ata aprovada com ressalva."
+          : "Ata aprovada."
+        : "Análise salva.",
+  };
 }
 
 export interface EstadoContratoIntermediacao {

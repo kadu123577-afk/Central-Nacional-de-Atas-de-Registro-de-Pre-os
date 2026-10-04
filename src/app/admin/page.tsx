@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { adminIdLogado } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { saldoAgregadoDisponivel } from "@/lib/saldo";
-import { aprovarAta, logoutAdmin, rejeitarAta } from "./actions";
+import { logoutAdmin, rejeitarAta } from "./actions";
 import { AppShell } from "@/components/ui/app-shell";
 import { Secao } from "@/components/ui/secao";
 import { CartaoIndicador } from "@/components/ui/cartao-indicador";
@@ -206,12 +206,9 @@ export default async function PainelAdminPage() {
                   <Link href={`/admin/atas/${ata.id}/contrato`} className="botao-atas secundario">
                     Contrato
                   </Link>
-                  <form action={aprovarAta}>
-                    <input type="hidden" name="ataId" value={ata.id} />
-                    <button type="submit" className="botao-atas">
-                      Aprovar
-                    </button>
-                  </form>
+                  <Link href={`/admin/atas/${ata.id}/analise`} className="botao-atas">
+                    Analisar e aprovar
+                  </Link>
                   <form action={rejeitarAta}>
                     <input type="hidden" name="ataId" value={ata.id} />
                     <button type="submit" className="botao-atas critico">

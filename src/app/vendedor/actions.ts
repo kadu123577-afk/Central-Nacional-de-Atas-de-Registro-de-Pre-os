@@ -98,8 +98,16 @@ export async function reivindicarAta(ataId: string): Promise<void> {
   const vendedorId = await vendedorIdLogado();
   if (!vendedorId) redirect("/vendedor/login");
 
-  const ata = await prisma.ata.findUnique({ where: { id: ataId } });
+  const ata = await prisma.ata.findUnique({
+    where: { id: ataId },
+    include: { contrato: true },
+  });
   if (!ata) return;
+  // Portão (2026-10-04): ata não aprovada ou sem contrato não pode ser pega.
+  if (ata.status !== "APROVADA" || !ata.contrato) {
+    revalidatePath("/vendedor");
+    return;
+  }
 
   const resultado = await prisma.ata.updateMany({
     where: { id: ataId, vendedorId: null },

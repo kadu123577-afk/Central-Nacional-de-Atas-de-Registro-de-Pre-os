@@ -147,6 +147,7 @@ model Ata {
   interacoesPontoFocal InteracaoPontoFocal[]
   oportunidades        OportunidadeVenda[]
   contrato             ContratoIntermediacao?
+  conformidade         ConformidadeAta?
 
   @@unique([numero, orgaoGerenciadorId])
   @@map("atas")
@@ -500,4 +501,27 @@ model ContratoIntermediacao {
   ata Ata @relation(fields: [ataId], references: [id])
 
   @@map("contratos_intermediacao")
+}
+
+// Declaração de conformidade da ata (2026-10-04, SCP cl. 8 e Projeto RNA
+// §3–4): checklist que o gestor preenche antes de aprovar a ata. Itens
+// desmarcados geram ALERTA (aprovar exige parecer justificando), nunca
+// recusa automática — a decisão jurídica é do gestor.
+model ConformidadeAta {
+  id                    String   @id @default(cuid())
+  ataId                 String   @unique
+  fornecedorRegular     Boolean  @default(false)
+  editalPermiteAdesao   Boolean  @default(false)
+  limitesRespeitados    Boolean  @default(false)
+  pesquisaPrecos        Boolean  @default(false)
+  anuenciaGerenciador   Boolean  @default(false)
+  estimativaQuantidades Boolean  @default(false)
+  parecer               String?
+  responsavelId         String?
+  atualizadoEm          DateTime @updatedAt
+  criadoEm              DateTime @default(now())
+
+  ata Ata @relation(fields: [ataId], references: [id])
+
+  @@map("conformidades_ata")
 }
