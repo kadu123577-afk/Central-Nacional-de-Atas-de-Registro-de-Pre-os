@@ -12,6 +12,7 @@ import {
 } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { prazoParaEstagio } from "@/lib/negociacao";
+import { resultadoInteracaoValido } from "@/lib/pontos-focais";
 import { expirarOportunidadesVencidas } from "@/lib/negociacao-expiracao";
 import {
   estagioOportunidadeValido,
@@ -153,6 +154,7 @@ export async function solicitarMunicipios(
  */
 export interface EstadoMoverEstagio {
   erro?: string;
+  ok?: boolean;
   /** Devolvido junto do erro: o React zera o formulário após a action, e isso repõe o que foi digitado. */
   valores?: { valorAderido: string; observacoes: string; nonce: string };
 }
@@ -186,6 +188,16 @@ export async function moverEstagioOportunidade(
   }
 
   const observacoesLimpa = observacoes.trim() || null;
+
+  // Próximo contato agendado (opcional): campo vazio limpa; data inválida é recusada.
+  const proximoTexto = String(formData.get("proximoContatoEm") ?? "").trim();
+  let proximoContatoEm: Date | null = null;
+  if (proximoTexto) {
+    proximoContatoEm = new Date(proximoTexto);
+    if (Number.isNaN(proximoContatoEm.getTime())) {
+      return { erro: "Data de próximo contato inválida.", valores };
+    }
+  }
 
   // Controle de recebíveis — "Aderiu" exige o valor que o ente aderiu e
   // um contrato de intermediação cadastrado na ata (2026-10-04): o
@@ -239,6 +251,7 @@ export async function moverEstagioOportunidade(
       estagio: novoEstagio,
       observacoes: observacoesLimpa,
       prazoEm: prazoParaEstagio(novoEstagio),
+      proximoContatoEm,
       ...(valorAderido ? { valorAderido, percentualComissao } : {}),
       ...(limparRecebivel ? { valorAderido: null, percentualComissao: null } : {}),
     },
@@ -260,5 +273,52 @@ export async function moverEstagioOportunidade(
   }
 
   revalidatePath(`/vendedor/atas/${oportunidade.ataId}`);
-  return {};
+  return { ok: true };
+}
+
+export interface EstadoRegistrarContato {
+  erro?: string;
+  ok?: boolean;
+}
+
+/**
+ * "Registrar contato" da gaveta do município (2026-10-04, fase 2 de
+ * design): o vendedor anota que falou (ou tentou) com um contato do
+ * município. Vira uma InteracaoPontoFocal (mesmo histórico que o resto do
+ * sistema lê) e conta como movimento: renova o prazo da negociação.
+ */
+export async function registrarContatoVendedor(
+  oportunidadeId: string,
+  _estadoAnterior: EstadoRegistrarContato,
+  formData: FormData,
+): Promise<EstadoRegistrarContato> {
+  const vendedorId = await vendedorIdLogado();
+  if (!vendedorId) redirect("/vendedor/login");
+
+  const pontoFocalId = String(formData.get("pontoFocalId") ?? "");
+  const resultado = String(formData.get("resultado") ?? "");
+  const observacao = String(formData.get("observacao") ?? "").trim() || null;
+  if (!pontoFocalId) return { erro: "Escolha com quem você falou." };
+  if (!resultadoInteracaoValido(resultado)) return { erro: "Escolha o resultado do contato." };
+
+  const oportunidade = await prisma.oportunidadeVenda.findUnique({ where: { id: oportunidadeId } });
+  if (!oportunidade || oportunidade.vendedorId !== vendedorId || oportunidade.expiradaEm) {
+    return { erro: "Oportunidade não encontrada ou com prazo vencido." };
+  }
+
+  const contato = await prisma.pontoFocal.findUnique({ where: { id: pontoFocalId } });
+  if (!contato || contato.entidadeAlvoId !== oportunidade.entidadeAlvoId) {
+    return { erro: "Este contato não pertence ao município." };
+  }
+
+  await prisma.interacaoPontoFocal.create({
+    data: { pontoFocalId, ataId: oportunidade.ataId, resultado, observacao },
+  });
+  await prisma.oportunidadeVenda.update({
+    where: { id: oportunidadeId },
+    data: { prazoEm: prazoParaEstagio(oportunidade.estagio) },
+  });
+
+  revalidatePath(`/vendedor/atas/${oportunidade.ataId}`);
+  return { ok: true };
 }
