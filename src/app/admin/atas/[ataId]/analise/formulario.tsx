@@ -15,6 +15,8 @@ const estadoInicial: EstadoAnaliseAta = {};
 export function FormularioAnalise({ ataId, respostasAtuais, parecerAtual }: Props) {
   const acaoComId = analisarAta.bind(null, ataId);
   const [estado, formAction, pendente] = useActionState(acaoComId, estadoInicial);
+  // Depois de um erro o React zera o formulário; repõe o que foi marcado/digitado.
+  const respostas = estado.valores?.respostas ?? respostasAtuais;
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
@@ -25,7 +27,7 @@ export function FormularioAnalise({ ataId, respostasAtuais, parecerAtual }: Prop
               <input
                 type="checkbox"
                 name={item.campo}
-                defaultChecked={respostasAtuais[item.campo]}
+                defaultChecked={respostas[item.campo]}
                 className="mt-1"
               />
               {item.rotulo}
@@ -38,7 +40,7 @@ export function FormularioAnalise({ ataId, respostasAtuais, parecerAtual }: Prop
         <span className="mb-1 block font-medium" style={{ color: "var(--cor-texto-2)" }}>
           Parecer (obrigatório para aprovar com itens não confirmados)
         </span>
-        <textarea name="parecer" rows={3} defaultValue={parecerAtual} className="campo-atas" />
+        <textarea name="parecer" rows={3} defaultValue={estado.valores?.parecer ?? parecerAtual} className="campo-atas" />
       </label>
 
       {estado.erro && (

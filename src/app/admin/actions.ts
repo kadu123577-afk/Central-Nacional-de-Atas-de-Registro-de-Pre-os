@@ -416,6 +416,7 @@ export async function atualizarContatoTecnicoFornecedor(formData: FormData): Pro
 export interface EstadoAnaliseAta {
   erro?: string;
   mensagem?: string;
+  valores?: { respostas: RespostasConformidade; parecer: string };
 }
 
 /**
@@ -439,12 +440,14 @@ export async function analisarAta(
     ITENS_CONFORMIDADE.map((i) => [i.campo, formData.get(i.campo) === "on"]),
   ) as RespostasConformidade;
   const parecer = String(formData.get("parecer") ?? "").trim() || null;
+  const valores = { respostas, parecer: parecer ?? "" };
   const decisao = String(formData.get("decisao") ?? "salvar");
 
   const pendentes = itensPendentes(respostas);
   if (decisao === "aprovar" && pendentes.length > 0 && !parecer) {
     return {
       erro: `Há ${pendentes.length} item(ns) do checklist não confirmado(s). Para aprovar com ressalva, escreva o parecer justificando.`,
+      valores,
     };
   }
 
@@ -476,6 +479,8 @@ export async function analisarAta(
 export interface EstadoContratoIntermediacao {
   erro?: string;
   sucesso?: boolean;
+  /** Devolvido junto do erro: o React zera o formulário após a action, e isso repõe o que foi digitado. */
+  valores?: { percentualComissao: string; dataAssinatura: string; vigenciaFim: string; observacoes: string };
 }
 
 /**
@@ -490,21 +495,28 @@ export async function salvarContratoIntermediacao(
 ): Promise<EstadoContratoIntermediacao> {
   await exigirAdmin();
 
+  const valores = {
+    percentualComissao: String(formData.get("percentualComissao") ?? ""),
+    dataAssinatura: String(formData.get("dataAssinatura") ?? ""),
+    vigenciaFim: String(formData.get("vigenciaFim") ?? ""),
+    observacoes: String(formData.get("observacoes") ?? ""),
+  };
+
   const ata = await prisma.ata.findUnique({ where: { id: ataId } });
-  if (!ata) return { erro: "Ata não encontrada." };
+  if (!ata) return { erro: "Ata não encontrada.", valores };
 
   const percentual = interpretarPercentualComissao(String(formData.get("percentualComissao") ?? ""));
-  if (!percentual.ok) return { erro: percentual.erro };
+  if (!percentual.ok) return { erro: percentual.erro, valores };
 
   const dataAssinaturaTexto = String(formData.get("dataAssinatura") ?? "");
-  if (!dataAssinaturaTexto) return { erro: "Informe a data de assinatura do contrato." };
+  if (!dataAssinaturaTexto) return { erro: "Informe a data de assinatura do contrato.", valores };
   const dataAssinatura = new Date(dataAssinaturaTexto);
-  if (Number.isNaN(dataAssinatura.getTime())) return { erro: "Data de assinatura inválida." };
+  if (Number.isNaN(dataAssinatura.getTime())) return { erro: "Data de assinatura inválida.", valores };
 
   const vigenciaTexto = String(formData.get("vigenciaFim") ?? "");
   const vigenciaFim = vigenciaTexto ? new Date(vigenciaTexto) : null;
   if (vigenciaFim && (Number.isNaN(vigenciaFim.getTime()) || vigenciaFim < dataAssinatura)) {
-    return { erro: "A vigência não pode terminar antes da assinatura." };
+    return { erro: "A vigência não pode terminar antes da assinatura.", valores };
   }
 
   const observacoes = String(formData.get("observacoes") ?? "").trim() || null;

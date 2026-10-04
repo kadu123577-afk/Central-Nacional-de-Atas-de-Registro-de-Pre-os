@@ -1,5 +1,6 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
@@ -152,6 +153,8 @@ export async function solicitarMunicipios(
  */
 export interface EstadoMoverEstagio {
   erro?: string;
+  /** Devolvido junto do erro: o React zera o formulário após a action, e isso repõe o que foi digitado. */
+  valores?: { valorAderido: string; observacoes: string; nonce: string };
 }
 
 export async function moverEstagioOportunidade(
@@ -164,16 +167,22 @@ export async function moverEstagioOportunidade(
 
   const novoEstagio = String(formData.get("estagio") ?? "");
   const observacoes = String(formData.get("observacoes") ?? "");
-  if (!estagioOportunidadeValido(novoEstagio)) return { erro: "Estágio inválido." };
+  // nonce: muda a cada envio, pro cartão remontar o <select> (que o reset do form zera).
+  const valores = {
+    valorAderido: String(formData.get("valorAderido") ?? ""),
+    observacoes,
+    nonce: randomUUID(),
+  };
+  if (!estagioOportunidadeValido(novoEstagio)) return { erro: "Estágio inválido.", valores };
 
   const oportunidade = await prisma.oportunidadeVenda.findUnique({
     where: { id: oportunidadeId },
   });
   if (!oportunidade || oportunidade.vendedorId !== vendedorId) {
-    return { erro: "Oportunidade não encontrada." };
+    return { erro: "Oportunidade não encontrada.", valores };
   }
   if (oportunidade.expiradaEm) {
-    return { erro: "O prazo deste município venceu. Faça um novo pedido de negociação." };
+    return { erro: "O prazo deste município venceu. Faça um novo pedido de negociação.", valores };
   }
 
   const observacoesLimpa = observacoes.trim() || null;
@@ -189,7 +198,7 @@ export async function moverEstagioOportunidade(
     const valorBruto = String(formData.get("valorAderido") ?? "").trim().replace(",", ".");
     const valorNumero = Number(valorBruto);
     if (!valorBruto || !Number.isFinite(valorNumero) || valorNumero <= 0) {
-      return { erro: "Informe um valor aderido maior que zero." };
+      return { erro: "Informe um valor aderido maior que zero.", valores };
     }
     valorAderido = valorBruto;
 
@@ -202,6 +211,7 @@ export async function moverEstagioOportunidade(
       if (!contrato) {
         return {
           erro: "Esta ata ainda não tem contrato de intermediação cadastrado. Peça ao administrador antes de marcar como Aderiu.",
+          valores,
         };
       }
       percentualComissao = contrato.percentualComissao.toString();
@@ -217,6 +227,7 @@ export async function moverEstagioOportunidade(
     if (liquidacoes > 0) {
       return {
         erro: `Esta oportunidade já tem ${liquidacoes} liquidação(ões) registrada(s) e não pode sair de "Aderiu". Fale com o administrador.`,
+        valores,
       };
     }
     limparRecebivel = true;

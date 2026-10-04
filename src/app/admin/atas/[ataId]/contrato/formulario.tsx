@@ -23,6 +23,8 @@ export function FormularioContrato({
 }: Props) {
   const acaoComId = salvarContratoIntermediacao.bind(null, ataId);
   const [estado, formAction, pendente] = useActionState(acaoComId, estadoInicial);
+  // Depois de um erro o React zera o formulário; repõe o que foi digitado.
+  const v = estado.valores;
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
@@ -30,18 +32,18 @@ export function FormularioContrato({
         <Campo
           label={`Comissão (%) — de ${COMISSAO_MINIMA_PERCENTUAL}% a ${COMISSAO_MAXIMA_PERCENTUAL}%`}
           name="percentualComissao"
-          defaultValue={percentualAtual}
+          defaultValue={v?.percentualComissao ?? percentualAtual}
           inputMode="decimal"
           required
         />
-        <Campo label="Data de assinatura" name="dataAssinatura" type="date" defaultValue={dataAssinaturaAtual} required />
-        <Campo label="Fim da vigência (opcional)" name="vigenciaFim" type="date" defaultValue={vigenciaFimAtual} />
+        <Campo label="Data de assinatura" name="dataAssinatura" type="date" defaultValue={v?.dataAssinatura ?? dataAssinaturaAtual} required />
+        <Campo label="Fim da vigência (opcional)" name="vigenciaFim" type="date" defaultValue={v?.vigenciaFim ?? vigenciaFimAtual} />
       </div>
       <label className="block text-sm">
         <span className="mb-1 block font-medium" style={{ color: "var(--cor-texto-2)" }}>
           Observações (exclusividade, condições)
         </span>
-        <textarea name="observacoes" rows={2} defaultValue={observacoesAtuais} className="campo-atas" />
+        <textarea name="observacoes" rows={2} defaultValue={v?.observacoes ?? observacoesAtuais} className="campo-atas" />
       </label>
 
       {estado.erro && (

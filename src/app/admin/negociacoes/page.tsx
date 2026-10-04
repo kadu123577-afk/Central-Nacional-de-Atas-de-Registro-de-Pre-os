@@ -36,6 +36,8 @@ export default async function NegociacoesPage() {
       orderBy: { atualizadoEm: "desc" },
     }),
   ]);
+  const LIMITE_ATIVAS = 100;
+  const ativasVisiveis = ativas.slice(0, LIMITE_ATIVAS);
 
   // Pedidos agrupados por ata e depois por vendedor.
   const porAta = new Map<string, { ata: (typeof pendentes)[number]["ata"]; porVendedor: Map<string, typeof pendentes> }>();
@@ -164,7 +166,12 @@ export default async function NegociacoesPage() {
           </p>
         ) : (
           <ul className="flex flex-col gap-1.5">
-            {ativas.map((o) => (
+            {ativas.length > LIMITE_ATIVAS && (
+              <li className="text-xs" style={{ color: "var(--cor-texto-3)" }}>
+                Mostrando as {LIMITE_ATIVAS} mais recentes de {ativas.length}.
+              </li>
+            )}
+            {ativasVisiveis.map((o) => (
               <li key={o.id} className="flex flex-wrap items-center justify-between gap-2 text-sm">
                 <span style={{ color: "var(--cor-texto)" }}>
                   Ata {o.ata.numero} · {o.entidadeAlvo.nome}

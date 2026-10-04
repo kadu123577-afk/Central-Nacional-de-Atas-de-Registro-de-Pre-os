@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { solicitarMunicipios, type EstadoSolicitarMunicipios } from "../../../actions";
 
 export interface MunicipioOpcao {
@@ -29,9 +29,20 @@ const ROTULO_SITUACAO = {
 export function FormularioSolicitar({ ataId, fortes, especulativos }: Props) {
   const acaoComId = solicitarMunicipios.bind(null, ataId);
   const [estado, formAction, pendente] = useActionState(acaoComId, estadoInicial);
+  const [filtro, setFiltro] = useState("");
+  const termo = filtro.trim().toLowerCase();
+  const passa = (m: MunicipioOpcao) => !termo || `${m.nome} ${m.uf ?? ""}`.toLowerCase().includes(termo);
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
+      <input
+        type="search"
+        value={filtro}
+        onChange={(e) => setFiltro(e.target.value)}
+        placeholder="Filtrar por nome ou UF"
+        className="campo-atas"
+      />
+
       <div>
         <p className="eyebrow mb-2" style={{ color: "var(--cor-texto-3)" }}>
           Candidatos fortes — já contrataram essa categoria ({fortes.length})
@@ -43,7 +54,7 @@ export function FormularioSolicitar({ ataId, fortes, especulativos }: Props) {
         ) : (
           <ul className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
             {fortes.map((m) => (
-              <Opcao key={m.id} m={m} marcadoPorPadrao />
+              <Opcao key={m.id} m={m} oculto={!passa(m)} />
             ))}
           </ul>
         )}
@@ -60,7 +71,7 @@ export function FormularioSolicitar({ ataId, fortes, especulativos }: Props) {
           </p>
           <ul className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
             {especulativos.map((m) => (
-              <Opcao key={m.id} m={m} />
+              <Opcao key={m.id} m={m} oculto={!passa(m)} />
             ))}
           </ul>
         </details>
@@ -86,10 +97,11 @@ export function FormularioSolicitar({ ataId, fortes, especulativos }: Props) {
   );
 }
 
-function Opcao({ m, marcadoPorPadrao = false }: { m: MunicipioOpcao; marcadoPorPadrao?: boolean }) {
+/** `oculto` só esconde (não desmonta) — marcações feitas antes do filtro continuam valendo no envio. */
+function Opcao({ m, oculto }: { m: MunicipioOpcao; oculto: boolean }) {
   const livre = m.situacao === "livre";
   return (
-    <li>
+    <li className={oculto ? "hidden" : undefined}>
       <label
         className="flex items-start gap-2 text-sm"
         style={{ color: livre ? "var(--cor-texto)" : "var(--cor-texto-3)" }}
@@ -98,7 +110,6 @@ function Opcao({ m, marcadoPorPadrao = false }: { m: MunicipioOpcao; marcadoPorP
           type="checkbox"
           name="entidadeAlvoId"
           value={m.id}
-          defaultChecked={livre && marcadoPorPadrao}
           disabled={!livre}
           className="mt-1"
         />

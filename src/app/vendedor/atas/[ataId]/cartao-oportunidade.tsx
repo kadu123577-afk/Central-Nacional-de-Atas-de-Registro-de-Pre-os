@@ -158,7 +158,8 @@ export function CartaoOportunidade({
               </span>
               <select
                 name="estagio"
-                defaultValue={estagioAtual}
+                key={estado.valores?.nonce ?? "inicial"}
+                defaultValue={estagioSelecionado}
                 onChange={(e) => setEstagioSelecionado(e.target.value)}
                 className="campo-atas"
               >
@@ -187,7 +188,7 @@ export function CartaoOportunidade({
                     step="0.01"
                     min="0"
                     required
-                    defaultValue={valorAderidoAtual ?? ""}
+                    defaultValue={estado.valores?.valorAderido ?? valorAderidoAtual ?? ""}
                     className="campo-atas"
                   />
                 </label>
@@ -209,7 +210,7 @@ export function CartaoOportunidade({
               </span>
               <textarea
                 name="observacoes"
-                defaultValue={observacoesAtuais ?? ""}
+                defaultValue={estado.valores?.observacoes ?? observacoesAtuais ?? ""}
                 rows={2}
                 className="campo-atas"
               />

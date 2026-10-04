@@ -191,7 +191,7 @@ function LinhaLiquidacao({ liquidacao: l, percentual }: { liquidacao: Liquidacao
       <p>
         <Cifra valor={l.valorLiquidado} />
         {l.numeroNotaFiscal ? ` · NF ${l.numeroNotaFiscal}` : ""} ·{" "}
-        {new Date(l.dataLiquidacao).toLocaleDateString("pt-BR")} · {ROTULO_TIPO_LIQUIDACAO[tipo] ?? l.tipo} · comissão{" "}
+        {new Date(l.dataLiquidacao).toLocaleDateString("pt-BR", { timeZone: "UTC" })} · {ROTULO_TIPO_LIQUIDACAO[tipo] ?? l.tipo} · comissão{" "}
         <Cifra valor={Number(l.valorLiquidado) * percentual} />
       </p>
       <form action={formAction} className="mt-1 flex flex-wrap items-center gap-2">
