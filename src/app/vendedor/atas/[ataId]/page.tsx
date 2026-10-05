@@ -5,12 +5,11 @@ import { prisma } from "@/lib/prisma";
 import { AppShell } from "@/components/ui/app-shell";
 import { rotuloDaCategoria } from "@/lib/categorias";
 import { percentualDeFracao } from "@/lib/formato";
-import { montarCartao } from "@/lib/kanban-view";
-import type { SinalView } from "@/lib/sinais";
+import { carregarCartoes } from "@/lib/kanban-db";
 import { expirarOportunidadesVencidas } from "@/lib/negociacao-expiracao";
 import { logoutVendedor } from "../../actions";
 import { NAV_VENDEDOR } from "../../nav";
-import { KanbanAta } from "./kanban-ata";
+import { KanbanAta } from "@/components/kanban/kanban-ata";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +17,7 @@ export const dynamic = "force-dynamic";
  * Kanban de uma ata (2026-10-01, redesenhado na fase 2 em 2026-10-04) —
  * "A Contatar → Em negociação → Aderiu/Recusou". Cada card é um município
  * liberado pro vendedor; o dossiê do município abre numa gaveta ao lado.
- * Os dados chegam aqui já montados (src/lib/kanban-view.ts).
+ * Os dados chegam aqui já montados (src/lib/kanban-db.ts → kanban-view.ts).
  */
 export default async function KanbanAtaPage({ params }: { params: Promise<{ ataId: string }> }) {
   const vendedorId = await vendedorIdLogado();
@@ -36,127 +35,12 @@ export default async function KanbanAtaPage({ params }: { params: Promise<{ ataI
 
   // Só enxerga os municípios liberados pra ele (sigilo entre vendedores);
   // sem nenhum município ativo nesta ata, volta pro painel.
-  const oportunidades = await prisma.oportunidadeVenda.findMany({
-    where: { ataId, vendedorId, expiradaEm: null },
-    include: { entidadeAlvo: true, liquidacoes: true },
-    orderBy: { criadoEm: "asc" },
-  });
-  if (oportunidades.length === 0) {
+  const { cartoes } = await carregarCartoes({ ataId, vendedorId, expiradaEm: null });
+  if (cartoes.length === 0) {
     redirect("/vendedor");
   }
 
-  const entidadeIds = oportunidades.map((o) => o.entidadeAlvoId);
-
-  // Todos os contatos ativos (prefeito + secretários) — é justamente o dado
-  // que deu mais trabalho levantar.
-  const contatos = await prisma.pontoFocal.findMany({
-    where: { entidadeAlvoId: { in: entidadeIds }, ativo: true },
-    orderBy: { createdAt: "asc" },
-  });
-  const interacoes = contatos.length
-    ? await prisma.interacaoPontoFocal.findMany({
-        where: { pontoFocalId: { in: contatos.map((c) => c.id) } },
-        orderBy: { criadoEm: "desc" },
-        take: 400,
-      })
-    : [];
-  const contatoPorId = new Map(contatos.map((c) => [c.id, c]));
-
-  // Raio-X completo (todas as categorias já identificadas pro município,
-  // não só a desta ata).
-  const historico = await prisma.historicoConsumoCategoria.findMany({
-    where: { entidadeAlvoId: { in: entidadeIds } },
-    orderBy: { ultimaContratacao: "desc" },
-  });
-
-  // Sinais de compra dos municípios (PCA, licitação aberta, troca de gestão…).
-  const sinaisBanco = await prisma.sinalMunicipio.findMany({
-    where: { entidadeAlvoId: { in: entidadeIds } },
-    orderBy: { dataSinal: "desc" },
-  });
-  const sinaisPorEntidade = new Map<string, SinalView[]>();
-  for (const sn of sinaisBanco) {
-    const lista = sinaisPorEntidade.get(sn.entidadeAlvoId) ?? [];
-    lista.push({
-      id: sn.id,
-      tipo: sn.tipo,
-      titulo: sn.titulo,
-      detalhe: sn.detalhe,
-      fonte: sn.fonte,
-      fonteUrl: sn.fonteUrl,
-      categoria: sn.categoria,
-      valorEstimado: sn.valorEstimado ? Number(sn.valorEstimado) : null,
-      dataSinal: sn.dataSinal.toISOString(),
-      expiraEm: sn.expiraEm ? sn.expiraEm.toISOString() : null,
-    });
-    sinaisPorEntidade.set(sn.entidadeAlvoId, lista);
-  }
-
   const percentualContrato = ata.contrato ? Number(ata.contrato.percentualComissao) : null;
-
-  const cartoes = oportunidades.map((o) =>
-    montarCartao(
-      {
-        id: o.id,
-        entidadeAlvoId: o.entidadeAlvoId,
-        nomeMunicipio: o.entidadeAlvo.nome,
-        uf: o.entidadeAlvo.uf,
-        estagio: o.estagio,
-        observacoes: o.observacoes,
-        prazoEm: o.prazoEm,
-        proximoContatoEm: o.proximoContatoEm,
-        valorAderido: o.valorAderido ? Number(o.valorAderido) : null,
-        percentualComissao: o.percentualComissao ? Number(o.percentualComissao) : null,
-        contatos: contatos
-          .filter((c) => c.entidadeAlvoId === o.entidadeAlvoId)
-          .map((c) => ({
-            id: c.id,
-            cargo: c.cargo,
-            area: c.area,
-            nomeContato: c.nomeContato,
-            telefone: c.telefone,
-            email: c.email,
-            particularidades: c.particularidades,
-            updatedAt: c.updatedAt,
-            fonte: c.fonte,
-            fonteUrl: c.fonteUrl,
-            confianca: c.confianca,
-            verificadoEm: c.verificadoEm,
-            contatoErradoEm: c.contatoErradoEm,
-            contatoErradoMotivo: c.contatoErradoMotivo,
-          })),
-        sinais: sinaisPorEntidade.get(o.entidadeAlvoId) ?? [],
-        necessidades: historico
-          .filter((h) => h.entidadeAlvoId === o.entidadeAlvoId)
-          .map((h) => ({
-            categoria: h.categoria,
-            ultimaContratacao: h.ultimaContratacao,
-            valor: Number(h.valorUltimaContratacao),
-            quantidadeContratos: h.quantidadeContratosNaJanela,
-            objeto: h.objetoUltimaContratacao,
-          })),
-        interacoes: interacoes
-          .filter((i) => contatoPorId.get(i.pontoFocalId)?.entidadeAlvoId === o.entidadeAlvoId)
-          .map((i) => {
-            const contato = contatoPorId.get(i.pontoFocalId);
-            return {
-              id: i.id,
-              criadoEm: i.criadoEm,
-              resultado: i.resultado,
-              observacao: i.observacao,
-              contatoNome: contato?.nomeContato ?? "",
-              contatoCargo: contato?.cargo ?? "",
-            };
-          }),
-        liquidacoes: o.liquidacoes.map((l) => ({
-          valorLiquidado: Number(l.valorLiquidado),
-          statusCobranca: l.statusCobranca,
-        })),
-      },
-      { categoriaAta: ata.categoria, percentualContrato },
-    ),
-  );
-
   const tecnico = ata.fornecedor;
   const temContatoTecnico = tecnico.contatoTecnicoNome || tecnico.contatoTecnicoTelefone || tecnico.contatoTecnicoEmail;
 
@@ -208,7 +92,7 @@ export default async function KanbanAtaPage({ params }: { params: Promise<{ ataI
         </div>
       )}
 
-      <KanbanAta cartoes={cartoes} categoriaAta={ata.categoria} />
+      <KanbanAta cartoes={cartoes} />
     </AppShell>
   );
 }

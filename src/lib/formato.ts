@@ -26,3 +26,18 @@ export function dataCurtaUtc(iso: string): string {
 export function diaMes(iso: string): string {
   return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
 }
+
+/**
+ * Iniciais do avatar: primeira letra do primeiro e do último nome, ignorando
+ * aspas, parênteses e outros sinais ("Radson Alves \"Radinho\"" → "RR").
+ */
+export function iniciais(nome: string): string {
+  const palavras = nome
+    .split(/\s+/)
+    .map((p) => p.replace(/^[^\p{L}]+/u, ""))
+    .filter(Boolean);
+  if (palavras.length === 0) return "?";
+  const primeira = palavras[0][0];
+  const ultima = palavras.length > 1 ? palavras[palavras.length - 1][0] : "";
+  return (primeira + ultima).toUpperCase();
+}

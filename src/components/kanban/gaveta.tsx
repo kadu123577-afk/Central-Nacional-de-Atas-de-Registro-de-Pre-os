@@ -6,7 +6,7 @@ import { Icone } from "@/components/ui/icones";
 import { abordagemSugerida } from "@/lib/abordagem";
 import { ROTULO_CATEGORIA_CONSUMO } from "@/lib/classificador-objeto";
 import { linkEmail, linkTelefone, linkWhatsapp } from "@/lib/contato-links";
-import { dataCurtaUtc, moedaCurta, percentualDeFracao } from "@/lib/formato";
+import { dataCurtaUtc, iniciais, moedaCurta, percentualDeFracao } from "@/lib/formato";
 import { haQuantoTempo, type CartaoView, type ContatoView } from "@/lib/kanban-view";
 import { ESTAGIOS_OPORTUNIDADE, ROTULO_ESTAGIO_OPORTUNIDADE } from "@/lib/oportunidades";
 import { RESULTADOS_INTERACAO } from "@/lib/pontos-focais";
@@ -17,7 +17,7 @@ import {
   registrarContatoVendedor,
   type EstadoMoverEstagio,
   type EstadoRegistrarContato,
-} from "../../actions";
+} from "@/app/vendedor/actions";
 import { ROTULO_TIPO_SINAL, TOM_TIPO_SINAL, tipoSinalValido } from "@/lib/sinais";
 
 type Aba = "quem" | "necessidade" | "contexto" | "historico";
@@ -30,11 +30,6 @@ const ABAS: { id: Aba; rotulo: string }[] = [
 
 const ROTULO_PAPEL = { principal: "Principal", aprovacao: "Aprovação final", apoio: "Apoio" } as const;
 
-function iniciais(nome: string): string {
-  const partes = nome.trim().split(/\s+/).filter(Boolean);
-  if (partes.length === 0) return "?";
-  return (partes[0][0] + (partes.length > 1 ? partes[partes.length - 1][0] : "")).toUpperCase();
-}
 
 const estadoMoverInicial: EstadoMoverEstagio = {};
 const estadoContatoInicial: EstadoRegistrarContato = {};
@@ -48,10 +43,13 @@ const estadoContatoInicial: EstadoRegistrarContato = {};
 export function Gaveta({
   cartao: c,
   categoriaAta,
+  somenteLeitura = false,
   fechar,
 }: {
   cartao: CartaoView;
   categoriaAta: string | null;
+  /** Pipeline do gestor: só consulta, sem registrar contato nem mexer em estágio. */
+  somenteLeitura?: boolean;
   fechar: () => void;
 }) {
   const [aba, setAba] = useState<Aba>("quem");
@@ -131,7 +129,7 @@ export function Gaveta({
                   Nenhum contato levantado para este município ainda. Peça ao administrador para incluir.
                 </div>
               ) : (
-                c.contatos.map((p) => <Pessoa key={p.id} p={p} oportunidadeId={c.id} />)
+                c.contatos.map((p) => <Pessoa key={p.id} p={p} oportunidadeId={c.id} somenteLeitura={somenteLeitura} />)
               )}
               <div className="kb-abordagem">
                 <p className="titulo">{abordagem.titulo}</p>
@@ -256,7 +254,7 @@ export function Gaveta({
           )}
         </div>
 
-        <div className="kb-gaveta-rodape">
+        <div className="kb-gaveta-rodape" style={{ display: somenteLeitura ? "none" : undefined }}>
           {painel === "contato" && <PainelContato cartao={c} aoConcluir={() => setPainel("nenhum")} />}
           {painel === "estagio" && <PainelEstagio cartao={c} />}
           <div className="kb-linha-botoes">
@@ -283,7 +281,15 @@ export function Gaveta({
 
 const ROTULO_CONFIANCA: Record<number, string> = { 1: "baixa", 2: "média", 3: "alta" };
 
-function Pessoa({ p, oportunidadeId }: { p: ContatoView; oportunidadeId: string }) {
+function Pessoa({
+  p,
+  oportunidadeId,
+  somenteLeitura,
+}: {
+  p: ContatoView;
+  oportunidadeId: string;
+  somenteLeitura: boolean;
+}) {
   const wa = linkWhatsapp(p.telefone);
   const tel = linkTelefone(p.telefone);
   const mail = linkEmail(p.email);
@@ -363,7 +369,7 @@ function Pessoa({ p, oportunidadeId }: { p: ContatoView; oportunidadeId: string 
           </span>
         </p>
 
-        <div className="kb-linha-botoes" style={{ marginTop: 8 }}>
+        <div className="kb-linha-botoes" style={{ marginTop: 8, display: somenteLeitura ? "none" : undefined }}>
           {!marcando ? (
             <>
               <form action={confirmarContatoVendedor.bind(null, oportunidadeId, p.id)}>

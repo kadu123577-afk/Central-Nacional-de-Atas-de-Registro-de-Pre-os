@@ -69,3 +69,13 @@ Coletores (PCA/PNCP, licitações abertas, diários oficiais, sites das prefeitu
 - Novo `SinalMunicipio` (tipo, título, fonte, categoria, valor, data, validade). O sinal mais relevante vira a linha "por que agora" do card e o chip "Com sinal de compra" passou a contar sinais de verdade.
 - Vendedor: "Confirmar contato" e "Contato errado" na gaveta; registrar conversa de verdade (em conversa/converteu/recusou) confirma o contato. Contato errado deixa de ser sugerido como decisor.
 - Admin: `/admin/contatos-revisao` (manter / corrigir / desativar), cadastro de sinais na ficha do município, importador `prisma/importar-sinais.ts` (dry-run, idempotente) e `enriquecer-contatos-prefeituras.ts` agora grava fonte/confiança estruturadas. Menu do admin unificado em `src/app/admin/nav.ts`.
+
+## Execução do lado do Adm e dos Municípios (2026-10-05) — como ficou
+- **Menu do admin** agrupado (Operação / Financeiro / Cadastros / Conta) com item ativo também nas páginas filhas (`AppShell` ganhou `grupo` e `ativoEm`).
+- **Painel**: "Fila de ação" (atas a analisar, pedidos de negociação, atas aprovadas sem contrato, contatos errados, comissões a cobrar, prazos vencendo), indicadores do canal de vendedores, funil, por vendedor e atas aguardando moderação com chips de conformidade e contrato. O canal de autoatendimento dos órgãos desceu para o fim.
+- **Pipeline do gestor** (`/admin/pipeline`, novo): Kanban de todos os vendedores com filtros por vendedor/ata/UF, indicadores e resumo por vendedor valendo para o filtro inteiro, teto de 300 cards (mais urgentes primeiro), dossiê somente leitura. Componentes do Kanban movidos para `src/components/kanban/` e carregamento em lote em `src/lib/kanban-db.ts`.
+- **Negociações**: indicadores, contexto por pedido (já contratou a categoria? tem decisor com contato? já está com outro vendedor?) e lista só dos estágios em aberto; o conflito de município usa consulta própria (não depende do teto da lista).
+- **Recebíveis**: 5 indicadores da cascata, filtros (a cobrar / aguardando 1ª nota / quitadas), barra de liquidação e selos de cobrança por adesão.
+- **Análise da ata**: painel de prontidão (conformidade, contrato, aprovação, visível ao vendedor). **Usuários**: resumo de pipeline por vendedor.
+- **Vendedor › Municípios**: base de contatos com indicadores de cobertura, filtros (com contato / sem contato / com sinal / em negociação por mim), cobertura por cargo (prefeito, adm., saúde, educação) e dossiê do município com fonte/confiança/verificação dos contatos, sinais e raio-X.
+- Pequenos acabamentos: iniciais do avatar ignoram aspas/parênteses (`iniciais()` em `src/lib/formato.ts`).

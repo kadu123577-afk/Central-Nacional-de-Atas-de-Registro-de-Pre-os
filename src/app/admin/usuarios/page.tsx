@@ -14,6 +14,7 @@ import { Secao } from "@/components/ui/secao";
 import { Badge } from "@/components/ui/badge";
 import { VazioComAcao } from "@/components/ui/vazio-com-acao";
 import { ROTULO_TIPO_VENDEDOR } from "@/lib/vendedores";
+import { moedaCurta } from "@/lib/formato";
 import { FormularioNovoVendedor } from "./formulario-vendedor";
 import { NAV_ADMIN } from "@/app/admin/nav";
 
@@ -38,7 +39,7 @@ export default async function GestaoUsuariosPage() {
       include: {
         oportunidades: {
           where: { expiradaEm: null },
-          select: { ata: { select: { id: true, numero: true } } },
+          select: { estagio: true, valorAderido: true, ata: { select: { id: true, numero: true } } },
         },
       },
       orderBy: { nome: "asc" },
@@ -89,6 +90,21 @@ export default async function GestaoUsuariosPage() {
                     <p className="text-xs" style={{ color: "var(--cor-texto-3)" }}>
                       {v.email} · {ROTULO_TIPO_VENDEDOR[v.tipo as keyof typeof ROTULO_TIPO_VENDEDOR] ?? v.tipo}
                     </p>
+                    {v.oportunidades.length > 0 && (
+                      <p className="mt-1 text-xs" style={{ color: "var(--cor-texto-2)" }}>
+                        {v.oportunidades.filter((o) => ["a_contatar", "em_negociacao"].includes(o.estagio)).length} em aberto ·{" "}
+                        {v.oportunidades.filter((o) => o.estagio === "aderiu").length} aderido(s) ·{" "}
+                        {moedaCurta(
+                          v.oportunidades
+                            .filter((o) => o.estagio === "aderiu")
+                            .reduce((soma, o) => soma + (o.valorAderido ? Number(o.valorAderido) : 0), 0),
+                        )}{" "}
+                        aderido ·{" "}
+                        <Link href={`/admin/pipeline?vendedor=${v.id}`} className="underline">
+                          ver no pipeline
+                        </Link>
+                      </p>
+                    )}
                   </div>
                   <div className="flex items-center gap-3">
                     <Badge tom={v.ativo ? "neutro" : "critico"}>{v.ativo ? "Ativo" : "Desativado"}</Badge>

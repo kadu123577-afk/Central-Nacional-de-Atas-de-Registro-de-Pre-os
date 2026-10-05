@@ -3,7 +3,7 @@
 import { Badge, type Tom } from "@/components/ui/badge";
 import { Icone } from "@/components/ui/icones";
 import { linkEmail, linkTelefone, linkWhatsapp } from "@/lib/contato-links";
-import { dataCurtaUtc, moedaCurta } from "@/lib/formato";
+import { dataCurtaUtc, iniciais, moedaCurta } from "@/lib/formato";
 import { haQuantoTempo, nivelFrescor, type CartaoView } from "@/lib/kanban-view";
 
 const ESTAGIOS_ABERTOS = ["a_contatar", "em_negociacao"];
@@ -15,11 +15,6 @@ const TOM_URGENCIA: Record<string, Tom> = {
   sem_prazo: "neutro",
 };
 
-function iniciais(nome: string): string {
-  const partes = nome.trim().split(/\s+/).filter(Boolean);
-  if (partes.length === 0) return "?";
-  return (partes[0][0] + (partes.length > 1 ? partes[partes.length - 1][0] : "")).toUpperCase();
-}
 
 /** Atributo que pinta a borda do card: urgência nos estágios abertos. */
 export function chaveUrgenciaDoCartao(c: CartaoView): string {
@@ -37,10 +32,13 @@ export function chaveUrgenciaDoCartao(c: CartaoView): string {
 export function Cartao({
   cartao: c,
   selecionado,
+  mostrarOrigem = false,
   aoAbrir,
 }: {
   cartao: CartaoView;
   selecionado: boolean;
+  /** Pipeline do gestor: mostra de qual ata e vendedor é o card. */
+  mostrarOrigem?: boolean;
   aoAbrir: () => void;
 }) {
   const aberto = ESTAGIOS_ABERTOS.includes(c.estagio);
@@ -69,6 +67,11 @@ export function Cartao({
               {c.uf ? ` / ${c.uf}` : ""}
             </p>
             <p className="kb-sub">{c.casaComAta ? "Já contratou esta categoria" : "Município"}</p>
+            {mostrarOrigem && (
+              <p className="kb-origem">
+                Ata {c.ataNumero} · {c.vendedorNome}
+              </p>
+            )}
           </div>
           {aberto && <Badge tom={TOM_URGENCIA[c.urgencia.nivel]}>{c.urgencia.rotulo}</Badge>}
           {c.estagio === "aderiu" && <Badge tom="marca">Aderiu</Badge>}

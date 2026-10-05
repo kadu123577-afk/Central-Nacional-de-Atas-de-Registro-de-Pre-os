@@ -51,6 +51,11 @@ export interface InteracaoView {
 
 export interface CartaoView {
   id: string;
+  /** Ata e vendedor dono do card — o Pipeline do gestor mistura vários. */
+  ataId: string;
+  ataNumero: string;
+  categoriaAta: string | null;
+  vendedorNome: string | null;
   entidadeAlvoId: string;
   nomeMunicipio: string;
   uf: string | null;
@@ -127,8 +132,70 @@ export function porQueAgoraDoRaioX(
   return `Contratou ${rotulo.toLowerCase()} há ${meses <= 1 ? "pouco tempo" : `${meses} meses`}`;
 }
 
+/** Contato como vem do banco (datas como Date), antes de virar ContatoView. */
+export interface EntradaContato {
+  id: string;
+  cargo: string;
+  area: string | null;
+  nomeContato: string;
+  telefone: string | null;
+  email: string | null;
+  particularidades: string | null;
+  updatedAt: Date;
+  fonte: string | null;
+  fonteUrl: string | null;
+  confianca: number | null;
+  verificadoEm: Date | null;
+  contatoErradoEm: Date | null;
+  contatoErradoMotivo: string | null;
+}
+
+/**
+ * Lista de contatos do município pronta pra tela: ordem de abordagem (pela
+ * categoria da ata, ou administração primeiro sem categoria), principal na
+ * frente, nome limpo das anotações de qualidade. Contato marcado como errado
+ * continua na lista, sinalizado, mas nunca vira o principal.
+ */
+export function montarContatosView(
+  contatosBanco: EntradaContato[],
+  categoriaAta: string | null,
+): { contatos: ContatoView[]; principal: ContatoView | null; semCanal: boolean } {
+  const validos = contatosBanco.filter((c) => !c.contatoErradoEm);
+  const { principal: principalBruto, semCanal } = escolherDecisorPrincipal(validos, categoriaAta);
+  const ordenados = ordenarDecisores(contatosBanco, categoriaAta);
+
+  const contatos: ContatoView[] = ordenados.map((c) => {
+    const { nome, nota } = limparNomeContato(c.nomeContato);
+    return {
+      id: c.id,
+      cargo: c.cargo,
+      area: c.area,
+      nomeContato: nome,
+      nota,
+      telefone: c.telefone,
+      email: c.email,
+      particularidades: c.particularidades,
+      atualizadoEm: c.updatedAt.toISOString(),
+      papel: papelDoContato(c.cargo, c.id === principalBruto?.id),
+      fonte: c.fonte,
+      fonteUrl: c.fonteUrl,
+      confianca: c.confianca,
+      verificadoEm: c.verificadoEm ? c.verificadoEm.toISOString() : null,
+      contatoErradoEm: c.contatoErradoEm ? c.contatoErradoEm.toISOString() : null,
+      contatoErradoMotivo: c.contatoErradoMotivo,
+    };
+  });
+  const principal = contatos.find((c) => c.id === principalBruto?.id) ?? null;
+  // O principal abre a lista; o resto segue a ordem de abordagem.
+  if (principal) contatos.sort((a, b) => Number(b.id === principal.id) - Number(a.id === principal.id));
+  return { contatos, principal, semCanal };
+}
+
 interface EntradaCartao {
   id: string;
+  ataId?: string;
+  ataNumero?: string;
+  vendedorNome?: string;
   entidadeAlvoId: string;
   nomeMunicipio: string;
   uf: string | null;
@@ -138,22 +205,7 @@ interface EntradaCartao {
   proximoContatoEm: Date | null;
   valorAderido: number | null;
   percentualComissao: number | null;
-  contatos: {
-    id: string;
-    cargo: string;
-    area: string | null;
-    nomeContato: string;
-    telefone: string | null;
-    email: string | null;
-    particularidades: string | null;
-    updatedAt: Date;
-    fonte: string | null;
-    fonteUrl: string | null;
-    confianca: number | null;
-    verificadoEm: Date | null;
-    contatoErradoEm: Date | null;
-    contatoErradoMotivo: string | null;
-  }[];
+  contatos: EntradaContato[];
   sinais: SinalView[];
   necessidades: {
     categoria: string;
@@ -178,35 +230,7 @@ export function montarCartao(
   contexto: { categoriaAta: string | null; percentualContrato: number | null },
   agora: Date = new Date(),
 ): CartaoView {
-  // Contato marcado como errado não vira decisor principal (continua na lista, sinalizado).
-  const validos = entrada.contatos.filter((c) => !c.contatoErradoEm);
-  const { principal: principalBruto, semCanal } = escolherDecisorPrincipal(validos, contexto.categoriaAta);
-  const ordenados = ordenarDecisores(entrada.contatos, contexto.categoriaAta);
-
-  const contatos: ContatoView[] = ordenados.map((c) => {
-    const { nome, nota } = limparNomeContato(c.nomeContato);
-    return {
-      id: c.id,
-      cargo: c.cargo,
-      area: c.area,
-      nomeContato: nome,
-      nota,
-      telefone: c.telefone,
-      email: c.email,
-      particularidades: c.particularidades,
-      atualizadoEm: c.updatedAt.toISOString(),
-      papel: papelDoContato(c.cargo, c.id === principalBruto?.id),
-      fonte: c.fonte,
-      fonteUrl: c.fonteUrl,
-      confianca: c.confianca,
-      verificadoEm: c.verificadoEm ? c.verificadoEm.toISOString() : null,
-      contatoErradoEm: c.contatoErradoEm ? c.contatoErradoEm.toISOString() : null,
-      contatoErradoMotivo: c.contatoErradoMotivo,
-    };
-  });
-  const principal = contatos.find((c) => c.id === principalBruto?.id) ?? null;
-  // O principal abre a lista na gaveta; o resto segue a ordem de abordagem.
-  if (principal) contatos.sort((a, b) => Number(b.id === principal.id) - Number(a.id === principal.id));
+  const { contatos, principal, semCanal } = montarContatosView(entrada.contatos, contexto.categoriaAta);
 
   const necessidades: NecessidadeView[] = entrada.necessidades.map((n) => ({
     categoria: n.categoria,
@@ -224,6 +248,10 @@ export function montarCartao(
 
   return {
     id: entrada.id,
+    ataId: entrada.ataId ?? "",
+    ataNumero: entrada.ataNumero ?? "",
+    categoriaAta: contexto.categoriaAta,
+    vendedorNome: entrada.vendedorNome ?? null,
     entidadeAlvoId: entrada.entidadeAlvoId,
     nomeMunicipio: entrada.nomeMunicipio,
     uf: entrada.uf,

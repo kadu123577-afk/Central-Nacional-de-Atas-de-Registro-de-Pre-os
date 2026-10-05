@@ -8,6 +8,9 @@ import { resumirComissao } from "./recebiveis";
  */
 export interface LinhaOportunidade {
   oportunidadeId: string;
+  /** Só o painel do gestor usa (vários vendedores). */
+  vendedorId?: string;
+  vendedorNome?: string;
   ataId: string;
   ataNumero: string;
   ataCategoria: string | null;
@@ -149,4 +152,45 @@ export function montarPainel(linhas: LinhaOportunidade[], agora: Date = new Date
     })),
     atas: [...porAta.values()],
   };
+}
+
+export interface ResumoVendedor {
+  vendedorId: string;
+  nome: string;
+  /** Municípios em aberto (a contatar + em negociação). */
+  abertos: number;
+  aderidos: number;
+  valorAderido: number;
+  comissaoDevida: number;
+  vencendo: number;
+  semContato: number;
+}
+
+/** Visão do gestor: uma linha por vendedor, mais valor aderido primeiro. */
+export function resumirPorVendedor(linhas: LinhaOportunidade[], agora: Date = new Date()): ResumoVendedor[] {
+  const porVendedor = new Map<string, ResumoVendedor>();
+  for (const l of linhas) {
+    const id = l.vendedorId ?? "—";
+    const atual = porVendedor.get(id) ?? {
+      vendedorId: id,
+      nome: l.vendedorNome ?? "—",
+      abertos: 0,
+      aderidos: 0,
+      valorAderido: 0,
+      comissaoDevida: 0,
+      vencendo: 0,
+      semContato: 0,
+    };
+    if (ABERTOS.includes(l.estagio)) {
+      atual.abertos += 1;
+      if (calcularUrgencia(l.prazoEm, agora).nivel === "critico") atual.vencendo += 1;
+      if (l.semCanal) atual.semContato += 1;
+    } else if (l.estagio === "aderiu") {
+      atual.aderidos += 1;
+      atual.valorAderido += l.valorAderido ?? 0;
+      atual.comissaoDevida += resumirComissao(l.liquidacoes, l.percentualComissao ?? 0).devida;
+    }
+    porVendedor.set(id, atual);
+  }
+  return [...porVendedor.values()].sort((a, b) => b.valorAderido - a.valorAderido || b.abertos - a.abertos);
 }

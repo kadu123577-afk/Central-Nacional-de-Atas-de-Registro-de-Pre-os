@@ -7,7 +7,8 @@ import { NAV_ADMIN } from "../../../nav";
 import { AppShell } from "@/components/ui/app-shell";
 import { Secao } from "@/components/ui/secao";
 import { Badge } from "@/components/ui/badge";
-import { alertasAutomaticos, type RespostasConformidade } from "@/lib/conformidade";
+import { ITENS_CONFORMIDADE, alertasAutomaticos, type RespostasConformidade } from "@/lib/conformidade";
+import { percentualDeFracao } from "@/lib/formato";
 import { FormularioAnalise } from "./formulario";
 
 export const dynamic = "force-dynamic";
@@ -58,6 +59,12 @@ export default async function AnaliseAtaPage({ params }: { params: Promise<{ ata
     estimativaQuantidades: c?.estimativaQuantidades ?? false,
   };
 
+  const totalItens = ITENS_CONFORMIDADE.length;
+  const confirmados = ITENS_CONFORMIDADE.filter((i) => respostasAtuais[i.campo]).length;
+  const pctConformidade = Math.round((confirmados / totalItens) * 100);
+  // O vendedor só enxerga a ata aprovada E com contrato (portão do pool).
+  const visivelAoVendedor = ata.status === "APROVADA" && Boolean(ata.contrato);
+
   return (
     <AppShell
       area="Administração"
@@ -87,6 +94,57 @@ export default async function AnaliseAtaPage({ params }: { params: Promise<{ ata
           <Link href="/admin" className="botao-atas link">
             ← Painel
           </Link>
+        </div>
+      </div>
+
+      <div className="kb-kpis">
+        <div className="kb-kpi">
+          <p className="eyebrow">1 · Conformidade</p>
+          <p
+            className="kb-kpi-valor numero"
+            style={{
+              color:
+                confirmados === totalItens ? "var(--cor-marca-clara)" : confirmados > 0 ? "var(--cor-atencao)" : undefined,
+            }}
+          >
+            {confirmados}/{totalItens}
+          </p>
+          <p className="kb-kpi-nota">
+            {confirmados === totalItens ? "checklist completo" : `${totalItens - confirmados} item(ns) a confirmar`}
+          </p>
+          <div className="kb-progresso">
+            <div style={{ width: `${pctConformidade}%` }} />
+          </div>
+        </div>
+        <div className="kb-kpi">
+          <p className="eyebrow">2 · Contrato</p>
+          <p className="kb-kpi-valor numero" style={{ color: ata.contrato ? "var(--cor-marca-clara)" : "var(--cor-alerta)" }}>
+            {ata.contrato ? percentualDeFracao(Number(ata.contrato.percentualComissao)) : "Pendente"}
+          </p>
+          <p className="kb-kpi-nota">
+            {ata.contrato ? "comissão pactuada com o fornecedor" : "sem contrato o vendedor não vê a ata"}
+          </p>
+        </div>
+        <div className="kb-kpi">
+          <p className="eyebrow">3 · Aprovação</p>
+          <p
+            className="kb-kpi-valor"
+            style={{ color: ata.status === "APROVADA" ? "var(--cor-marca-clara)" : ata.status === "REJEITADA" ? "var(--cor-critico)" : undefined }}
+          >
+            {ROTULO_STATUS[ata.status]}
+          </p>
+          <p className="kb-kpi-nota">
+            {ata.status === "APROVADA" ? "liberada no catálogo público" : "só aparece no catálogo depois de aprovada"}
+          </p>
+        </div>
+        <div className="kb-kpi">
+          <p className="eyebrow">Visível ao vendedor</p>
+          <p className="kb-kpi-valor" style={{ color: visivelAoVendedor ? "var(--cor-marca-clara)" : "var(--cor-atencao)" }}>
+            {visivelAoVendedor ? "Sim" : "Não"}
+          </p>
+          <p className="kb-kpi-nota">
+            {visivelAoVendedor ? "no pool de atas disponíveis" : "precisa estar aprovada e com contrato"}
+          </p>
         </div>
       </div>
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dataCurtaUtc, moedaCurta, percentualDeFracao } from "./formato";
+import { dataCurtaUtc, iniciais, moedaCurta, percentualDeFracao } from "./formato";
 
 describe("moedaCurta", () => {
   it("milhões, milhares e valores pequenos", () => {
@@ -22,5 +22,22 @@ describe("percentualDeFracao", () => {
 describe("dataCurtaUtc", () => {
   it("não desloca o dia", () => {
     expect(dataCurtaUtc("2026-10-04T00:00:00.000Z")).toBe("04/10/2026");
+  });
+});
+
+describe("iniciais", () => {
+  it("primeiro e último nome", () => {
+    expect(iniciais("Gustavo Carmo")).toBe("GC");
+    expect(iniciais("Maria")).toBe("M");
+  });
+
+  it("ignora aspas e parênteses", () => {
+    expect(iniciais('Radson Alves "Radinho"')).toBe("RR");
+    expect(iniciais("Thomé Neto (João Tomé Neto)")).toBe("TN");
+  });
+
+  it("vazio vira interrogação", () => {
+    expect(iniciais("   ")).toBe("?");
+    expect(iniciais('""')).toBe("?");
   });
 });

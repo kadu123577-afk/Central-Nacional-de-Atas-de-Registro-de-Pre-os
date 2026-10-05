@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { montarPainel, type LinhaOportunidade } from "./painel-vendedor";
+import { montarPainel, resumirPorVendedor, type LinhaOportunidade } from "./painel-vendedor";
 
 const agora = new Date("2026-10-04T12:00:00Z");
 const emDias = (n: number) => new Date(agora.getTime() + n * 24 * 60 * 60 * 1000);
@@ -91,5 +91,22 @@ describe("montarPainel", () => {
     const a1 = p.atas.find((a) => a.ataId === "a1")!;
     expect(a1).toMatchObject({ aderidas: 1, total: 2, valorFechado: 10, valorEmAberto: 4 });
     expect(p.atas).toHaveLength(2);
+  });
+});
+
+describe("resumirPorVendedor", () => {
+  it("uma linha por vendedor, mais valor aderido primeiro", () => {
+    const r = resumirPorVendedor(
+      [
+        linha({ vendedorId: "v1", vendedorNome: "Ana", estagio: "aderiu", prazoEm: null, valorAderido: 100000, percentualComissao: 0.1 }),
+        linha({ vendedorId: "v2", vendedorNome: "Bia", estagio: "aderiu", prazoEm: null, valorAderido: 500000 }),
+        linha({ vendedorId: "v1", vendedorNome: "Ana", prazoEm: emDias(1), semCanal: true }),
+        linha({ vendedorId: "v1", vendedorNome: "Ana", estagio: "em_negociacao" }),
+      ],
+      agora,
+    );
+    expect(r.map((x) => x.nome)).toEqual(["Bia", "Ana"]);
+    const ana = r.find((x) => x.vendedorId === "v1")!;
+    expect(ana).toMatchObject({ abertos: 2, aderidos: 1, valorAderido: 100000, vencendo: 1, semContato: 1 });
   });
 });

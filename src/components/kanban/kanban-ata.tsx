@@ -30,7 +30,23 @@ function ordenarPorPrazo(a: CartaoView, b: CartaoView): number {
  * filtros por situação, quadro por estágio (ou lista) e a gaveta do
  * município. Todo o estado é de tela; os dados vêm prontos do servidor.
  */
-export function KanbanAta({ cartoes, categoriaAta }: { cartoes: CartaoView[]; categoriaAta: string | null }) {
+export function KanbanAta({
+  cartoes,
+  somenteLeitura = false,
+  mostrarOrigem = false,
+  semIndicadores = false,
+  colunasRolaveis = false,
+}: {
+  cartoes: CartaoView[];
+  /** Pipeline do gestor: dossiê sem ações de edição. */
+  somenteLeitura?: boolean;
+  /** Pipeline do gestor: mostra ata e vendedor em cada card. */
+  mostrarOrigem?: boolean;
+  /** Pipeline do gestor: a página já mostra os indicadores gerais. */
+  semIndicadores?: boolean;
+  /** Pipeline do gestor: com centenas de cards, cada coluna rola por dentro. */
+  colunasRolaveis?: boolean;
+}) {
   const [selecionadoId, setSelecionadoId] = useState<string | null>(null);
   const [filtro, setFiltro] = useState<Filtro>("todos");
   const [visao, setVisao] = useState<Visao>("quadro");
@@ -72,12 +88,14 @@ export function KanbanAta({ cartoes, categoriaAta }: { cartoes: CartaoView[]; ca
 
   return (
     <>
-      <div className="kb-kpis">
-        <Indicador rotulo="Aderido" valor={moedaCurta(totalAderido)} tom="marca" nota={`${aderidos.length} município(s) · comissão devida ${moedaCurta(comissaoDevida)}`} />
-        <Indicador rotulo="Em negociação" valor={String(emNegociacao.length)} nota={`~${moedaCurta(potencial)} em potencial estimado`} />
-        <Indicador rotulo="Prazos vencendo" valor={String(vencendo)} tom={vencendo > 0 ? "critico" : "neutro"} nota="expiram em até 3 dias" />
-        <Indicador rotulo="Sem decisor com contato" valor={String(contagens.sem_contato)} tom={contagens.sem_contato > 0 ? "atencao" : "neutro"} nota={`de ${abertos.length} município(s) em aberto`} />
-      </div>
+      {!semIndicadores && (
+        <div className="kb-kpis">
+          <Indicador rotulo="Aderido" valor={moedaCurta(totalAderido)} tom="marca" nota={`${aderidos.length} município(s) · comissão devida ${moedaCurta(comissaoDevida)}`} />
+          <Indicador rotulo="Em negociação" valor={String(emNegociacao.length)} nota={`~${moedaCurta(potencial)} em potencial estimado`} />
+          <Indicador rotulo="Prazos vencendo" valor={String(vencendo)} tom={vencendo > 0 ? "critico" : "neutro"} nota="expiram em até 3 dias" />
+          <Indicador rotulo="Sem decisor com contato" valor={String(contagens.sem_contato)} tom={contagens.sem_contato > 0 ? "atencao" : "neutro"} nota={`de ${abertos.length} município(s) em aberto`} />
+        </div>
+      )}
 
       <div className="kb-barra">
         <Chip ativo={filtro === "todos"} aoClicar={() => setFiltro("todos")} rotulo="Todos" n={contagens.todos} />
@@ -104,7 +122,7 @@ export function KanbanAta({ cartoes, categoriaAta }: { cartoes: CartaoView[]; ca
       </div>
 
       {visao === "quadro" ? (
-        <div className="kb-quadro">
+        <div className="kb-quadro" data-rolagem={colunasRolaveis}>
           {ESTAGIOS_OPORTUNIDADE.map((estagio) => {
             const daColuna = filtrados.filter((c) => c.estagio === estagio).sort(ordenarPorPrazo);
             const total = totalDaColuna(daColuna, estagio);
@@ -125,7 +143,13 @@ export function KanbanAta({ cartoes, categoriaAta }: { cartoes: CartaoView[]; ca
                     <li className="kb-coluna-vazia">Nenhum município aqui</li>
                   ) : (
                     daColuna.map((c) => (
-                      <Cartao key={c.id} cartao={c} selecionado={c.id === selecionadoId} aoAbrir={() => setSelecionadoId(c.id)} />
+                      <Cartao
+                        key={c.id}
+                        cartao={c}
+                        selecionado={c.id === selecionadoId}
+                        mostrarOrigem={mostrarOrigem}
+                        aoAbrir={() => setSelecionadoId(c.id)}
+                      />
                     ))
                   )}
                 </ul>
@@ -139,6 +163,7 @@ export function KanbanAta({ cartoes, categoriaAta }: { cartoes: CartaoView[]; ca
             <thead>
               <tr>
                 <th>Município</th>
+                {mostrarOrigem && <th>Ata · vendedor</th>}
                 <th>Estágio</th>
                 <th>Decisor</th>
                 <th>Prazo</th>
@@ -152,6 +177,11 @@ export function KanbanAta({ cartoes, categoriaAta }: { cartoes: CartaoView[]; ca
                     {c.nomeMunicipio}
                     {c.uf ? ` / ${c.uf}` : ""}
                   </td>
+                  {mostrarOrigem && (
+                    <td>
+                      Ata {c.ataNumero} · {c.vendedorNome}
+                    </td>
+                  )}
                   <td>{ROTULO_ESTAGIO_OPORTUNIDADE[c.estagio as EstagioOportunidade] ?? c.estagio}</td>
                   <td>{c.principal ? `${c.principal.cargo} — ${c.principal.nomeContato}` : "—"}</td>
                   <td>
@@ -182,7 +212,15 @@ export function KanbanAta({ cartoes, categoriaAta }: { cartoes: CartaoView[]; ca
         </div>
       )}
 
-      {selecionado && <Gaveta key={selecionado.id} cartao={selecionado} categoriaAta={categoriaAta} fechar={fechar} />}
+      {selecionado && (
+        <Gaveta
+          key={selecionado.id}
+          cartao={selecionado}
+          categoriaAta={selecionado.categoriaAta}
+          somenteLeitura={somenteLeitura}
+          fechar={fechar}
+        />
+      )}
     </>
   );
 }
