@@ -6,6 +6,8 @@ import { AppShell } from "@/components/ui/app-shell";
 import { Secao } from "@/components/ui/secao";
 import { Badge } from "@/components/ui/badge";
 import { VazioComAcao } from "@/components/ui/vazio-com-acao";
+import { KpisVendedor, TarefasHoje } from "@/components/vendedor/painel-resumo";
+import { carregarPainelVendedor } from "@/lib/painel-vendedor-db";
 import { corDaCategoria, rotuloDaCategoria } from "@/lib/categorias";
 import { expirarOportunidadesVencidas } from "@/lib/negociacao-expiracao";
 import { logoutVendedor } from "./actions";
@@ -38,7 +40,8 @@ export default async function PainelVendedorPage() {
   const limiteNegados = new Date();
   limiteNegados.setDate(limiteNegados.getDate() - DIAS_MOSTRAR_NEGADOS);
 
-  const [minhasAtas, disponiveis, pedidosPendentes, pedidosNegados] = await Promise.all([
+  const [painel, minhasAtas, disponiveis, pedidosPendentes, pedidosNegados] = await Promise.all([
+    carregarPainelVendedor(vendedorId),
     prisma.ata.findMany({
       where: { oportunidades: { some: { vendedorId, expiradaEm: null } } },
       include: {
@@ -89,6 +92,9 @@ export default async function PainelVendedorPage() {
       <h1 className="marca text-2xl" style={{ color: "var(--cor-texto)" }}>
         Painel do vendedor
       </h1>
+
+      <KpisVendedor kpis={painel.kpis} />
+      {painel.tarefas.length > 0 && <TarefasHoje tarefas={painel.tarefas} />}
 
       <Secao titulo={`Minhas atas ${minhasAtas.length > 0 ? `(${minhasAtas.length})` : ""}`}>
         {minhasAtas.length === 0 ? (
