@@ -22,6 +22,7 @@
  */
 import fs from "fs";
 import { PrismaClient } from "../src/generated/prisma/client";
+import { extrairConfianca } from "../src/lib/contatos-fonte";
 
 const prisma = new PrismaClient();
 
@@ -176,6 +177,9 @@ async function main() {
       linha.confianca ? `Confiança: ${linha.confianca}.` : null,
     ].filter(Boolean);
     const particularidades = particularidadesPartes.length > 0 ? particularidadesPartes.join(" ") : null;
+    // Campos estruturados de qualidade do dado (2026-10-05): o texto livre
+    // continua em particularidades, mas o card lê estes.
+    const confiancaNivel = extrairConfianca(particularidades, linha.cargo);
 
     const existente = await prisma.pontoFocal.findFirst({
       where: { entidadeAlvoId: entidadeId, cargo: linha.cargo },
@@ -195,6 +199,8 @@ async function main() {
           telefone: linha.telefone,
           email: linha.email,
           particularidades,
+          fonte: linha.fonte,
+          confianca: confiancaNivel,
           isSeed: false,
         },
       });
@@ -202,7 +208,9 @@ async function main() {
       continue;
     }
 
-    const dadosNovos: { telefone?: string; email?: string } = {};
+    const dadosNovos: { telefone?: string; email?: string; fonte?: string; confianca?: number } = {};
+    if (!existente.fonte && linha.fonte) dadosNovos.fonte = linha.fonte;
+    if (existente.confianca == null && confiancaNivel != null) dadosNovos.confianca = confiancaNivel;
     if (!existente.telefone && linha.telefone) dadosNovos.telefone = linha.telefone;
     if (!existente.email && linha.email) dadosNovos.email = linha.email;
 

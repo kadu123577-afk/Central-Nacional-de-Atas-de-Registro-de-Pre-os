@@ -20,6 +20,16 @@ const base = {
   necessidades: [],
   interacoes: [],
   liquidacoes: [],
+  sinais: [],
+};
+
+const qualidade = {
+  fonte: null,
+  fonteUrl: null,
+  confianca: null,
+  verificadoEm: null,
+  contatoErradoEm: null,
+  contatoErradoMotivo: null,
 };
 
 describe("haQuantoTempo", () => {
@@ -83,6 +93,7 @@ describe("montarCartao", () => {
             email: null,
             particularidades: null,
             updatedAt: dia(5),
+            ...qualidade,
           },
           {
             id: "p2",
@@ -93,6 +104,7 @@ describe("montarCartao", () => {
             email: null,
             particularidades: null,
             updatedAt: dia(9),
+            ...qualidade,
           },
         ],
         necessidades: [

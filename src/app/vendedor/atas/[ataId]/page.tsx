@@ -6,6 +6,7 @@ import { AppShell } from "@/components/ui/app-shell";
 import { rotuloDaCategoria } from "@/lib/categorias";
 import { percentualDeFracao } from "@/lib/formato";
 import { montarCartao } from "@/lib/kanban-view";
+import type { SinalView } from "@/lib/sinais";
 import { expirarOportunidadesVencidas } from "@/lib/negociacao-expiracao";
 import { logoutVendedor } from "../../actions";
 import { NAV_VENDEDOR } from "../../nav";
@@ -68,6 +69,29 @@ export default async function KanbanAtaPage({ params }: { params: Promise<{ ataI
     orderBy: { ultimaContratacao: "desc" },
   });
 
+  // Sinais de compra dos municípios (PCA, licitação aberta, troca de gestão…).
+  const sinaisBanco = await prisma.sinalMunicipio.findMany({
+    where: { entidadeAlvoId: { in: entidadeIds } },
+    orderBy: { dataSinal: "desc" },
+  });
+  const sinaisPorEntidade = new Map<string, SinalView[]>();
+  for (const sn of sinaisBanco) {
+    const lista = sinaisPorEntidade.get(sn.entidadeAlvoId) ?? [];
+    lista.push({
+      id: sn.id,
+      tipo: sn.tipo,
+      titulo: sn.titulo,
+      detalhe: sn.detalhe,
+      fonte: sn.fonte,
+      fonteUrl: sn.fonteUrl,
+      categoria: sn.categoria,
+      valorEstimado: sn.valorEstimado ? Number(sn.valorEstimado) : null,
+      dataSinal: sn.dataSinal.toISOString(),
+      expiraEm: sn.expiraEm ? sn.expiraEm.toISOString() : null,
+    });
+    sinaisPorEntidade.set(sn.entidadeAlvoId, lista);
+  }
+
   const percentualContrato = ata.contrato ? Number(ata.contrato.percentualComissao) : null;
 
   const cartoes = oportunidades.map((o) =>
@@ -94,7 +118,14 @@ export default async function KanbanAtaPage({ params }: { params: Promise<{ ataI
             email: c.email,
             particularidades: c.particularidades,
             updatedAt: c.updatedAt,
+            fonte: c.fonte,
+            fonteUrl: c.fonteUrl,
+            confianca: c.confianca,
+            verificadoEm: c.verificadoEm,
+            contatoErradoEm: c.contatoErradoEm,
+            contatoErradoMotivo: c.contatoErradoMotivo,
           })),
+        sinais: sinaisPorEntidade.get(o.entidadeAlvoId) ?? [],
         necessidades: historico
           .filter((h) => h.entidadeAlvoId === o.entidadeAlvoId)
           .map((h) => ({

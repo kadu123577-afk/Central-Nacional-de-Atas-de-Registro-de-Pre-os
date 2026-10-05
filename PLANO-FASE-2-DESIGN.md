@@ -63,3 +63,9 @@ Coletores (PCA/PNCP, licitações abertas, diários oficiais, sites das prefeitu
 - Dado de contato escasso (hoje 52 telefones e 39 e-mails em 584 contatos): muitos cards cairão em "Buscar contato" até a coleta rodar.
 - Edição de arquivos com CRLF e Next.js com mudanças: mitigados nas regras de execução.
 - Etapa 4 altera o schema: aplicar migration no banco local e conferir `prisma migrate status` ao fim.
+
+## Execução da Etapa 4 (2026-10-05) — como ficou
+- `PontoFocal`: `fonte`, `fonteUrl`, `confianca` (1–3), `verificadoEm`, `contatoErradoEm/PorId/Motivo`. Backfill (`prisma/backfill-contatos-fonte.ts`, idempotente, usa SQL direto pra não mexer em `updatedAt`) preencheu fonte/confiança de 162 dos 584 contatos a partir do texto livre; o texto original foi mantido.
+- Novo `SinalMunicipio` (tipo, título, fonte, categoria, valor, data, validade). O sinal mais relevante vira a linha "por que agora" do card e o chip "Com sinal de compra" passou a contar sinais de verdade.
+- Vendedor: "Confirmar contato" e "Contato errado" na gaveta; registrar conversa de verdade (em conversa/converteu/recusou) confirma o contato. Contato errado deixa de ser sugerido como decisor.
+- Admin: `/admin/contatos-revisao` (manter / corrigir / desativar), cadastro de sinais na ficha do município, importador `prisma/importar-sinais.ts` (dry-run, idempotente) e `enriquecer-contatos-prefeituras.ts` agora grava fonte/confiança estruturadas. Menu do admin unificado em `src/app/admin/nav.ts`.

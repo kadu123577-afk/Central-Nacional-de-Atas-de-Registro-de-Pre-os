@@ -48,7 +48,7 @@ export function KanbanAta({ cartoes, categoriaAta }: { cartoes: CartaoView[]; ca
   const contagens = {
     todos: cartoes.length,
     acao: cartoes.filter(precisaAcaoHoje).length,
-    sinal: cartoes.filter((c) => c.porQueAgora != null).length,
+    sinal: cartoes.filter((c) => c.sinais.length > 0).length,
     sem_contato: abertos.filter((c) => c.semCanal).length,
   };
 
@@ -56,7 +56,7 @@ export function KanbanAta({ cartoes, categoriaAta }: { cartoes: CartaoView[]; ca
   const filtrados = cartoes.filter((c) => {
     if (termoBusca && !`${c.nomeMunicipio} ${c.uf ?? ""}`.toLowerCase().includes(termoBusca)) return false;
     if (filtro === "acao") return precisaAcaoHoje(c);
-    if (filtro === "sinal") return c.porQueAgora != null;
+    if (filtro === "sinal") return c.sinais.length > 0;
     if (filtro === "sem_contato") return ABERTOS.includes(c.estagio) && c.semCanal;
     return true;
   });

@@ -276,6 +276,9 @@ export async function moverEstagioOportunidade(
   return { ok: true };
 }
 
+/** Resultados em que houve conversa de verdade — confirmam que o contato funciona. */
+const RESULTADOS_QUE_CONFIRMAM_CONTATO: string[] = ["Em conversa", "Converteu", "Recusou"];
+
 export interface EstadoRegistrarContato {
   erro?: string;
   ok?: boolean;
@@ -314,6 +317,13 @@ export async function registrarContatoVendedor(
   await prisma.interacaoPontoFocal.create({
     data: { pontoFocalId, ataId: oportunidade.ataId, resultado, observacao },
   });
+  // Falou de verdade com a pessoa = contato confirmado (zera qualquer marca de erro).
+  if (RESULTADOS_QUE_CONFIRMAM_CONTATO.includes(resultado)) {
+    await prisma.pontoFocal.update({
+      where: { id: pontoFocalId },
+      data: { verificadoEm: new Date(), contatoErradoEm: null, contatoErradoPorId: null, contatoErradoMotivo: null },
+    });
+  }
   await prisma.oportunidadeVenda.update({
     where: { id: oportunidadeId },
     data: { prazoEm: prazoParaEstagio(oportunidade.estagio) },
@@ -321,4 +331,47 @@ export async function registrarContatoVendedor(
 
   revalidatePath(`/vendedor/atas/${oportunidade.ataId}`);
   return { ok: true };
+}
+
+/** Vendedor com município ativo pode corrigir a qualidade do contato dele. */
+async function contatoDoVendedor(oportunidadeId: string, pontoFocalId: string) {
+  const vendedorId = await vendedorIdLogado();
+  if (!vendedorId) redirect("/vendedor/login");
+  const oportunidade = await prisma.oportunidadeVenda.findUnique({ where: { id: oportunidadeId } });
+  if (!oportunidade || oportunidade.vendedorId !== vendedorId || oportunidade.expiradaEm) return null;
+  const contato = await prisma.pontoFocal.findUnique({ where: { id: pontoFocalId } });
+  if (!contato || contato.entidadeAlvoId !== oportunidade.entidadeAlvoId) return null;
+  return { vendedorId, oportunidade, contato };
+}
+
+/** "Confirmar contato": o vendedor testou e o contato funciona. */
+export async function confirmarContatoVendedor(oportunidadeId: string, pontoFocalId: string): Promise<void> {
+  const ctx = await contatoDoVendedor(oportunidadeId, pontoFocalId);
+  if (!ctx) return;
+  await prisma.pontoFocal.update({
+    where: { id: pontoFocalId },
+    data: { verificadoEm: new Date(), contatoErradoEm: null, contatoErradoPorId: null, contatoErradoMotivo: null },
+  });
+  revalidatePath(`/vendedor/atas/${ctx.oportunidade.ataId}`);
+}
+
+/**
+ * "Contato errado": o vendedor sinaliza telefone/e-mail/pessoa incorretos. O
+ * contato deixa de ser sugerido como decisor principal e entra na fila de
+ * revisão do administrador (/admin/contatos-revisao).
+ */
+export async function marcarContatoErradoVendedor(
+  oportunidadeId: string,
+  pontoFocalId: string,
+  formData: FormData,
+): Promise<void> {
+  const ctx = await contatoDoVendedor(oportunidadeId, pontoFocalId);
+  if (!ctx) return;
+  const motivo = String(formData.get("motivo") ?? "").trim().slice(0, 300) || null;
+  await prisma.pontoFocal.update({
+    where: { id: pontoFocalId },
+    data: { contatoErradoEm: new Date(), contatoErradoPorId: ctx.vendedorId, contatoErradoMotivo: motivo },
+  });
+  revalidatePath(`/vendedor/atas/${ctx.oportunidade.ataId}`);
+  revalidatePath("/admin/contatos-revisao");
 }

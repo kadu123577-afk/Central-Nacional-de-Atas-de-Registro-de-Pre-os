@@ -2,6 +2,8 @@ import { calcularUrgencia, type NivelUrgencia } from "./urgencia";
 import { escolherDecisorPrincipal, ordenarDecisores, papelDoContato } from "./decisores";
 import { rotuloDaCategoria } from "./categorias";
 import { resumirComissao } from "./recebiveis";
+import { limparNomeContato } from "./contatos-fonte";
+import { sinaisRelevantes, type SinalView } from "./sinais";
 
 /**
  * Modelos de visão do Kanban do vendedor (2026-10-04, fase 2 de design):
@@ -19,6 +21,15 @@ export interface ContatoView {
   particularidades: string | null;
   atualizadoEm: string;
   papel: "principal" | "aprovacao" | "apoio";
+  /** Anotação de qualidade tirada do nome ("méd. conf.", "dado 1 ano"). */
+  nota: string | null;
+  fonte: string | null;
+  fonteUrl: string | null;
+  /** 1 baixa, 2 média, 3 alta. */
+  confianca: number | null;
+  verificadoEm: string | null;
+  contatoErradoEm: string | null;
+  contatoErradoMotivo: string | null;
 }
 
 export interface NecessidadeView {
@@ -61,6 +72,8 @@ export interface CartaoView {
   contatos: ContatoView[];
   necessidades: NecessidadeView[];
   interacoes: InteracaoView[];
+  /** Sinais de compra vigentes pra categoria da ata, mais relevante primeiro. */
+  sinais: SinalView[];
   /** O município já contratou a categoria desta ata (raio-X). */
   casaComAta: boolean;
   /** Valor da última contratação da categoria — estimativa, não valor aderido. */
@@ -134,7 +147,14 @@ interface EntradaCartao {
     email: string | null;
     particularidades: string | null;
     updatedAt: Date;
+    fonte: string | null;
+    fonteUrl: string | null;
+    confianca: number | null;
+    verificadoEm: Date | null;
+    contatoErradoEm: Date | null;
+    contatoErradoMotivo: string | null;
   }[];
+  sinais: SinalView[];
   necessidades: {
     categoria: string;
     ultimaContratacao: Date;
@@ -158,20 +178,32 @@ export function montarCartao(
   contexto: { categoriaAta: string | null; percentualContrato: number | null },
   agora: Date = new Date(),
 ): CartaoView {
-  const { principal: principalBruto, semCanal } = escolherDecisorPrincipal(entrada.contatos, contexto.categoriaAta);
+  // Contato marcado como errado não vira decisor principal (continua na lista, sinalizado).
+  const validos = entrada.contatos.filter((c) => !c.contatoErradoEm);
+  const { principal: principalBruto, semCanal } = escolherDecisorPrincipal(validos, contexto.categoriaAta);
   const ordenados = ordenarDecisores(entrada.contatos, contexto.categoriaAta);
 
-  const contatos: ContatoView[] = ordenados.map((c) => ({
-    id: c.id,
-    cargo: c.cargo,
-    area: c.area,
-    nomeContato: c.nomeContato,
-    telefone: c.telefone,
-    email: c.email,
-    particularidades: c.particularidades,
-    atualizadoEm: c.updatedAt.toISOString(),
-    papel: papelDoContato(c.cargo, c.id === principalBruto?.id),
-  }));
+  const contatos: ContatoView[] = ordenados.map((c) => {
+    const { nome, nota } = limparNomeContato(c.nomeContato);
+    return {
+      id: c.id,
+      cargo: c.cargo,
+      area: c.area,
+      nomeContato: nome,
+      nota,
+      telefone: c.telefone,
+      email: c.email,
+      particularidades: c.particularidades,
+      atualizadoEm: c.updatedAt.toISOString(),
+      papel: papelDoContato(c.cargo, c.id === principalBruto?.id),
+      fonte: c.fonte,
+      fonteUrl: c.fonteUrl,
+      confianca: c.confianca,
+      verificadoEm: c.verificadoEm ? c.verificadoEm.toISOString() : null,
+      contatoErradoEm: c.contatoErradoEm ? c.contatoErradoEm.toISOString() : null,
+      contatoErradoMotivo: c.contatoErradoMotivo,
+    };
+  });
   const principal = contatos.find((c) => c.id === principalBruto?.id) ?? null;
   // O principal abre a lista na gaveta; o resto segue a ordem de abordagem.
   if (principal) contatos.sort((a, b) => Number(b.id === principal.id) - Number(a.id === principal.id));
@@ -185,6 +217,7 @@ export function montarCartao(
   }));
   const daCategoria = necessidades.find((n) => n.categoria === contexto.categoriaAta);
 
+  const sinais = sinaisRelevantes(entrada.sinais, contexto.categoriaAta, agora);
   const urgencia = calcularUrgencia(entrada.prazoEm, agora);
   const percentual = entrada.percentualComissao ?? 0;
   const resumo = resumirComissao(entrada.liquidacoes, percentual);
@@ -207,7 +240,7 @@ export function montarCartao(
     comissaoRecebida: resumo.recebida,
     principal,
     semCanal,
-    frescorDias: principal ? diasDesde(principal.atualizadoEm, agora) : null,
+    frescorDias: principal ? diasDesde(principal.verificadoEm ?? principal.atualizadoEm, agora) : null,
     contatos,
     necessidades,
     interacoes: entrada.interacoes
@@ -222,7 +255,8 @@ export function montarCartao(
       .sort((a, b) => b.quando.localeCompare(a.quando)),
     casaComAta: Boolean(daCategoria),
     valorEstimado: daCategoria ? daCategoria.valor : null,
-    porQueAgora: porQueAgoraDoRaioX(contexto.categoriaAta, daCategoria, agora),
+    sinais,
+    porQueAgora: sinais[0] ? sinais[0].titulo : porQueAgoraDoRaioX(contexto.categoriaAta, daCategoria, agora),
   };
 }
 

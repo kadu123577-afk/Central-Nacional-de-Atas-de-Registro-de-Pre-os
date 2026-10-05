@@ -10,6 +10,7 @@ import { CartaoIndicador } from "@/components/ui/cartao-indicador";
 import { Badge } from "@/components/ui/badge";
 import { Cifra } from "@/components/ui/valores";
 import { VazioComAcao } from "@/components/ui/vazio-com-acao";
+import { NAV_ADMIN } from "@/app/admin/nav";
 
 export const dynamic = "force-dynamic";
 
@@ -28,19 +29,6 @@ function ataImportadaIncompleta(ata: { origem: string; itens: unknown[]; fornece
     (ata.itens.length === 0 || ata.fornecedor.cnpj === CNPJ_FORNECEDOR_A_CONFIRMAR)
   );
 }
-
-const NAV_ADMIN = [
-  { rotulo: "Painel", href: "/admin" },
-  { rotulo: "Atas", href: "/atas" },
-  { rotulo: "Contas a receber", href: "/admin/faturamento" },
-  { rotulo: "Recebíveis — vendedores", href: "/admin/recebiveis-vendedores" },
-  { rotulo: "Negociações", href: "/admin/negociacoes" },
-  { rotulo: "Usuários", href: "/admin/usuarios" },
-  { rotulo: "Fornecedores", href: "/admin/fornecedores" },
-  { rotulo: "Municípios/Entidades", href: "/admin/entidades" },
-  { rotulo: "Parceiros", href: "/admin/parceiros" },
-  { rotulo: "Perfil", href: "/admin/perfil" },
-];
 
 export default async function PainelAdminPage() {
   const adminId = await adminIdLogado();

@@ -17,6 +17,7 @@ import { tipoEntidadeAlvoValido } from "@/lib/entidades-alvo";
 import { calcularRaioXConsumo } from "@/lib/raio-x-consumo";
 import { CATEGORIAS_ATAS } from "@/lib/categorias";
 import { tipoVendedorValido } from "@/lib/vendedores";
+import { tipoSinalValido } from "@/lib/sinais";
 import { interpretarPercentualComissao } from "@/lib/comissao";
 import { calcularPrazo } from "@/lib/negociacao";
 import { statusCobrancaValido, tipoLiquidacaoValido } from "@/lib/recebiveis";
@@ -1132,4 +1133,117 @@ export async function cadastrarAtaComoAdmin(
 
   revalidatePath("/atas");
   redirect(`/atas?ataCriada=${ataId}`);
+}
+
+/**
+ * Revisão de contatos marcados como errados (fase 2 de design, 2026-10-05):
+ * o admin confirma que o contato está certo (limpa a marca e registra a
+ * verificação). Corrigir o dado é pela tela de edição do contato; desativar
+ * é alternarStatusPontoFocal.
+ */
+export async function confirmarContatoAdmin(formData: FormData): Promise<void> {
+  await exigirAdmin();
+  const pontoFocalId = String(formData.get("pontoFocalId") ?? "");
+  if (!pontoFocalId) return;
+
+  await prisma.pontoFocal.update({
+    where: { id: pontoFocalId },
+    data: { verificadoEm: new Date(), contatoErradoEm: null, contatoErradoPorId: null, contatoErradoMotivo: null },
+  });
+  revalidatePath("/admin/contatos-revisao");
+}
+
+export interface EstadoSinalMunicipio {
+  erro?: string;
+  ok?: boolean;
+  /** Devolvido junto do erro: o React zera o formulário após a action, e isso repõe o que foi digitado. */
+  valores?: Record<string, string>;
+}
+
+function lerData(texto: string): Date | null {
+  if (!texto) return null;
+  const d = new Date(texto);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+/**
+ * Sinal de compra de um município (PCA, licitação aberta, contrato a vencer,
+ * troca de gestão…) — vira o "por que agora" do card do vendedor. Sempre com
+ * fonte e data; categoria opcional (vazio = vale pra qualquer ata).
+ */
+export async function criarSinalMunicipio(
+  entidadeAlvoId: string,
+  _estadoAnterior: EstadoSinalMunicipio,
+  formData: FormData,
+): Promise<EstadoSinalMunicipio> {
+  await exigirAdmin();
+
+  const valores: Record<string, string> = {
+    tipo: String(formData.get("tipo") ?? ""),
+    titulo: String(formData.get("titulo") ?? ""),
+    detalhe: String(formData.get("detalhe") ?? ""),
+    fonte: String(formData.get("fonte") ?? ""),
+    fonteUrl: String(formData.get("fonteUrl") ?? ""),
+    categoria: String(formData.get("categoria") ?? ""),
+    valorEstimado: String(formData.get("valorEstimado") ?? ""),
+    dataSinal: String(formData.get("dataSinal") ?? ""),
+    expiraEm: String(formData.get("expiraEm") ?? ""),
+  };
+
+  const tipo = String(formData.get("tipo") ?? "");
+  const titulo = String(formData.get("titulo") ?? "").trim();
+  const detalhe = String(formData.get("detalhe") ?? "").trim() || null;
+  const fonte = String(formData.get("fonte") ?? "").trim();
+  const fonteUrl = String(formData.get("fonteUrl") ?? "").trim() || null;
+  const categoria = String(formData.get("categoria") ?? "").trim() || null;
+  const valorTexto = String(formData.get("valorEstimado") ?? "").trim().replace(",", ".");
+  const dataSinal = lerData(String(formData.get("dataSinal") ?? ""));
+  const expiraTexto = String(formData.get("expiraEm") ?? "");
+  const expiraEm = lerData(expiraTexto);
+
+  if (!tipoSinalValido(tipo)) return { erro: "Escolha o tipo do sinal.", valores };
+  if (!titulo) return { erro: "Informe o título do sinal.", valores };
+  if (!fonte) return { erro: "Informe a fonte (sem fonte o vendedor não confia no dado).", valores };
+  if (!dataSinal) return { erro: "Informe a data do sinal.", valores };
+  if (expiraTexto && !expiraEm) return { erro: "Data de expiração inválida.", valores };
+  if (categoria && !CATEGORIAS_ATAS.some((c) => c.slug === categoria)) return { erro: "Categoria inválida.", valores };
+  if (fonteUrl && !/^https?:\/\//i.test(fonteUrl)) return { erro: "O link da fonte deve começar com http:// ou https://.", valores };
+  const valorNumero = valorTexto ? Number(valorTexto) : null;
+  if (valorTexto && (!Number.isFinite(valorNumero) || (valorNumero ?? 0) < 0)) {
+    return { erro: "Valor estimado inválido.", valores };
+  }
+
+  const entidade = await prisma.entidadeAlvo.findUnique({ where: { id: entidadeAlvoId } });
+  if (!entidade) return { erro: "Município não encontrado.", valores };
+
+  await prisma.sinalMunicipio.create({
+    data: {
+      entidadeAlvoId,
+      tipo,
+      titulo,
+      detalhe,
+      fonte,
+      fonteUrl,
+      categoria,
+      valorEstimado: valorNumero != null ? String(valorNumero) : null,
+      dataSinal,
+      expiraEm,
+    },
+  });
+
+  revalidatePath(`/admin/entidades/${entidadeAlvoId}`);
+  revalidatePath("/vendedor");
+  return { ok: true };
+}
+
+export async function removerSinalMunicipio(formData: FormData): Promise<void> {
+  await exigirAdmin();
+  const sinalId = String(formData.get("sinalId") ?? "");
+  if (!sinalId) return;
+
+  const sinal = await prisma.sinalMunicipio.findUnique({ where: { id: sinalId } });
+  if (!sinal) return;
+  await prisma.sinalMunicipio.delete({ where: { id: sinalId } });
+  revalidatePath(`/admin/entidades/${sinal.entidadeAlvoId}`);
+  revalidatePath("/vendedor");
 }

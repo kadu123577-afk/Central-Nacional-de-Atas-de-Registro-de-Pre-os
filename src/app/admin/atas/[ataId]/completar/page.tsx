@@ -10,21 +10,9 @@ import { Numero } from "@/components/ui/valores";
 import { CATEGORIAS_ATAS } from "@/lib/categorias";
 import { FormularioCompletarFornecedor } from "./formulario-fornecedor";
 import { FormularioAdicionarItem } from "./formulario-item";
+import { NAV_ADMIN } from "@/app/admin/nav";
 
 export const dynamic = "force-dynamic";
-
-const NAV_ADMIN = [
-  { rotulo: "Painel", href: "/admin" },
-  { rotulo: "Atas", href: "/atas" },
-  { rotulo: "Contas a receber", href: "/admin/faturamento" },
-  { rotulo: "Recebíveis — vendedores", href: "/admin/recebiveis-vendedores" },
-  { rotulo: "Negociações", href: "/admin/negociacoes" },
-  { rotulo: "Usuários", href: "/admin/usuarios" },
-  { rotulo: "Fornecedores", href: "/admin/fornecedores" },
-  { rotulo: "Municípios/Entidades", href: "/admin/entidades" },
-  { rotulo: "Parceiros", href: "/admin/parceiros" },
-  { rotulo: "Perfil", href: "/admin/perfil" },
-];
 
 const CNPJ_FORNECEDOR_A_CONFIRMAR = "00000000000000";
 

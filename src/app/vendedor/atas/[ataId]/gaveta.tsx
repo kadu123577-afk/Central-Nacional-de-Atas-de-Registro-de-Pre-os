@@ -11,11 +11,14 @@ import { haQuantoTempo, type CartaoView, type ContatoView } from "@/lib/kanban-v
 import { ESTAGIOS_OPORTUNIDADE, ROTULO_ESTAGIO_OPORTUNIDADE } from "@/lib/oportunidades";
 import { RESULTADOS_INTERACAO } from "@/lib/pontos-focais";
 import {
+  confirmarContatoVendedor,
+  marcarContatoErradoVendedor,
   moverEstagioOportunidade,
   registrarContatoVendedor,
   type EstadoMoverEstagio,
   type EstadoRegistrarContato,
 } from "../../actions";
+import { ROTULO_TIPO_SINAL, TOM_TIPO_SINAL, tipoSinalValido } from "@/lib/sinais";
 
 type Aba = "quem" | "necessidade" | "contexto" | "historico";
 const ABAS: { id: Aba; rotulo: string }[] = [
@@ -128,7 +131,7 @@ export function Gaveta({
                   Nenhum contato levantado para este município ainda. Peça ao administrador para incluir.
                 </div>
               ) : (
-                c.contatos.map((p) => <Pessoa key={p.id} p={p} />)
+                c.contatos.map((p) => <Pessoa key={p.id} p={p} oportunidadeId={c.id} />)
               )}
               <div className="kb-abordagem">
                 <p className="titulo">{abordagem.titulo}</p>
@@ -181,10 +184,45 @@ export function Gaveta({
                 <p className="kb-sub">Sem sinal registrado para este município.</p>
               )}
               <p className="kb-secao">Sinais de compra</p>
-              <div className="kb-coluna-vazia">
-                PCA, licitações abertas, contratos a vencer e troca de gestão aparecem aqui quando a coleta de dados
-                estiver ativa.
-              </div>
+              {c.sinais.length === 0 ? (
+                <div className="kb-coluna-vazia">
+                  Nenhum sinal de compra registrado. PCA, licitações abertas, contratos a vencer e troca de gestão
+                  aparecem aqui quando forem levantados.
+                </div>
+              ) : (
+                <div>
+                  {c.sinais.map((sn) => {
+                    const tom = tipoSinalValido(sn.tipo) ? TOM_TIPO_SINAL[sn.tipo] : "neutro";
+                    const cor =
+                      tom === "critico"
+                        ? "var(--cor-critico)"
+                        : tom === "atencao"
+                          ? "var(--cor-atencao)"
+                          : "var(--cor-borda-forte)";
+                    return (
+                      <div key={sn.id} className="kb-sinal">
+                        <i style={{ background: cor }} />
+                        <div>
+                          <b>{sn.titulo}</b>
+                          <span>
+                            {tipoSinalValido(sn.tipo) ? ROTULO_TIPO_SINAL[sn.tipo] : sn.tipo}
+                            {sn.valorEstimado != null ? ` · ${moedaCurta(sn.valorEstimado)}` : ""} ·{" "}
+                            {sn.fonteUrl ? (
+                              <a href={sn.fonteUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "underline" }}>
+                                {sn.fonte}
+                              </a>
+                            ) : (
+                              sn.fonte
+                            )}{" "}
+                            · {haQuantoTempo(sn.dataSinal)}
+                          </span>
+                          {sn.detalhe && <span>{sn.detalhe}</span>}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
               {c.observacoes && (
                 <>
                   <p className="kb-secao">Suas observações</p>
@@ -243,17 +281,30 @@ export function Gaveta({
   );
 }
 
-function Pessoa({ p }: { p: ContatoView }) {
+const ROTULO_CONFIANCA: Record<number, string> = { 1: "baixa", 2: "média", 3: "alta" };
+
+function Pessoa({ p, oportunidadeId }: { p: ContatoView; oportunidadeId: string }) {
   const wa = linkWhatsapp(p.telefone);
   const tel = linkTelefone(p.telefone);
   const mail = linkEmail(p.email);
+  const [marcando, setMarcando] = useState(false);
+  const errado = p.contatoErradoEm != null;
+
   return (
-    <div className="kb-pessoa" data-papel={p.papel}>
+    <div
+      className="kb-pessoa"
+      data-papel={errado ? "apoio" : p.papel}
+      style={errado ? { borderColor: "var(--cor-critico)" } : undefined}
+    >
       <div className="kb-avatar">{iniciais(p.nomeContato)}</div>
       <div className="kb-pessoa-info">
         <div className="kb-pessoa-nome">
           <b>{p.nomeContato}</b>
-          <Badge tom={p.papel === "principal" ? "marca" : "neutro"}>{ROTULO_PAPEL[p.papel]}</Badge>
+          {errado ? (
+            <Badge tom="critico">Marcado como errado</Badge>
+          ) : (
+            <Badge tom={p.papel === "principal" ? "marca" : "neutro"}>{ROTULO_PAPEL[p.papel]}</Badge>
+          )}
         </div>
         <p className="kb-cargo">
           {p.cargo}
@@ -279,10 +330,78 @@ function Pessoa({ p }: { p: ContatoView }) {
             Sem telefone nem e-mail levantado
           </p>
         )}
-        {p.particularidades && <p className="kb-sub">{p.particularidades}</p>}
+        {p.nota && <p className="kb-sub">Nota do levantamento: {p.nota}</p>}
+        {p.particularidades && !p.fonte && <p className="kb-sub">{p.particularidades}</p>}
+        {errado && p.contatoErradoMotivo && <p className="kb-sub">Motivo: {p.contatoErradoMotivo}</p>}
+
         <p className="kb-fonte">
-          <span>atualizado {haQuantoTempo(p.atualizadoEm)}</span>
+          <span>
+            {p.confianca != null && (
+              <>
+                <span className="kb-frescor" data-nivel={p.confianca} style={{ marginRight: 4 }}>
+                  <i />
+                  <i />
+                  <i />
+                </span>
+                confiança {ROTULO_CONFIANCA[p.confianca]} ·{" "}
+              </>
+            )}
+            {p.fonte ? (
+              <>
+                fonte:{" "}
+                {p.fonteUrl ? (
+                  <a href={p.fonteUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "underline" }}>
+                    {p.fonte}
+                  </a>
+                ) : (
+                  p.fonte
+                )}{" "}
+                ·{" "}
+              </>
+            ) : null}
+            {p.verificadoEm ? `verificado ${haQuantoTempo(p.verificadoEm)}` : `levantado ${haQuantoTempo(p.atualizadoEm)}`}
+          </span>
         </p>
+
+        <div className="kb-linha-botoes" style={{ marginTop: 8 }}>
+          {!marcando ? (
+            <>
+              <form action={confirmarContatoVendedor.bind(null, oportunidadeId, p.id)}>
+                <button type="submit" className="botao-atas secundario" style={{ padding: "3px 10px", fontSize: 12 }}>
+                  Confirmar contato
+                </button>
+              </form>
+              {!errado && (
+                <button
+                  type="button"
+                  className="botao-atas secundario"
+                  style={{ padding: "3px 10px", fontSize: 12 }}
+                  onClick={() => setMarcando(true)}
+                >
+                  Contato errado
+                </button>
+              )}
+            </>
+          ) : (
+            <form
+              action={marcarContatoErradoVendedor.bind(null, oportunidadeId, p.id)}
+              className="flex w-full flex-wrap items-center gap-2"
+            >
+              <input
+                name="motivo"
+                placeholder="O que está errado? (opcional)"
+                className="campo-atas"
+                style={{ flex: 1, minWidth: 160, padding: "4px 8px", fontSize: 12 }}
+              />
+              <button type="submit" className="botao-atas critico" style={{ padding: "3px 10px", fontSize: 12 }}>
+                Marcar
+              </button>
+              <button type="button" className="botao-atas link" style={{ fontSize: 12 }} onClick={() => setMarcando(false)}>
+                Cancelar
+              </button>
+            </form>
+          )}
+        </div>
       </div>
     </div>
   );

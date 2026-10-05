@@ -414,26 +414,39 @@ model EntidadeAlvo {
   historicoConsumo  HistoricoConsumoCategoria[]
   oportunidades     OportunidadeVenda[]
   pedidosNegociacao PedidoNegociacao[]
+  sinais            SinalMunicipio[]
 
   @@map("entidades_alvo")
 }
 
 model PontoFocal {
-  id               String   @id @default(cuid())
-  entidadeAlvoId   String
-  cargo            String
+  id                  String    @id @default(cuid())
+  entidadeAlvoId      String
+  cargo               String
   // Pasta/departamento específico deste contato dentro da entidade (ex.:
   // "Secretaria de Saúde", "Gabinete do Prefeito") — é o que permite
   // guardar "contatos de todas as áreas" de um mesmo município.
-  area             String?
-  nomeContato      String
-  telefone         String?
-  email            String?
-  particularidades String?
-  ativo            Boolean  @default(true)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  isSeed           Boolean  @default(false)
+  area                String?
+  nomeContato         String
+  telefone            String?
+  email               String?
+  particularidades    String?
+  ativo               Boolean   @default(true)
+  // Qualidade do dado (fase 2 de design, 2026-10-05): fonte e confiança
+  // saíram do texto livre de `particularidades` pra campos próprios, pra
+  // o card mostrar "atualizado há X" e o vendedor corrigir contato errado.
+  // confianca: 1 baixa, 2 média, 3 alta. verificadoEm: última vez que alguém
+  // confirmou o contato (falou com sucesso ou o admin revisou).
+  fonte               String?
+  fonteUrl            String?
+  confianca           Int?
+  verificadoEm        DateTime?
+  contatoErradoEm     DateTime?
+  contatoErradoPorId  String?
+  contatoErradoMotivo String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  isSeed              Boolean   @default(false)
 
   entidadeAlvo EntidadeAlvo          @relation(fields: [entidadeAlvoId], references: [id])
   interacoes   InteracaoPontoFocal[]
@@ -570,4 +583,31 @@ model PedidoNegociacao {
   @@index([status])
   @@index([vendedorId])
   @@map("pedidos_negociacao")
+}
+
+// Sinal de compra de um município (fase 2 de design, 2026-10-05): o "por que
+// agora" do card — PCA, licitação aberta, contrato vencendo, troca de gestão,
+// orçamento, convênio, notícia. Alimentado por importador em lote (e, depois,
+// pelos coletores). Sempre com fonte e data. tipo: vocabulário em
+// src/lib/sinais.ts (texto, não enum, igual categorias/estágios).
+model SinalMunicipio {
+  id             String    @id @default(cuid())
+  entidadeAlvoId String
+  tipo           String
+  titulo         String
+  detalhe        String?
+  fonte          String
+  fonteUrl       String?
+  // Slug de src/lib/categorias.ts — nulo = vale pra qualquer categoria.
+  categoria      String?
+  valorEstimado  Decimal?  @db.Decimal(14, 2)
+  dataSinal      DateTime
+  expiraEm       DateTime?
+  criadoEm       DateTime  @default(now())
+  isSeed         Boolean   @default(false)
+
+  entidadeAlvo EntidadeAlvo @relation(fields: [entidadeAlvoId], references: [id])
+
+  @@index([entidadeAlvoId, dataSinal])
+  @@map("sinais_municipio")
 }

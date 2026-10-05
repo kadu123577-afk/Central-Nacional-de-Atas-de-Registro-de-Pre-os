@@ -10,21 +10,9 @@ import { VazioComAcao } from "@/components/ui/vazio-com-acao";
 import { corDaCategoria, rotuloDaCategoria } from "@/lib/categorias";
 import { buscarMunicipiosCompativeis } from "@/lib/match-ata-municipio";
 import { FormularioCategoriaAta } from "./formulario-categoria";
+import { NAV_ADMIN } from "@/app/admin/nav";
 
 export const dynamic = "force-dynamic";
-
-const NAV_ADMIN = [
-  { rotulo: "Painel", href: "/admin" },
-  { rotulo: "Atas", href: "/atas" },
-  { rotulo: "Contas a receber", href: "/admin/faturamento" },
-  { rotulo: "Recebíveis — vendedores", href: "/admin/recebiveis-vendedores" },
-  { rotulo: "Negociações", href: "/admin/negociacoes" },
-  { rotulo: "Usuários", href: "/admin/usuarios" },
-  { rotulo: "Fornecedores", href: "/admin/fornecedores" },
-  { rotulo: "Municípios/Entidades", href: "/admin/entidades" },
-  { rotulo: "Parceiros", href: "/admin/parceiros" },
-  { rotulo: "Perfil", href: "/admin/perfil" },
-];
 
 const ANOS_PARA_CONSIDERAR_ATRASADO = 2;
 

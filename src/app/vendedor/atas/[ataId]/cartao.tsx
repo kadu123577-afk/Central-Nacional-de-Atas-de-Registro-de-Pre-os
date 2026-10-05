@@ -113,7 +113,11 @@ export function Cartao({
                       <i />
                       <i />
                     </span>
-                    {c.semCanal ? "só o nome, sem canal" : `contato atualizado ${haQuantoTempo(p.atualizadoEm)}`}
+                    {c.semCanal
+                      ? "só o nome, sem canal"
+                      : p.verificadoEm
+                        ? `contato verificado ${haQuantoTempo(p.verificadoEm)}`
+                        : `contato levantado ${haQuantoTempo(p.atualizadoEm)}`}
                   </>
                 ) : (
                   "sem contato levantado"

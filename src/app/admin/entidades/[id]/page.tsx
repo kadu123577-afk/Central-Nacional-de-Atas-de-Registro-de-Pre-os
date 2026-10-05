@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { adminIdLogado } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { alternarStatusEntidadeAlvo, alternarStatusPontoFocal, logoutAdmin } from "../../actions";
+import { alternarStatusEntidadeAlvo, alternarStatusPontoFocal, logoutAdmin, removerSinalMunicipio } from "../../actions";
 import { AppShell } from "@/components/ui/app-shell";
 import { Secao } from "@/components/ui/secao";
 import { Badge } from "@/components/ui/badge";
@@ -11,22 +11,12 @@ import { ROTULO_TIPO_ENTIDADE } from "@/lib/entidades-alvo";
 import { ROTULO_CATEGORIA_CONSUMO } from "@/lib/classificador-objeto";
 import { Cifra } from "@/components/ui/valores";
 import { FormularioNovoContato } from "./formulario";
+import { FormularioSinal } from "./formulario-sinal";
+import { ROTULO_TIPO_SINAL, tipoSinalValido } from "@/lib/sinais";
 import { FormularioRaioXConsumo } from "./formulario-raio-x";
+import { NAV_ADMIN } from "@/app/admin/nav";
 
 export const dynamic = "force-dynamic";
-
-const NAV_ADMIN = [
-  { rotulo: "Painel", href: "/admin" },
-  { rotulo: "Atas", href: "/atas" },
-  { rotulo: "Contas a receber", href: "/admin/faturamento" },
-  { rotulo: "Recebíveis — vendedores", href: "/admin/recebiveis-vendedores" },
-  { rotulo: "Negociações", href: "/admin/negociacoes" },
-  { rotulo: "Usuários", href: "/admin/usuarios" },
-  { rotulo: "Fornecedores", href: "/admin/fornecedores" },
-  { rotulo: "Municípios/Entidades", href: "/admin/entidades" },
-  { rotulo: "Parceiros", href: "/admin/parceiros" },
-  { rotulo: "Perfil", href: "/admin/perfil" },
-];
 
 export default async function DetalheEntidadeAlvoPage({
   params,
@@ -47,6 +37,7 @@ export default async function DetalheEntidadeAlvoPage({
         include: { _count: { select: { interacoes: true } } },
       },
       historicoConsumo: { orderBy: { ultimaContratacao: "desc" } },
+      sinais: { orderBy: { dataSinal: "desc" }, take: 30 },
     },
   });
 
@@ -108,6 +99,42 @@ export default async function DetalheEntidadeAlvoPage({
         <p className="mt-1 text-sm" style={{ color: "var(--cor-texto-2)" }}>
           CNPJ: {entidade.cnpj ?? "—"}
         </p>
+      </Secao>
+
+      <Secao titulo={`Sinais de compra (${entidade.sinais.length})`}>
+        <p className="mb-3 text-xs" style={{ color: "var(--cor-texto-3)" }}>
+          O sinal mais relevante vira a linha “por que agora” do card do vendedor. Sempre com fonte e data.
+        </p>
+        {entidade.sinais.length > 0 && (
+          <ul className="mb-4 flex flex-col">
+            {entidade.sinais.map((sn) => (
+              <li
+                key={sn.id}
+                className="flex flex-wrap items-start justify-between gap-3 border-b py-2 last:border-b-0"
+                style={{ borderColor: "var(--cor-borda)" }}
+              >
+                <div>
+                  <p className="text-sm font-medium" style={{ color: "var(--cor-texto)" }}>
+                    {sn.titulo}
+                  </p>
+                  <p className="text-xs" style={{ color: "var(--cor-texto-3)" }}>
+                    {tipoSinalValido(sn.tipo) ? ROTULO_TIPO_SINAL[sn.tipo] : sn.tipo} · {sn.fonte} ·{" "}
+                    {sn.dataSinal.toLocaleDateString("pt-BR", { timeZone: "UTC" })}
+                    {sn.expiraEm ? ` · vale até ${sn.expiraEm.toLocaleDateString("pt-BR", { timeZone: "UTC" })}` : ""}
+                    {sn.categoria ? ` · ${sn.categoria}` : ""}
+                  </p>
+                </div>
+                <form action={removerSinalMunicipio}>
+                  <input type="hidden" name="sinalId" value={sn.id} />
+                  <button type="submit" className="botao-atas critico">
+                    Remover
+                  </button>
+                </form>
+              </li>
+            ))}
+          </ul>
+        )}
+        <FormularioSinal entidadeAlvoId={entidade.id} />
       </Secao>
 
       <Secao titulo="Raio-X de consumo" acao={<FormularioRaioXConsumo entidadeAlvoId={entidade.id} temCnpj={!!entidade.cnpj} />}>

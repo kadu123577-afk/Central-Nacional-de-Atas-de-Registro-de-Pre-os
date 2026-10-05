@@ -6,21 +6,9 @@ import { AppShell } from "@/components/ui/app-shell";
 import { Secao } from "@/components/ui/secao";
 import { CATEGORIAS_ATAS } from "@/lib/categorias";
 import { ESFERAS_ORGAO } from "@/lib/esferas";
+import { NAV_ADMIN } from "@/app/admin/nav";
 
 const estadoInicial: EstadoCadastroAtaAdmin = {};
-
-const NAV_ADMIN = [
-  { rotulo: "Painel", href: "/admin" },
-  { rotulo: "Atas", href: "/atas" },
-  { rotulo: "Contas a receber", href: "/admin/faturamento" },
-  { rotulo: "Recebíveis — vendedores", href: "/admin/recebiveis-vendedores" },
-  { rotulo: "Negociações", href: "/admin/negociacoes" },
-  { rotulo: "Usuários", href: "/admin/usuarios" },
-  { rotulo: "Fornecedores", href: "/admin/fornecedores" },
-  { rotulo: "Municípios/Entidades", href: "/admin/entidades" },
-  { rotulo: "Parceiros", href: "/admin/parceiros" },
-  { rotulo: "Perfil", href: "/admin/perfil" },
-];
 
 export function FormularioNovaAtaAdmin() {
   const [estado, formAction, pendente] = useActionState(cadastrarAtaComoAdmin, estadoInicial);
