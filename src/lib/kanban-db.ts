@@ -57,7 +57,7 @@ export async function carregarCartoes(
       orderBy: { ultimaContratacao: "desc" },
     }),
     prisma.sinalMunicipio.findMany({
-      where: { entidadeAlvoId: { in: entidadeIds } },
+      where: { entidadeAlvoId: { in: entidadeIds }, OR: [{ expiraEm: null }, { expiraEm: { gte: new Date() } }] },
       orderBy: { dataSinal: "desc" },
     }),
   ]);

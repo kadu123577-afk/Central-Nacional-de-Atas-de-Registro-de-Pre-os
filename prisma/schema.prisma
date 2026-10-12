@@ -605,6 +605,11 @@ model SinalMunicipio {
   expiraEm       DateTime?
   criadoEm       DateTime  @default(now())
   isSeed         Boolean   @default(false)
+  // Sinais gerados por script a partir de dados públicos (2026-10-12):
+  // "pncp-contrato:<nº de controle>", "pncp-pca:<id do PCA>:<grupo>",
+  // "siconfi-dca:<ibge>:<ano>:<função>". Permite regerar sem duplicar e
+  // apagar o que deixou de valer. Nulo = sinal manual ou importado.
+  chaveExterna   String?   @unique
 
   entidadeAlvo EntidadeAlvo @relation(fields: [entidadeAlvoId], references: [id])
 

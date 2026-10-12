@@ -155,3 +155,77 @@ describe("totalDaColuna", () => {
     expect(totalDaColuna([], "recusado")).toBeNull();
   });
 });
+
+describe("montarCartao: linha 'por que agora' com sinais automáticos", () => {
+  const sinal = (extra: Record<string, unknown>) => ({
+    id: Math.random().toString(36).slice(2),
+    tipo: "orcamento",
+    titulo: "Orçamento 2025: despesa com Saúde cresceu 30%",
+    detalhe: null,
+    fonte: "SICONFI",
+    fonteUrl: null,
+    categoria: null,
+    valorEstimado: null,
+    dataSinal: agora.toISOString(),
+    expiraEm: null,
+    ...extra,
+  });
+  const necessidade = {
+    categoria: "veiculos",
+    ultimaContratacao: new Date("2023-01-10T00:00:00Z"),
+    valor: 300_000,
+    quantidadeContratos: 2,
+    objeto: "Aquisição de veículos",
+  };
+
+  it("orçamento genérico não ganha do raio-X da categoria", () => {
+    const c = montarCartao({ ...base, necessidades: [necessidade], sinais: [sinal({})] }, { categoriaAta: "veiculos", percentualContrato: null }, agora);
+    expect(c.porQueAgora).toContain("necessidade recorrente");
+  });
+
+  it("sem raio-X, o orçamento genérico aparece", () => {
+    const c = montarCartao({ ...base, sinais: [sinal({})] }, { categoriaAta: "veiculos", percentualContrato: null }, agora);
+    expect(c.porQueAgora).toContain("Orçamento 2025");
+  });
+
+  it("contrato vencendo da categoria passa na frente de tudo", () => {
+    const c = montarCartao(
+      {
+        ...base,
+        necessidades: [necessidade],
+        sinais: [sinal({}), sinal({ tipo: "contrato_vencendo", categoria: "veiculos", titulo: "Contrato vence em 01/12/2026: Locação de veículos" })],
+      },
+      { categoriaAta: "veiculos", percentualContrato: null },
+      agora,
+    );
+    expect(c.porQueAgora).toBe("Contrato vence em 01/12/2026: Locação de veículos");
+  });
+});
+
+describe("montarCartao: contrato sem categoria não vira a linha", () => {
+  it("contrato vencendo de obra (sem categoria) não aparece para ata de veículos", () => {
+    const c = montarCartao(
+      {
+        ...base,
+        sinais: [
+          {
+            id: "obra",
+            tipo: "contrato_vencendo",
+            titulo: "Contrato vence em 01/12/2026: Obras de calçamento",
+            detalhe: null,
+            fonte: "PNCP",
+            fonteUrl: null,
+            categoria: null,
+            valorEstimado: 1_000_000,
+            dataSinal: agora.toISOString(),
+            expiraEm: null,
+          },
+        ],
+      },
+      { categoriaAta: "veiculos", percentualContrato: null },
+      agora,
+    );
+    expect(c.porQueAgora).toBeNull();
+    expect(c.sinais).toHaveLength(1);
+  });
+});

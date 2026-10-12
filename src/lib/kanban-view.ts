@@ -3,7 +3,7 @@ import { escolherDecisorPrincipal, ordenarDecisores, papelDoContato } from "./de
 import { rotuloDaCategoria } from "./categorias";
 import { resumirComissao } from "./recebiveis";
 import { limparNomeContato } from "./contatos-fonte";
-import { sinaisRelevantes, type SinalView } from "./sinais";
+import { sinaisRelevantes, sinalGenerico, type SinalView } from "./sinais";
 
 /**
  * Modelos de visão do Kanban do vendedor (2026-10-04, fase 2 de design):
@@ -225,6 +225,21 @@ interface EntradaCartao {
   liquidacoes: { valorLiquidado: number; statusCobranca: string }[];
 }
 
+/**
+ * Sinal específico primeiro; depois o raio-X da categoria; por último o
+ * contexto de orçamento. Contrato/PCA sem categoria nunca vira a linha.
+ */
+function porQueAgora(
+  sinais: SinalView[],
+  categoria: string | null,
+  necessidade: NecessidadeView | undefined,
+  agora: Date,
+): string | null {
+  const especifico = sinais.find((s) => !sinalGenerico(s));
+  if (especifico) return especifico.titulo;
+  return porQueAgoraDoRaioX(categoria, necessidade, agora) ?? sinais.find((s) => s.tipo === "orcamento")?.titulo ?? null;
+}
+
 export function montarCartao(
   entrada: EntradaCartao,
   contexto: { categoriaAta: string | null; percentualContrato: number | null },
@@ -284,7 +299,7 @@ export function montarCartao(
     casaComAta: Boolean(daCategoria),
     valorEstimado: daCategoria ? daCategoria.valor : null,
     sinais,
-    porQueAgora: sinais[0] ? sinais[0].titulo : porQueAgoraDoRaioX(contexto.categoriaAta, daCategoria, agora),
+    porQueAgora: porQueAgora(sinais, contexto.categoriaAta, daCategoria, agora),
   };
 }
 

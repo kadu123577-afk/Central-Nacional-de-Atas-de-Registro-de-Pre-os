@@ -58,3 +58,17 @@ describe("tipoSinalValido", () => {
     expect(tipoSinalValido("x")).toBe(false);
   });
 });
+
+describe("sinaisRelevantes: desempate por valor", () => {
+  it("mesmo tipo e mesma data: maior valor primeiro", () => {
+    const r = sinaisRelevantes(
+      [
+        sinal({ id: "menor", tipo: "contrato_vencendo", valorEstimado: 10_000 }),
+        sinal({ id: "maior", tipo: "contrato_vencendo", valorEstimado: 500_000 }),
+      ],
+      null,
+      agora,
+    );
+    expect(r.map((s) => s.id)).toEqual(["maior", "menor"]);
+  });
+});
