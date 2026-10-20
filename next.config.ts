@@ -46,7 +46,15 @@ const cabecalhosDeSeguranca = [
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   async headers() {
-    return [{ source: "/:path*", headers: cabecalhosDeSeguranca }];
+    return [
+      { source: "/:path*", headers: cabecalhosDeSeguranca },
+      // Anexos de ata são dado inerte: nada pode executar nem embutir, mesmo
+      // que o tipo seja enganoso. Esta regra vem depois da global e a sobrescreve.
+      {
+        source: "/api/documentos/:path*",
+        headers: [{ key: "Content-Security-Policy", value: "default-src 'none'; sandbox" }],
+      },
+    ];
   },
 };
 

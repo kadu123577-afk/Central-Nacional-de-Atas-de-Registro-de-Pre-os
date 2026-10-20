@@ -1,27 +1,32 @@
+import type { Metadata } from "next";
 import Link from "next/link";
-import { Logo } from "@/components/ui/logo";
+import { SiteShell } from "@/components/site/site-shell";
 
-export default function NaoEncontrado() {
+export const metadata: Metadata = {
+  title: "Página não encontrada",
+};
+
+export default function NotFound() {
   return (
-    <main className="mx-auto flex min-h-[70vh] max-w-md flex-col items-center justify-center gap-5 px-6 text-center">
-      <Logo altura={26} />
-      <div>
-        <p className="eyebrow">Erro 404</p>
-        <h1 className="marca mt-2 text-2xl" style={{ color: "var(--cor-texto)" }}>
-          Página não encontrada
-        </h1>
-        <p className="mt-2 text-sm" style={{ color: "var(--cor-texto-2)" }}>
-          O endereço que você tentou acessar não existe ou foi movido.
+    <SiteShell>
+      <div className="wrap erro">
+        <span className="rotulo-secao">
+          <span className="losango" aria-hidden="true"></span>Erro 404
+        </span>
+        <h1>Esta página não existe ou mudou de endereço</h1>
+        <p>
+          Se você chegou por um link de ata, ela pode ter encerrado a vigência. Procure pelo objeto
+          no catálogo ou volte para o início.
         </p>
+        <div className="acoes">
+          <Link className="botao botao--primario" href="/catalogo">
+            Ir para o catálogo
+          </Link>
+          <Link className="botao botao--secundario" href="/">
+            Voltar ao início
+          </Link>
+        </div>
       </div>
-      <div className="flex gap-3">
-        <Link href="/" className="botao-atas">
-          Ir para a home
-        </Link>
-        <Link href="/catalogo" className="botao-atas secundario">
-          Ver catálogo
-        </Link>
-      </div>
-    </main>
+    </SiteShell>
   );
 }

@@ -70,6 +70,10 @@ Limpe as variáveis ao terminar (`Remove-Item Env:ADMIN_SENHA, Env:DATABASE_URL`
    | `SESSION_SECRET` | 64+ caracteres aleatórios — `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"` |
    | `CRON_SECRET` | outro valor aleatório (**obrigatório**: sem ele os rastreadores respondem 401) |
    | `TOTP_ENCRYPTION_KEY` | outro valor aleatório (cifra o segredo do 2FA; não troque depois, ou os admins precisam recadastrar o 2FA) |
+   | `NEXT_PUBLIC_SITE_URL` | endereço público do site, ex.: `https://atas.arcacapital.com.br` |
+   | `WHATSAPP_OFICIAL` | opcional: só dígitos com DDI (ex.: `5562900000000`); vazio = botões de contato abrem o e-mail |
+   | `INDEXAR_SITE` | deixe **vazio** até haver atas reais publicadas; `true` liga o Google (robots e sitemap) |
+   | `AMBIENTE_DEMONSTRACAO` | **nunca** `true` em produção (mostra dados fictícios no catálogo) |
    | `PNCP_ACCESS_TOKEN` | opcional (sem ele as atas do PNCP entram sem itens) |
    | `TAXA_INTERMEDIACAO_PERCENTUAL` | só se não for 5% (`0.05`) |
 
@@ -79,6 +83,11 @@ Limpe as variáveis ao terminar (`Remove-Item Env:ADMIN_SENHA, Env:DATABASE_URL`
 4. **Settings → Billing → Spend Management**: ative um limite de gasto.
 
 ## 4. Domínio `.com.br`
+
+> O designer previu o endereço **atas.arcacapital.com.br** (subdomínio de um domínio da
+> ARCA). Se o domínio `arcacapital.com.br` já existe, não precisa registrar nada: basta
+> criar o subdomínio `atas` no DNS dele. O site, documentado em `SITE-PUBLICO.md`, é
+> a parte pública deste mesmo projeto.
 
 1. Registre em registro.br (≈ R$ 40/ano). Ative **2FA** na conta e o **DNSSEC**.
 2. Na Vercel: **Settings → Domains → Add** e digite o domínio (ex.: `www.seusite.com.br`).

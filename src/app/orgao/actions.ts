@@ -17,6 +17,7 @@ import {
   registrarSucessoLogin,
 } from "@/lib/limite-tentativas";
 import { registrarAuditoria } from "@/lib/auditoria";
+import { destinoSeguro } from "@/lib/destino-login";
 import { validarSenhaNova } from "@/lib/senha";
 import { esferaValida } from "@/lib/esferas";
 import type { EstadoTrocarSenha } from "@/components/ui/formulario-trocar-senha";
@@ -106,7 +107,7 @@ export async function loginOrgao(
   await registrarSucessoLogin("orgao", email);
   await registrarAuditoria({ ator: `orgao:${orgao.id}`, acao: "orgao.login" });
   await criarSessaoOrgao(orgao.id);
-  redirect("/orgao");
+  redirect(destinoSeguro(formData.get("destino"), "orgao", "/orgao"));
 }
 
 export async function logoutOrgao(): Promise<void> {

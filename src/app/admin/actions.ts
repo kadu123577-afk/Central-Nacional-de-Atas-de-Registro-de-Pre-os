@@ -17,6 +17,7 @@ import {
 } from "@/lib/limite-tentativas";
 import { registrarAuditoria } from "@/lib/auditoria";
 import { detectarTipoDocumento, nomeArquivoSeguro } from "@/lib/documentos";
+import { statusDemandaValido } from "@/lib/demandas";
 import { validarSenhaNova } from "@/lib/senha";
 import {
   cifrarSegredo,
@@ -1392,4 +1393,26 @@ export async function removerSinalMunicipio(formData: FormData): Promise<void> {
   await prisma.sinalMunicipio.delete({ where: { id: sinalId } });
   revalidatePath(`/admin/entidades/${sinal.entidadeAlvoId}`);
   revalidatePath("/vendedor");
+}
+
+/**
+ * Fila "Não achei a ata" (2026-10-20): muda o andamento de uma demanda vinda
+ * do formulário público e guarda uma nota interna da equipe.
+ */
+export async function atualizarDemanda(formData: FormData): Promise<void> {
+  await exigirAdmin("admin.atualizarDemanda");
+  const demandaId = String(formData.get("demandaId") ?? "");
+  const status = String(formData.get("status") ?? "");
+  const nota = String(formData.get("notaInterna") ?? "").trim().slice(0, 2000);
+  if (!demandaId || !statusDemandaValido(status)) return;
+
+  await prisma.demandaSemAta.update({
+    where: { id: demandaId },
+    data: {
+      status,
+      notaInterna: nota || null,
+      atendidaEm: status === "respondida" || status === "descartada" ? new Date() : null,
+    },
+  });
+  revalidatePath("/admin/demandas");
 }

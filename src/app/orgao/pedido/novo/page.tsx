@@ -8,6 +8,7 @@ import { logoutOrgao } from "../../actions";
 import { AppShell } from "@/components/ui/app-shell";
 import { Secao } from "@/components/ui/secao";
 import { Numero } from "@/components/ui/valores";
+import { codigoPublico } from "@/lib/site/regras";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +29,7 @@ export default async function NovoPedidoPage({
 
   const item = await prisma.item.findUnique({
     where: { id: itemId },
-    include: { saldo: true, ata: { include: { fornecedor: true, orgaoGerenciador: true } } },
+    include: { saldo: true, ata: true },
   });
 
   if (!item || !ataDisponivelParaAdesao(item.ata)) {
@@ -59,7 +60,7 @@ export default async function NovoPedidoPage({
 
       <Secao titulo={item.descricao}>
         <p className="text-sm" style={{ color: "var(--cor-texto-2)" }}>
-          Ata {item.ata.numero} — {item.ata.fornecedor.razaoSocial}
+          Ata {codigoPublico(item.ata.id)}
         </p>
         <dl className="mt-3 grid grid-cols-2 gap-2 text-xs">
           <dt style={{ color: "var(--cor-texto-3)" }}>Limite por órgão (50%)</dt>

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="197 573 188 197">
+  <g transform="translate(205,581) scale(0.86)">
+    <g fill="#0C2B23">
+      <path d="M0,0 H200 V13 H0 Z"/>
+      <path d="M0,0 L14,0 L14,113 L0,130 Z"/>
+      <path d="M186,0 L200,0 L200,210 L186,196 Z"/>
+      <path d="M100,41 L1,210 L21,208 L100,76 L177,210 L200,210 L186,185 Z"/>
+    </g>
+    <g fill="#0C2B23">
+      <rect x="72" y="172" width="12.8" height="38"/>
+      <rect x="95.3" y="147" width="12.8" height="63"/>
+      <rect x="118.6" y="172" width="12.8" height="38"/>
+    </g>
+  </g>
+</svg>

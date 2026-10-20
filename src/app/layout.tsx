@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
 import { Poppins, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
-import { AvisoCookies } from "@/components/aviso-cookies";
-import { Rodape } from "@/components/rodape";
 import "./globals.css";
 
 // Marca — títulos, labels de seção, eyebrow (uppercase + letter-spacing).
@@ -40,8 +38,6 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full flex flex-col">
         {children}
-        <Rodape />
-        <AvisoCookies />
       </body>
     </html>
   );

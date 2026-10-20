@@ -651,3 +651,30 @@ model LogAuditoria {
   @@index([ator])
   @@map("logs_auditoria")
 }
+
+// Demandas do formulário "Não achei a ata" da vitrine pública (2026-10-20).
+// Um órgão descreve o que precisa comprar; a equipe procura ata compatível e
+// responde pelo contato informado. O IP é guardado só como hash, para
+// identificar abuso sem manter o endereço do visitante. Fila no painel do
+// admin (/admin/demandas).
+model DemandaSemAta {
+  id          String    @id @default(cuid())
+  criadoEm    DateTime  @default(now())
+  objeto      String
+  quantidade  String?
+  uf          String?
+  prazo       String?
+  orgao       String
+  nome        String
+  cargo       String?
+  contato     String
+  observacoes String?
+  // nova | em_busca | respondida | descartada — vocabulário em src/lib/demandas.ts
+  status      String    @default("nova")
+  atendidaEm  DateTime?
+  notaInterna String?
+  ipHash      String?
+
+  @@index([status, criadoEm])
+  @@map("demandas_sem_ata")
+}

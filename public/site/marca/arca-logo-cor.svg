@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="195 571 756 201">
+  <defs>
+    <linearGradient id="gold" gradientUnits="userSpaceOnUse" x1="230" y1="580" x2="380" y2="770">
+      <stop offset="0" stop-color="#E9CFA6"/>
+      <stop offset="0.5" stop-color="#F6E7CC"/>
+      <stop offset="1" stop-color="#DCC09A"/>
+    </linearGradient>
+    <linearGradient id="cream" gradientUnits="userSpaceOnUse" x1="430" y1="612" x2="470" y2="760">
+      <stop offset="0" stop-color="#F7F1E3"/>
+      <stop offset="0.55" stop-color="#F1E4CE"/>
+      <stop offset="1" stop-color="#E7D5BA"/>
+    </linearGradient>
+    <linearGradient id="greenbar" gradientUnits="userSpaceOnUse" x1="0" y1="705" x2="0" y2="762">
+      <stop offset="0" stop-color="#0A6B5C"/>
+      <stop offset="1" stop-color="#013F37"/>
+    </linearGradient>
+  </defs>
+
+  <!-- ================= SIMBOLO ================= -->
+  <g transform="translate(205,581) scale(0.86)">
+    <g fill="url(#gold)">
+      <path d="M0,0 H200 V13 H0 Z"/>
+      <path d="M0,0 L14,0 L14,113 L0,130 Z"/>
+      <path d="M186,0 L200,0 L200,210 L186,196 Z"/>
+      <path d="M100,41 L1,210 L21,208 L100,76 L177,210 L200,210 L186,185 Z"/>
+    </g>
+    <g fill="url(#greenbar)">
+      <rect x="72" y="172" width="12.8" height="38"/>
+      <rect x="95.3" y="147" width="12.8" height="63"/>
+      <rect x="118.6" y="172" width="12.8" height="38"/>
+    </g>
+  </g>
+
+  <!-- ================= ARCA ================= -->
+  <!-- A1, C, A2 como traco -->
+  <g transform="translate(427,612)" fill="none" stroke="url(#cream)" stroke-width="13" stroke-linejoin="miter" stroke-miterlimit="6" stroke-linecap="butt">
+    <path d="M6.5,81.5 L55,6.5 L103.5,81.5"/>
+    <path d="M366,6.5 H322 C302,6.5 284.5,20 284.5,44 C284.5,68 302,81.5 322,81.5 H366"/>
+    <path d="M410.5,81.5 L459,6.5 L507.5,81.5"/>
+  </g>
+  <!-- R preenchido: barra sup + bojo curvo + barra meio + haste inferior curta + perna; contador ABERTO a esquerda (traco fiel ao original) -->
+  <g transform="translate(575,610)" fill="url(#cream)">
+    <path d="M0,0 L67,0 C80,1 91,13 91,26 C91,38 89,44 87,47 C84,53 76,59 66,61 L90,90 L74,90 L48,60 L11,59 L11,90 L0,90 L0,49 L60,49 C73,48 78,38 78,29 C78,20 72,13 61,11 L0,10 Z"/>
+  </g>
+
+  <!-- ================= CAPITAL ================= -->
+  <!-- I, E, S, T como traco -->
+  <g fill="none" stroke="url(#cream)" stroke-width="6.0" stroke-linejoin="round" stroke-linecap="round"><path d="M544.75,737.0 C544.75,731.0 538.75,729.0 530.8,729.0 C520.75,729.0 516.75,737.0 516.75,745.0 C516.75,753.0 520.75,761.0 530.8,761.0 C538.75,761.0 544.75,759.0 544.75,753.0"/><path d="M571.75,761.0 L586.8,729.0 L601.75,761.0 M577.4,749.0 H596.1"/><path d="M628.75,729.0 V761.0 M628.75,729.0 H643.75 C652.75,729.0 652.75,748.2 643.75,748.2 H628.75"/><path d="M682.8,729.0 V761.0"/><path d="M712.75,729.0 H738.75 M725.8,729.0 V761.0"/><path d="M765.75,761.0 L780.8,729.0 L795.75,761.0 M771.4,749.0 H790.1"/><path d="M822.75,729.0 V761.0 H842.75"/></g>
+</svg>

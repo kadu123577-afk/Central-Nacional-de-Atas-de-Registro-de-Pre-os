@@ -9,6 +9,7 @@ import { AppShell } from "@/components/ui/app-shell";
 import { Secao } from "@/components/ui/secao";
 import { VazioComAcao } from "@/components/ui/vazio-com-acao";
 import { Numero } from "@/components/ui/valores";
+import { codigoPublico } from "@/lib/site/regras";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +23,7 @@ export default async function PainelOrgaoPage() {
     where: { id: orgaoId },
     include: {
       adesoes: {
-        include: { item: { include: { ata: { include: { fornecedor: true } } } } },
+        include: { item: { include: { ata: true } } },
         orderBy: { createdAt: "desc" },
       },
     },
@@ -111,7 +112,7 @@ type AdesaoComRelacoes = {
   item: {
     descricao: string;
     unidade: string;
-    ata: { numero: string; fornecedor: { razaoSocial: string } };
+    ata: { id: string };
   };
 };
 
@@ -134,7 +135,7 @@ function ListaDePedidos({ adesoes }: { adesoes: AdesaoComRelacoes[] }) {
               <Numero>
                 {adesao.quantidadeSolicitada} {adesao.item.unidade}
               </Numero>{" "}
-              — Ata {adesao.item.ata.numero} ({adesao.item.ata.fornecedor.razaoSocial})
+              — Ata {codigoPublico(adesao.item.ata.id)}
             </p>
           </Link>
         </li>

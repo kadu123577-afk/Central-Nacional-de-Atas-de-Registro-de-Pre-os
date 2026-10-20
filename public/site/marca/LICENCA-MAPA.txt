@@ -1,0 +1,2 @@
+Contornos dos estados: @svg-maps/brazil 2.0.0, de Victor Cazanave (https://github.com/VictorCazanave/svg-maps).
+LicenÃ§a CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Manter o crÃ©dito visÃ­vel junto do mapa.

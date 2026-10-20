@@ -17,6 +17,7 @@ import {
   registrarSucessoLogin,
 } from "@/lib/limite-tentativas";
 import { registrarAuditoria } from "@/lib/auditoria";
+import { destinoSeguro } from "@/lib/destino-login";
 import { validarSenhaNova } from "@/lib/senha";
 import type { EstadoTrocarSenha } from "@/components/ui/formulario-trocar-senha";
 
@@ -120,7 +121,7 @@ export async function loginFornecedor(
   await registrarSucessoLogin("fornecedor", email);
   await registrarAuditoria({ ator: `fornecedor:${fornecedor.id}`, acao: "fornecedor.login" });
   await criarSessaoFornecedor(fornecedor.id);
-  redirect("/fornecedor");
+  redirect(destinoSeguro(formData.get("destino"), "fornecedor", "/fornecedor"));
 }
 
 export async function logoutFornecedor(): Promise<void> {
