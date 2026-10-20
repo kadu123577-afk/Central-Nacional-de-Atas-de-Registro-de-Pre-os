@@ -1,10 +1,10 @@
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { adminIdLogado } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logoutAdmin } from "../../../actions";
 import { NAV_ADMIN } from "../../../nav";
 import { AppShell } from "@/components/ui/app-shell";
+import { CabecalhoPagina } from "@/components/ui/cabecalho-pagina";
 import { Secao } from "@/components/ui/secao";
 import { FormularioContrato } from "./formulario";
 
@@ -34,7 +34,7 @@ export default async function ContratoAtaPage({ params }: { params: Promise<{ at
 
   return (
     <AppShell
-      area="Administração"
+      area="Administrativo"
       itens={NAV_ADMIN}
       rodape={
         <form action={logoutAdmin}>
@@ -44,25 +44,31 @@ export default async function ContratoAtaPage({ params }: { params: Promise<{ at
         </form>
       }
     >
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="marca text-2xl" style={{ color: "var(--cor-texto)" }}>
-            Contrato de intermediação — Ata {ata.numero}
-          </h1>
-          <p className="mt-1 text-sm" style={{ color: "var(--cor-texto-2)" }}>
-            {ata.fornecedor.razaoSocial} · {ata.objeto}
-          </p>
-        </div>
-        <Link href="/admin" className="botao-atas link">
-          ← Painel
-        </Link>
-      </div>
+      <CabecalhoPagina
+        rotulo="Operação"
+        titulo="Contrato de intermediação — Ata"
+        destaque={ata.numero}
+        descricao={
+          <>
+            <span className="font-semibold" style={{ color: "var(--cor-texto)" }}>
+              {ata.fornecedor.razaoSocial}
+            </span>{" "}
+            · {ata.objeto}
+          </>
+        }
+        voltar={{ href: "/admin", rotulo: "Painel" }}
+      />
 
-      <Secao titulo={contrato ? "Contrato cadastrado" : "Cadastrar contrato"}>
-        <p className="mb-3 text-xs" style={{ color: "var(--cor-texto-3)" }}>
-          Sem contrato cadastrado, nenhum vendedor consegue marcar um município como &quot;Aderiu&quot; nesta ata. O
-          percentual é o pactuado com o fornecedor — o vendedor não o digita.
-        </p>
+      <Secao
+        titulo={contrato ? "Contrato cadastrado" : "Cadastrar contrato"}
+        destaque
+        descricao={
+          <>
+            Sem contrato cadastrado, nenhum vendedor consegue marcar um município como &quot;Aderiu&quot; nesta ata. O
+            percentual é o pactuado com o fornecedor — o vendedor não o digita.
+          </>
+        }
+      >
         <FormularioContrato
           ataId={ata.id}
           percentualAtual={contrato ? String(Number((Number(contrato.percentualComissao) * 100).toFixed(2))).replace(".", ",") : ""}

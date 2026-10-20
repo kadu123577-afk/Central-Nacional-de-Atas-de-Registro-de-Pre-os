@@ -39,7 +39,7 @@ export function AvisoCookies() {
       style={{
         borderColor: "var(--cor-borda)",
         background: "var(--cor-superficie)",
-        boxShadow: "0 -4px 16px rgba(0,0,0,0.3)",
+        boxShadow: "var(--sombra-flutuante)",
       }}
     >
       <div className="mx-auto flex max-w-4xl flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">

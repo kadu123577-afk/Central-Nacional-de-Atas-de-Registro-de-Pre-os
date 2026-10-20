@@ -1,8 +1,9 @@
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { vendedorIdLogado } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { AppShell } from "@/components/ui/app-shell";
+import { Aviso } from "@/components/ui/aviso";
+import { CabecalhoPagina } from "@/components/ui/cabecalho-pagina";
 import { Secao } from "@/components/ui/secao";
 import { buscarMunicipiosCompativeis } from "@/lib/match-ata-municipio";
 import { expirarOportunidadesVencidas } from "@/lib/negociacao-expiracao";
@@ -80,29 +81,22 @@ export default async function SolicitarMunicipiosPage({ params }: { params: Prom
         </form>
       }
     >
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="marca text-2xl" style={{ color: "var(--cor-texto)" }}>
-            Pedir municípios — Ata {ata.numero}
-          </h1>
-          <p className="mt-1 text-sm" style={{ color: "var(--cor-texto-2)" }}>
-            {ata.fornecedor.razaoSocial} · {ata.objeto}
-          </p>
-        </div>
-        <Link href="/vendedor" className="botao-atas link">
-          ← Painel
-        </Link>
-      </div>
+      <CabecalhoPagina
+        rotulo="Pedido de negociação"
+        voltar={{ href: "/vendedor", rotulo: "Painel" }}
+        titulo={`Pedir municípios — Ata ${ata.numero}`}
+        descricao={`${ata.fornecedor.razaoSocial} · ${ata.objeto}`}
+      />
 
-      <Secao titulo="Municípios">
-        <p className="mb-4 text-xs" style={{ color: "var(--cor-texto-3)" }}>
+      <Secao titulo="Municípios" destaque>
+        <Aviso tom="info" className="mb-5">
           O administrador analisa cada pedido e libera os municípios. Depois de liberado, você tem 10 dias para avançar a
           negociação — cada movimento no Kanban renova o prazo; sem avanço, o município volta a ficar livre.
-        </p>
+        </Aviso>
         {!ata.categoria ? (
-          <p className="text-sm" style={{ color: "var(--cor-texto-2)" }}>
+          <Aviso tom="atencao">
             Esta ata ainda não tem categoria definida, então não há municípios sugeridos. Fale com o administrador.
-          </p>
+          </Aviso>
         ) : (
           <FormularioSolicitar ataId={ata.id} fortes={fortes} especulativos={especulativos} />
         )}

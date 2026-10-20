@@ -9,8 +9,8 @@ export function SeloCategoria({ categoria }: { categoria: string }) {
   const cor = corDaCategoria(categoria);
   return (
     <span
-      className="eyebrow inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5"
-      style={{ color: cor, borderColor: cor, background: `${cor}26` }}
+      className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11.5px] font-semibold"
+      style={{ color: cor, borderColor: `${cor}40`, background: `${cor}12` }}
     >
       <span className="inline-block size-1.5 rounded-full" style={{ background: cor }} />
       {categoria}

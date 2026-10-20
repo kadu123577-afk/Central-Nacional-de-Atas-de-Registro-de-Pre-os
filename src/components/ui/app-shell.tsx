@@ -21,6 +21,10 @@ function itemAtivo(item: ItemNav, pathname: string): boolean {
   return (item.ativoEm ?? []).some((prefixo) => pathname === prefixo || pathname.startsWith(`${prefixo}/`));
 }
 
+/**
+ * Casca das áreas logadas. O menu lateral usa o verde profundo e o dourado
+ * do rodapé do site; a área de trabalho fica clara, com os cartões brancos.
+ */
 export function AppShell({
   area,
   itens,
@@ -41,34 +45,23 @@ export function AppShell({
 
   return (
     <div className="flex min-h-screen">
-      <aside
-        className="sem-impressao flex w-[232px] shrink-0 flex-col justify-between border-r p-4"
-        style={{ borderColor: "var(--cor-borda)", background: "var(--cor-superficie)" }}
-      >
+      <aside className="app-menu sem-impressao">
         <div>
-          <div className="px-1 pb-6">
-            <Logo />
-            <p className="eyebrow mt-1">{area}</p>
+          <div className="px-2 pb-7 pt-1">
+            <Logo tom="claro" altura={30} compacto />
+            <p className="app-menu-area">{area}</p>
           </div>
-          <nav className="flex flex-col gap-1">
+          <nav className="flex flex-col gap-0.5">
             {itens.map((item, i) => {
               const ativo = itemAtivo(item, pathname);
               const novoGrupo = item.grupo && item.grupo !== itens[i - 1]?.grupo;
               return (
-                <div key={item.href} className="flex flex-col gap-1">
-                  {novoGrupo && (
-                    <p className="eyebrow px-3 pb-0.5 pt-4" style={{ color: "var(--cor-texto-3)" }}>
-                      {item.grupo}
-                    </p>
-                  )}
+                <div key={item.href} className="flex flex-col gap-0.5">
+                  {novoGrupo && <p className="app-menu-grupo">{item.grupo}</p>}
                   <Link
                     href={item.href}
                     aria-current={ativo ? "page" : undefined}
-                    className="rounded-[var(--raio)] px-3 py-2 text-sm font-medium transition-colors"
-                    style={{
-                      color: ativo ? "var(--cor-marca-clara)" : "var(--cor-texto-2)",
-                      background: ativo ? "var(--cor-marca-fundo)" : "transparent",
-                    }}
+                    className="app-menu-item"
                   >
                     {item.rotulo}
                   </Link>
@@ -77,11 +70,11 @@ export function AppShell({
             })}
           </nav>
         </div>
-        {rodape && <div className="px-1">{rodape}</div>}
+        {rodape && <div className="app-menu-rodape">{rodape}</div>}
       </aside>
 
-      <main className="flex-1 px-8 py-8">
-        <div className={`mx-auto flex ${larguraMaxima} flex-col gap-5`}>{children}</div>
+      <main className="min-w-0 flex-1 px-8 py-9">
+        <div className={`mx-auto flex ${larguraMaxima} flex-col gap-6`}>{children}</div>
       </main>
     </div>
   );

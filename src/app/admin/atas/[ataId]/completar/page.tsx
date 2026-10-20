@@ -1,9 +1,9 @@
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { adminIdLogado } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logoutAdmin } from "../../../actions";
 import { AppShell } from "@/components/ui/app-shell";
+import { CabecalhoPagina } from "@/components/ui/cabecalho-pagina";
 import { Secao } from "@/components/ui/secao";
 import { Badge } from "@/components/ui/badge";
 import { Numero } from "@/components/ui/valores";
@@ -47,48 +47,63 @@ export default async function CompletarAtaPage({
         </form>
       }
     >
-      <div className="flex items-center justify-between gap-2">
-        <div>
-          <h1 className="marca text-2xl" style={{ color: "var(--cor-texto)" }}>
-            Completar Ata {ata.numero}
-          </h1>
-          <p className="mt-1 text-sm" style={{ color: "var(--cor-texto-2)" }}>
-            {ata.objeto}
-          </p>
-        </div>
-        <Link href="/admin" className="botao-atas link">
-          ← Painel
-        </Link>
-      </div>
+      <CabecalhoPagina
+        rotulo="Operação"
+        titulo="Completar Ata"
+        destaque={ata.numero}
+        descricao={ata.objeto}
+        voltar={{ href: "/admin", rotulo: "Painel" }}
+      />
 
-      <Secao titulo="Fornecedor">
+      <Secao titulo="Fornecedor" destaque={fornecedorEhPlaceholder}>
         {fornecedorEhPlaceholder ? (
-          <>
-            <p className="mb-3 text-sm" style={{ color: "var(--cor-texto-2)" }}>
+          <div className="flex flex-col gap-5">
+            <p className="text-sm leading-relaxed" style={{ color: "var(--cor-texto-2)" }}>
               <Badge tom="alerta">Fornecedor a confirmar</Badge> — o PNCP não retornou o
               vencedor da compra. Informe o fornecedor real abaixo.
             </p>
             <FormularioCompletarFornecedor ataId={ata.id} />
-          </>
+          </div>
         ) : (
-          <p className="text-sm" style={{ color: "var(--cor-texto)" }}>
-            {ata.fornecedor.razaoSocial} ({ata.fornecedor.cnpj}) — já confirmado.
-          </p>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm" style={{ color: "var(--cor-texto-2)" }}>
+            <span className="font-bold" style={{ color: "var(--cor-texto)" }}>
+              {ata.fornecedor.razaoSocial}
+            </span>
+            <span className="codigo text-xs" style={{ color: "var(--cor-texto-3)" }}>
+              {ata.fornecedor.cnpj}
+            </span>
+            <Badge tom="marca">já confirmado</Badge>
+          </div>
         )}
       </Secao>
 
       <Secao titulo={`Itens (${ata.itens.length})`}>
         {ata.itens.length > 0 && (
-          <ul className="mb-4 flex flex-col gap-2">
-            {ata.itens.map((item) => (
-              <li key={item.id} className="painel p-3 text-sm">
-                <span style={{ color: "var(--cor-texto)" }}>{item.descricao}</span>
-                <span className="ml-2" style={{ color: "var(--cor-texto-3)" }}>
-                  (<Numero>{item.quantidadeRegistrada}</Numero> {item.unidade})
-                </span>
-              </li>
-            ))}
-          </ul>
+          <div
+            className="mb-6 overflow-x-auto rounded-[var(--raio-grande)] border"
+            style={{ borderColor: "var(--cor-borda)" }}
+          >
+            <table className="tabela-atas">
+              <thead>
+                <tr>
+                  <th>Item</th>
+                  <th className="w-[180px]">Qtd. registrada</th>
+                </tr>
+              </thead>
+              <tbody>
+                {ata.itens.map((item) => (
+                  <tr key={item.id}>
+                    <td>
+                      <span className="titulo-linha">{item.descricao}</span>
+                    </td>
+                    <td style={{ color: "var(--cor-texto)" }}>
+                      <Numero>{item.quantidadeRegistrada}</Numero> {item.unidade}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
         <FormularioAdicionarItem ataId={ata.id} categorias={CATEGORIAS_ATAS} />
       </Secao>

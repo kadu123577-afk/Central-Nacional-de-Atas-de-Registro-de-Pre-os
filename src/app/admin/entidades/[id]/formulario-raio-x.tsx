@@ -15,16 +15,16 @@ export function FormularioRaioXConsumo({
   const [estado, formAction, pendente] = useActionState(atualizarRaioXConsumo, estadoInicial);
 
   return (
-    <form action={formAction} className="flex items-center gap-2">
+    <form action={formAction} className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1.5">
       <input type="hidden" name="entidadeAlvoId" value={entidadeAlvoId} />
-      <button type="submit" disabled={pendente || !temCnpj} className="botao-atas secundario">
-        {pendente ? "Consultando o PNCP..." : "Atualizar"}
-      </button>
       {estado.erro && (
-        <span className="text-xs" style={{ color: "var(--cor-critico)" }}>
+        <span role="alert" className="max-w-xs text-[12.5px] font-medium" style={{ color: "var(--cor-critico)" }}>
           {estado.erro}
         </span>
       )}
+      <button type="submit" disabled={pendente || !temCnpj} className="botao-atas secundario">
+        {pendente ? "Consultando o PNCP..." : "Atualizar"}
+      </button>
     </form>
   );
 }

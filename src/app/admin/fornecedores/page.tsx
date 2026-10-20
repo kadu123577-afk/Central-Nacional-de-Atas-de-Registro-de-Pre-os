@@ -1,13 +1,14 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { adminIdLogado } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { atualizarContatoTecnicoFornecedor, logoutAdmin } from "../actions";
 import { AppShell } from "@/components/ui/app-shell";
+import { CabecalhoPagina } from "@/components/ui/cabecalho-pagina";
 import { Secao } from "@/components/ui/secao";
 import { Badge } from "@/components/ui/badge";
+import { SeloCategoria } from "@/components/ui/selo-categoria";
 import { VazioComAcao } from "@/components/ui/vazio-com-acao";
-import { corDaCategoria } from "@/lib/categorias";
+import { rotuloDaCategoria } from "@/lib/categorias";
 import { NAV_ADMIN } from "@/app/admin/nav";
 
 export const dynamic = "force-dynamic";
@@ -47,26 +48,18 @@ export default async function FornecedoresPage() {
         </form>
       }
     >
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="marca text-2xl" style={{ color: "var(--cor-texto)" }}>
-            Fornecedores
-          </h1>
-          <p className="mt-1 text-sm" style={{ color: "var(--cor-texto-2)" }}>
-            O que cada fornecedor realmente tem pra oferecer — categorias, atas aprovadas e
-            UFs onde ele já tem ata gerenciadora.
-          </p>
-        </div>
-        <Link href="/admin" className="botao-atas link">
-          ← Painel
-        </Link>
-      </div>
+      <CabecalhoPagina
+        rotulo="Cadastros"
+        titulo="Fornecedores"
+        descricao="O que cada fornecedor realmente tem pra oferecer — categorias, atas aprovadas e UFs onde ele já tem ata gerenciadora."
+        voltar={{ href: "/admin", rotulo: "Painel" }}
+      />
 
       <Secao titulo={`Cadastrados (${fornecedores.length})`}>
         {fornecedores.length === 0 ? (
           <VazioComAcao titulo="Nenhum fornecedor cadastrado" descricao="" />
         ) : (
-          <ul className="flex flex-col gap-2">
+          <ul className="lista-linhas">
             {fornecedores.map((f) => {
               const categorias = new Set<string>();
               const ufs = new Set<string>();
@@ -78,71 +71,65 @@ export default async function FornecedoresPage() {
               }
 
               return (
-                <li key={f.id} className="painel p-4">
-                  <div className="flex items-baseline justify-between gap-3">
-                    <p className="text-sm font-medium" style={{ color: "var(--cor-texto)" }}>
-                      {f.razaoSocial}
-                    </p>
-                    <Badge tom={f.ativo ? "neutro" : "critico"}>
-                      {f.ativo ? "Ativo" : "Desativado"}
-                    </Badge>
+                <li key={f.id} className="flex flex-col gap-3">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-[14px] font-bold" style={{ color: "var(--cor-texto)", letterSpacing: "-0.01em" }}>
+                        {f.razaoSocial}
+                      </p>
+                      <p className="mt-0.5 text-xs" style={{ color: "var(--cor-texto-3)" }}>
+                        <span className="codigo">{f.cnpj}</span> · {f.email} ·{" "}
+                        <span className="numero">{f.atas.length}</span>{" "}
+                        {f.atas.length === 1 ? "ata aprovada" : "atas aprovadas"} ·{" "}
+                        <span className="numero">{totalItens}</span> {totalItens === 1 ? "item" : "itens"}
+                      </p>
+                    </div>
+                    <Badge tom={f.ativo ? "neutro" : "critico"}>{f.ativo ? "Ativo" : "Desativado"}</Badge>
                   </div>
-                  <p className="mt-1 text-xs" style={{ color: "var(--cor-texto-3)" }}>
-                    {f.cnpj} · {f.email} · {f.atas.length}{" "}
-                    {f.atas.length === 1 ? "ata aprovada" : "atas aprovadas"} · {totalItens}{" "}
-                    {totalItens === 1 ? "item" : "itens"}
-                  </p>
 
                   {categorias.size > 0 && (
-                    <div className="mt-2 flex flex-wrap gap-1.5">
+                    <div className="flex flex-wrap gap-1.5">
                       {[...categorias].map((c) => (
-                        <span
-                          key={c}
-                          className="eyebrow rounded-full border px-2.5 py-0.5"
-                          style={{ borderColor: corDaCategoria(c), color: corDaCategoria(c) }}
-                        >
-                          {c}
-                        </span>
+                        <SeloCategoria key={c} categoria={rotuloDaCategoria(c)} />
                       ))}
                     </div>
                   )}
 
                   {ufs.size > 0 && (
-                    <p className="mt-2 text-xs" style={{ color: "var(--cor-texto-3)" }}>
-                      UFs com ata gerenciadora: {[...ufs].sort().join(", ")}
+                    <p className="flex flex-wrap items-center gap-1.5 text-xs" style={{ color: "var(--cor-texto-3)" }}>
+                      UFs com ata gerenciadora:
+                      {[...ufs].sort().map((uf) => (
+                        <span key={uf} className="selo-uf">
+                          {uf}
+                        </span>
+                      ))}
                     </p>
                   )}
 
                   <form
                     action={atualizarContatoTecnicoFornecedor}
-                    className="mt-3 flex flex-col gap-2 border-t pt-3 sm:flex-row sm:items-end"
-                    style={{ borderColor: "var(--cor-borda)" }}
+                    className="flex flex-col gap-3 rounded-[var(--raio)] p-4 sm:flex-row sm:items-end"
+                    style={{ background: "var(--cor-superficie-2)" }}
                   >
                     <input type="hidden" name="fornecedorId" value={f.id} />
-                    <label className="block flex-1 text-xs">
-                      <span className="mb-1 block font-medium" style={{ color: "var(--cor-texto-2)" }}>
-                        Contato técnico — nome
-                      </span>
+                    <label className="block flex-1">
+                      <span className="rotulo-campo">Contato técnico — nome</span>
                       <input
                         name="contatoTecnicoNome"
                         defaultValue={f.contatoTecnicoNome ?? ""}
                         className="campo-atas"
                       />
                     </label>
-                    <label className="block flex-1 text-xs">
-                      <span className="mb-1 block font-medium" style={{ color: "var(--cor-texto-2)" }}>
-                        Telefone
-                      </span>
+                    <label className="block flex-1">
+                      <span className="rotulo-campo">Telefone</span>
                       <input
                         name="contatoTecnicoTelefone"
                         defaultValue={f.contatoTecnicoTelefone ?? ""}
                         className="campo-atas"
                       />
                     </label>
-                    <label className="block flex-1 text-xs">
-                      <span className="mb-1 block font-medium" style={{ color: "var(--cor-texto-2)" }}>
-                        E-mail
-                      </span>
+                    <label className="block flex-1">
+                      <span className="rotulo-campo">E-mail</span>
                       <input
                         name="contatoTecnicoEmail"
                         type="email"

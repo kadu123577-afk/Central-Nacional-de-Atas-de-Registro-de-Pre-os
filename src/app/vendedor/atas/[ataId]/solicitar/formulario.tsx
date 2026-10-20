@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { Aviso } from "@/components/ui/aviso";
 import { solicitarMunicipios, type EstadoSolicitarMunicipios } from "../../../actions";
 
 export interface MunicipioOpcao {
@@ -34,25 +35,24 @@ export function FormularioSolicitar({ ataId, fortes, especulativos }: Props) {
   const passa = (m: MunicipioOpcao) => !termo || `${m.nome} ${m.uf ?? ""}`.toLowerCase().includes(termo);
 
   return (
-    <form action={formAction} className="flex flex-col gap-4">
+    <form action={formAction} className="flex flex-col gap-6">
       <input
         type="search"
         value={filtro}
         onChange={(e) => setFiltro(e.target.value)}
         placeholder="Filtrar por nome ou UF"
+        aria-label="Filtrar por nome ou UF"
         className="campo-atas"
       />
 
       <div>
-        <p className="eyebrow mb-2" style={{ color: "var(--cor-texto-3)" }}>
-          Candidatos fortes — já contrataram essa categoria ({fortes.length})
-        </p>
+        <p className="eyebrow mb-3">Candidatos fortes — já contrataram essa categoria ({fortes.length})</p>
         {fortes.length === 0 ? (
-          <p className="text-xs" style={{ color: "var(--cor-texto-3)" }}>
+          <p className="text-[13px]" style={{ color: "var(--cor-texto-3)" }}>
             Nenhum município levantado contratou essa categoria antes.
           </p>
         ) : (
-          <ul className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+          <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             {fortes.map((m) => (
               <Opcao key={m.id} m={m} oculto={!passa(m)} />
             ))}
@@ -61,15 +61,15 @@ export function FormularioSolicitar({ ataId, fortes, especulativos }: Props) {
       </div>
 
       {especulativos.length > 0 && (
-        <details>
-          <summary className="eyebrow cursor-pointer" style={{ color: "var(--cor-texto-3)" }}>
+        <details className="rounded-[var(--raio-grande)] border p-4" style={{ borderColor: "var(--cor-borda)" }}>
+          <summary className="eyebrow cursor-pointer">
             Possíveis oportunidades — não confirmadas ({especulativos.length})
           </summary>
-          <p className="my-2 text-xs" style={{ color: "var(--cor-texto-3)" }}>
+          <p className="mb-3 mt-2 text-[13px] leading-relaxed" style={{ color: "var(--cor-texto-3)" }}>
             Raio-X rodou e não achou contratação dessa categoria — pode ser necessidade nova, ou o classificador não ter
             pego o contrato certo. Peça só se quiser perseguir.
           </p>
-          <ul className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+          <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             {especulativos.map((m) => (
               <Opcao key={m.id} m={m} oculto={!passa(m)} />
             ))}
@@ -77,18 +77,7 @@ export function FormularioSolicitar({ ataId, fortes, especulativos }: Props) {
         </details>
       )}
 
-      {estado.erro && (
-        <p
-          className="rounded-[var(--raio)] border px-4 py-3 text-sm"
-          style={{
-            borderColor: "var(--cor-critico)",
-            background: "var(--cor-critico-fundo)",
-            color: "var(--cor-critico)",
-          }}
-        >
-          {estado.erro}
-        </p>
-      )}
+      {estado.erro && <Aviso tom="critico">{estado.erro}</Aviso>}
 
       <button type="submit" disabled={pendente} className="botao-atas self-start">
         {pendente ? "Enviando..." : "Pedir liberação ao administrador"}
@@ -103,7 +92,11 @@ function Opcao({ m, oculto }: { m: MunicipioOpcao; oculto: boolean }) {
   return (
     <li className={oculto ? "hidden" : undefined}>
       <label
-        className="flex items-start gap-2 text-sm"
+        className={`flex h-full items-start gap-2.5 rounded-[var(--raio)] border px-3 py-2.5 text-[13.5px] transition-colors ${
+          livre
+            ? "cursor-pointer border-[var(--cor-borda)] bg-[var(--cor-superficie)] hover:border-[var(--cor-marca-borda)] has-[:checked]:border-[var(--cor-marca-borda)] has-[:checked]:bg-[var(--cor-marca-fundo)]"
+            : "cursor-not-allowed border-[var(--cor-borda)] bg-[var(--cor-superficie-2)]"
+        }`}
         style={{ color: livre ? "var(--cor-texto)" : "var(--cor-texto-3)" }}
       >
         <input
@@ -111,13 +104,23 @@ function Opcao({ m, oculto }: { m: MunicipioOpcao; oculto: boolean }) {
           name="entidadeAlvoId"
           value={m.id}
           disabled={!livre}
-          className="mt-1"
+          className="mt-0.5 size-4 shrink-0 accent-[var(--cor-marca)]"
         />
-        <span>
-          {m.nome}
-          {m.uf ? `/${m.uf}` : ""}
-          {!livre && ` — ${ROTULO_SITUACAO[m.situacao]}`}
-          {livre && m.detalhe ? ` — ${m.detalhe}` : ""}
+        <span className="min-w-0">
+          <span className="flex flex-wrap items-center gap-1.5">
+            <span className={livre ? "font-semibold" : undefined}>{m.nome}</span>
+            {m.uf && <span className="selo-uf">{m.uf}</span>}
+          </span>
+          {!livre && (
+            <span className="mt-0.5 block text-xs" style={{ color: "var(--cor-texto-3)" }}>
+              {ROTULO_SITUACAO[m.situacao]}
+            </span>
+          )}
+          {livre && m.detalhe && (
+            <span className="mt-0.5 block text-xs" style={{ color: "var(--cor-texto-3)" }}>
+              {m.detalhe}
+            </span>
+          )}
         </span>
       </label>
     </li>

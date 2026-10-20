@@ -7,6 +7,7 @@ import { tomEstagioAdesao } from "@/lib/severidade";
 import { logoutFornecedor } from "../actions";
 import { AppShell } from "@/components/ui/app-shell";
 import { Badge } from "@/components/ui/badge";
+import { CabecalhoPagina } from "@/components/ui/cabecalho-pagina";
 import { VazioComAcao } from "@/components/ui/vazio-com-acao";
 
 export const dynamic = "force-dynamic";
@@ -57,14 +58,12 @@ export default async function AdesoesFornecedorPage({
         </form>
       }
     >
-      <div>
-        <h1 className="marca text-2xl" style={{ color: "var(--cor-texto)" }}>
-          Pedidos de adesão recebidos
-        </h1>
-        <p className="mt-1 text-sm" style={{ color: "var(--cor-texto-2)" }}>
-          Pedidos de órgãos públicos pra itens das suas atas.
-        </p>
-      </div>
+      <CabecalhoPagina
+        rotulo="Painel do fornecedor"
+        titulo="Pedidos de adesão"
+        destaque="recebidos"
+        descricao="Pedidos de órgãos públicos pra itens das suas atas."
+      />
 
       {adesoes.length === 0 ? (
         <VazioComAcao
@@ -72,33 +71,47 @@ export default async function AdesoesFornecedorPage({
           descricao="Quando um órgão pedir adesão a um item de uma das suas atas, aparece aqui."
         />
       ) : (
-        <div className="overflow-x-auto">
-          <table className="tabela-atas">
+        <div className="painel overflow-x-auto">
+          <table className="tabela-atas min-w-[760px]">
             <thead>
               <tr>
                 <th>Órgão solicitante</th>
+                <th className="w-[64px]">UF</th>
                 <th>Ata / item</th>
                 <th>Estágio</th>
                 <th>Pedido em</th>
-                <th></th>
+                <th className="w-[1%]"></th>
               </tr>
             </thead>
             <tbody>
               {adesoes.map((adesao) => (
                 <tr key={adesao.id}>
-                  <td>{adesao.orgaoAderente.nome}</td>
                   <td>
-                    Ata {adesao.item.ata.numero} — {adesao.item.descricao}
+                    <span className="titulo-linha block">{adesao.orgaoAderente.nome}</span>
+                    <span className="mt-0.5 block text-xs" style={{ color: "var(--cor-texto-3)" }}>
+                      {adesao.orgaoAderente.municipio}
+                    </span>
                   </td>
                   <td>
-                    <Badge tom={tomEstagioAdesao(adesao.estagio)}>
-                      {ROTULO_ESTAGIO[adesao.estagio]}
-                    </Badge>
+                    <span className="selo-uf">{adesao.orgaoAderente.uf}</span>
                   </td>
-                  <td>{new Date(adesao.createdAt).toLocaleDateString("pt-BR")}</td>
                   <td>
+                    <span className="block font-semibold" style={{ color: "var(--cor-texto)" }}>
+                      {adesao.item.descricao}
+                    </span>
+                    <span className="mt-0.5 block text-xs" style={{ color: "var(--cor-texto-3)" }}>
+                      Ata <span className="codigo">Nº {adesao.item.ata.numero}</span>
+                    </span>
+                  </td>
+                  <td>
+                    <Badge tom={tomEstagioAdesao(adesao.estagio)}>{ROTULO_ESTAGIO[adesao.estagio]}</Badge>
+                  </td>
+                  <td className="numero whitespace-nowrap" style={{ color: "var(--cor-texto)" }}>
+                    {new Date(adesao.createdAt).toLocaleDateString("pt-BR")}
+                  </td>
+                  <td className="whitespace-nowrap text-right">
                     <Link href={`/adesoes/${adesao.id}`} className="botao-atas link">
-                      Ver
+                      Ver →
                     </Link>
                   </td>
                 </tr>
@@ -109,19 +122,20 @@ export default async function AdesoesFornecedorPage({
       )}
 
       {totalPaginas > 1 && (
-        <div className="flex items-center justify-between text-sm" style={{ color: "var(--cor-texto-2)" }}>
+        <div className="flex flex-wrap items-center justify-between gap-3 text-[13px]" style={{ color: "var(--cor-texto-3)" }}>
           <span>
-            Página {pagina} de {totalPaginas}
+            Página <b className="numero" style={{ color: "var(--cor-texto)" }}>{pagina}</b> de{" "}
+            <b className="numero" style={{ color: "var(--cor-texto)" }}>{totalPaginas}</b>
           </span>
           <div className="flex gap-2">
             {pagina > 1 && (
               <Link href={`/fornecedor/adesoes?pagina=${pagina - 1}`} className="botao-atas secundario">
-                Anterior
+                ← Anterior
               </Link>
             )}
             {pagina < totalPaginas && (
               <Link href={`/fornecedor/adesoes?pagina=${pagina + 1}`} className="botao-atas secundario">
-                Próxima
+                Próxima →
               </Link>
             )}
           </div>

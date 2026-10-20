@@ -20,8 +20,8 @@ export default function LoginOrgaoPage() {
       rodape={
         <p className="text-sm" style={{ color: "var(--cor-texto-2)" }}>
           Ainda não tem conta?{" "}
-          <Link href="/orgao/cadastro" className="underline">
-            Cadastre seu órgão
+          <Link href="/orgao/cadastro" className="botao-atas link">
+            Cadastre seu órgão →
           </Link>
         </p>
       }

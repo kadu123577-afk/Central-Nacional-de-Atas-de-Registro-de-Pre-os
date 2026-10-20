@@ -5,87 +5,93 @@ import Link from "next/link";
 import { Logo } from "@/components/ui/logo";
 import { CATEGORIAS_ATAS } from "@/lib/categorias";
 
+type Menu = "categorias" | "entrar" | null;
+
+function Seta() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+      <path d="m3 4.5 3 3 3-3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+/** Cabeçalho público, igual ao do site: logo, busca com botão e menus. */
 export function BarraTopo() {
-  const [menuAberto, setMenuAberto] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
+  const [menu, setMenu] = useState<Menu>(null);
+  const barraRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function aoClicarFora(evento: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(evento.target as Node)) {
-        setMenuAberto(false);
+      if (barraRef.current && !barraRef.current.contains(evento.target as Node)) {
+        setMenu(null);
       }
     }
     document.addEventListener("click", aoClicarFora);
     return () => document.removeEventListener("click", aoClicarFora);
   }, []);
 
+  const alternar = (qual: Exclude<Menu, null>) => setMenu((atual) => (atual === qual ? null : qual));
+
   return (
-    <header
-      className="sticky top-0 z-50 flex flex-wrap items-center gap-3 border-b px-6 py-3"
-      style={{
-        background: "color-mix(in srgb, var(--cor-fundo) 85%, transparent)",
-        backdropFilter: "blur(8px)",
-        borderColor: "var(--cor-borda)",
-      }}
-    >
-      <div className="order-1 shrink-0">
-        <Logo altura={26} />
-      </div>
+    <header className="site-topo">
+      <div ref={barraRef} className="site-topo-interno">
+        <Link href="/" className="shrink-0" aria-label="Central de Atas — início">
+          <Logo />
+        </Link>
 
-      {/* Categorias — segunda linha no mobile (não disputa espaço com a
-          busca), volta pra mesma linha a partir de md. Quebra linha em vez
-          de rolar horizontalmente: com a lista podendo crescer (hoje 8
-          temas, mais no futuro), rolagem com um degradê fixo por cima
-          acabava escondendo permanentemente o último item em telas largas
-          onde nem havia overflow de verdade. */}
-      <div className="order-3 w-full min-w-0 md:order-2 md:w-auto md:flex-1">
-        <nav className="flex flex-wrap gap-x-4 gap-y-1">
-          {CATEGORIAS_ATAS.map((c) => (
-            <Link
-              key={c.slug}
-              href={`/catalogo?categoria=${encodeURIComponent(c.slug)}`}
-              className="eyebrow whitespace-nowrap"
-              style={{ color: "var(--cor-texto-2)" }}
-            >
-              {c.rotuloCurto ?? c.rotulo}
-            </Link>
-          ))}
-        </nav>
-      </div>
-
-      <div className="order-2 ml-auto flex items-center gap-2 md:order-3 md:ml-0">
-        <form action="/catalogo" method="GET" className="flex items-center gap-2">
-          <input name="q" placeholder="Buscar item..." className="campo-atas w-40 md:w-56" />
+        <form action="/catalogo" method="GET" className="site-busca order-3 w-full md:order-none md:w-auto">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <circle cx="7" cy="7" r="5" stroke="currentColor" strokeWidth="1.6" />
+            <path d="m11 11 3 3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+          </svg>
+          <input name="q" placeholder="Buscar ata por objeto ou item" aria-label="Buscar ata por objeto ou item" />
+          <button type="submit">Buscar</button>
         </form>
 
-        <div ref={menuRef} className="relative">
-          <button
-            type="button"
-            onClick={() => setMenuAberto((aberto) => !aberto)}
-            className="botao-atas secundario px-3 py-2"
-            aria-label="Menu de acesso"
-          >
-            ⋯
-          </button>
-          {menuAberto && (
-            <div className="painel absolute right-0 top-full mt-2 flex w-56 flex-col gap-1 p-2">
-              <Link
-                href="/fornecedor/login"
-                className="rounded-[var(--raio)] px-3 py-2 text-sm"
-                style={{ color: "var(--cor-texto-2)" }}
-              >
-                Painel do fornecedor
-              </Link>
-              <Link
-                href="/admin/login"
-                className="rounded-[var(--raio)] px-3 py-2 text-sm"
-                style={{ color: "var(--cor-texto-2)" }}
-              >
-                Painel administrativo
-              </Link>
-            </div>
-          )}
-        </div>
+        <nav className="site-topo-nav">
+          <div className="relative">
+            <button
+              type="button"
+              className="site-topo-link"
+              aria-expanded={menu === "categorias"}
+              onClick={() => alternar("categorias")}
+            >
+              Categorias <Seta />
+            </button>
+            {menu === "categorias" && (
+              <div className="site-menu site-menu-categorias">
+                {CATEGORIAS_ATAS.map((c) => (
+                  <Link key={c.slug} href={`/catalogo?categoria=${encodeURIComponent(c.slug)}`} onClick={() => setMenu(null)}>
+                    {c.rotulo}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+          <Link href="/ajuda" className="site-topo-link">
+            Como funciona
+          </Link>
+          <div className="relative">
+            <button
+              type="button"
+              className="site-topo-link"
+              aria-expanded={menu === "entrar"}
+              onClick={() => alternar("entrar")}
+            >
+              Entrar <Seta />
+            </button>
+            {menu === "entrar" && (
+              <div className="site-menu right-0 w-56">
+                <Link href="/fornecedor/login" onClick={() => setMenu(null)}>
+                  Painel do fornecedor
+                </Link>
+                <Link href="/admin/login" onClick={() => setMenu(null)}>
+                  Painel administrativo
+                </Link>
+              </div>
+            )}
+          </div>
+        </nav>
       </div>
     </header>
   );

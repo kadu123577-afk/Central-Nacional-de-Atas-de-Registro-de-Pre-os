@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { salvarContratoIntermediacao, type EstadoContratoIntermediacao } from "../../../actions";
 import { COMISSAO_MAXIMA_PERCENTUAL, COMISSAO_MINIMA_PERCENTUAL } from "@/lib/comissao";
+import { Aviso } from "@/components/ui/aviso";
 
 interface Props {
   ataId: string;
@@ -27,42 +28,43 @@ export function FormularioContrato({
   const v = estado.valores;
 
   return (
-    <form action={formAction} className="flex flex-col gap-4">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+    <form action={formAction} className="flex flex-col gap-5">
+      <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-3">
         <Campo
-          label={`Comissão (%) — de ${COMISSAO_MINIMA_PERCENTUAL}% a ${COMISSAO_MAXIMA_PERCENTUAL}%`}
+          label={
+            <>
+              Comissão (%){" "}
+              <small>
+                — de {COMISSAO_MINIMA_PERCENTUAL}% a {COMISSAO_MAXIMA_PERCENTUAL}%
+              </small>
+            </>
+          }
           name="percentualComissao"
           defaultValue={v?.percentualComissao ?? percentualAtual}
           inputMode="decimal"
           required
         />
         <Campo label="Data de assinatura" name="dataAssinatura" type="date" defaultValue={v?.dataAssinatura ?? dataAssinaturaAtual} required />
-        <Campo label="Fim da vigência (opcional)" name="vigenciaFim" type="date" defaultValue={v?.vigenciaFim ?? vigenciaFimAtual} />
+        <Campo
+          label={
+            <>
+              Fim da vigência <small>(opcional)</small>
+            </>
+          }
+          name="vigenciaFim"
+          type="date"
+          defaultValue={v?.vigenciaFim ?? vigenciaFimAtual}
+        />
       </div>
       <label className="block text-sm">
-        <span className="mb-1 block font-medium" style={{ color: "var(--cor-texto-2)" }}>
-          Observações (exclusividade, condições)
+        <span className="rotulo-campo">
+          Observações <small>(exclusividade, condições)</small>
         </span>
         <textarea name="observacoes" rows={2} defaultValue={v?.observacoes ?? observacoesAtuais} className="campo-atas" />
       </label>
 
-      {estado.erro && (
-        <p
-          className="rounded-[var(--raio)] border px-4 py-3 text-sm"
-          style={{
-            borderColor: "var(--cor-critico)",
-            background: "var(--cor-critico-fundo)",
-            color: "var(--cor-critico)",
-          }}
-        >
-          {estado.erro}
-        </p>
-      )}
-      {estado.sucesso && (
-        <p className="text-sm" style={{ color: "var(--cor-marca-clara)" }}>
-          Contrato salvo.
-        </p>
-      )}
+      {estado.erro && <Aviso tom="critico">{estado.erro}</Aviso>}
+      {estado.sucesso && <Aviso tom="sucesso">Contrato salvo.</Aviso>}
 
       <button type="submit" disabled={pendente} className="botao-atas self-start">
         {pendente ? "Salvando..." : "Salvar contrato"}
@@ -79,7 +81,7 @@ function Campo({
   defaultValue,
   inputMode,
 }: {
-  label: string;
+  label: React.ReactNode;
   name: string;
   required?: boolean;
   type?: string;
@@ -88,9 +90,7 @@ function Campo({
 }) {
   return (
     <label className="block text-sm">
-      <span className="mb-1 block font-medium" style={{ color: "var(--cor-texto-2)" }}>
-        {label}
-      </span>
+      <span className="rotulo-campo">{label}</span>
       <input
         name={name}
         type={type}

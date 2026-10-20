@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { criarVendedorAdmin, type EstadoCriarVendedor } from "../actions";
 import { Secao } from "@/components/ui/secao";
+import { Aviso } from "@/components/ui/aviso";
 import { ROTULO_TIPO_VENDEDOR, TIPOS_VENDEDOR } from "@/lib/vendedores";
 
 const estadoInicial: EstadoCriarVendedor = {};
@@ -19,10 +20,8 @@ export function FormularioNovoVendedor() {
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Campo label="Senha (mín. 8 caracteres)" name="senha" type="password" required />
-          <label className="block text-sm">
-            <span className="mb-1 block font-medium" style={{ color: "var(--cor-texto-2)" }}>
-              Tipo
-            </span>
+          <label className="block">
+            <span className="rotulo-campo">Tipo</span>
             <select name="tipo" required className="campo-atas" defaultValue="interno">
               {TIPOS_VENDEDOR.map((t) => (
                 <option key={t} value={t}>
@@ -33,18 +32,7 @@ export function FormularioNovoVendedor() {
           </label>
         </div>
 
-        {estado.erro && (
-          <p
-            className="rounded-[var(--raio)] border px-4 py-3 text-sm"
-            style={{
-              borderColor: "var(--cor-critico)",
-              background: "var(--cor-critico-fundo)",
-              color: "var(--cor-critico)",
-            }}
-          >
-            {estado.erro}
-          </p>
-        )}
+        {estado.erro && <Aviso tom="critico">{estado.erro}</Aviso>}
 
         <button type="submit" disabled={pendente} className="botao-atas self-start">
           {pendente ? "Salvando..." : "Cadastrar vendedor"}
@@ -66,10 +54,8 @@ function Campo({
   type?: string;
 }) {
   return (
-    <label className="block text-sm">
-      <span className="mb-1 block font-medium" style={{ color: "var(--cor-texto-2)" }}>
-        {label}
-      </span>
+    <label className="block">
+      <span className="rotulo-campo">{label}</span>
       <input name={name} type={type} required={required} className="campo-atas" />
     </label>
   );

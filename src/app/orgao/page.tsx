@@ -3,9 +3,13 @@ import { redirect } from "next/navigation";
 import { orgaoIdLogado } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { ROTULO_ESTAGIO, atorEsperado } from "@/lib/adesao";
+import { tomEstagioAdesao } from "@/lib/severidade";
 import type { EstagioAdesao } from "@/generated/prisma/enums";
 import { logoutOrgao } from "./actions";
 import { AppShell } from "@/components/ui/app-shell";
+import { Badge } from "@/components/ui/badge";
+import { CabecalhoPagina } from "@/components/ui/cabecalho-pagina";
+import { FaixaNumeros } from "@/components/ui/faixa-numeros";
 import { Secao } from "@/components/ui/secao";
 import { VazioComAcao } from "@/components/ui/vazio-com-acao";
 import { Numero } from "@/components/ui/valores";
@@ -51,14 +55,19 @@ export default async function PainelOrgaoPage() {
         </form>
       }
     >
-      <div>
-        <h1 className="marca text-2xl" style={{ color: "var(--cor-texto)" }}>
-          Meus pedidos de adesão
-        </h1>
-        <p className="mt-1 text-sm" style={{ color: "var(--cor-texto-2)" }}>
-          {orgao.nome}
-        </p>
-      </div>
+      <CabecalhoPagina
+        rotulo="Painel do órgão"
+        titulo="Meus pedidos"
+        destaque="de adesão"
+        descricao={orgao.nome}
+        acoes={
+          orgao.adesoes.length > 0 ? (
+            <Link href="/catalogo" className="botao-atas">
+              Buscar itens no catálogo
+            </Link>
+          ) : undefined
+        }
+      />
 
       {orgao.adesoes.length === 0 ? (
         <VazioComAcao
@@ -72,30 +81,40 @@ export default async function PainelOrgaoPage() {
         />
       ) : (
         <>
-          <Secao titulo={`Precisa da sua ação (${precisamDeAcao.length})`}>
-            <p className="text-xs" style={{ color: "var(--cor-texto-3)" }}>
-              Estimativa por estágio — qualquer um dos dois lados ainda pode avançar qualquer
-              pedido, isto é só um guia de prioridade.
-            </p>
+          <FaixaNumeros
+            itens={[
+              { valor: orgao.adesoes.length, rotulo: orgao.adesoes.length === 1 ? "Pedido de adesão" : "Pedidos de adesão" },
+              {
+                valor: precisamDeAcao.length,
+                rotulo: "Precisa da sua ação",
+                tom: precisamDeAcao.length > 0 ? "atencao" : undefined,
+              },
+              { valor: outros.length, rotulo: "Outros pedidos" },
+            ]}
+          />
+
+          <Secao
+            titulo={`Precisa da sua ação (${precisamDeAcao.length})`}
+            descricao="Estimativa por estágio — qualquer um dos dois lados ainda pode avançar qualquer pedido, isto é só um guia de prioridade."
+            destaque
+          >
             {precisamDeAcao.length === 0 ? (
-              <div className="mt-3">
-                <VazioComAcao
-                  titulo="Nada esperando por você agora"
-                  descricao="Os pedidos em andamento estão com o fornecedor ou com terceiros."
-                />
-              </div>
+              <VazioComAcao
+                titulo="Nada esperando por você agora"
+                descricao="Os pedidos em andamento estão com o fornecedor ou com terceiros."
+              />
             ) : (
-              <ListaDePedidos adesoes={precisamDeAcao} />
+              <TabelaDePedidos adesoes={precisamDeAcao} />
             )}
           </Secao>
 
           <Secao titulo={`Outros pedidos (${outros.length})`}>
             {outros.length === 0 ? (
-              <p className="mt-3 text-sm" style={{ color: "var(--cor-texto-2)" }}>
+              <p className="text-sm" style={{ color: "var(--cor-texto-2)" }}>
                 Nenhum outro pedido em andamento.
               </p>
             ) : (
-              <ListaDePedidos adesoes={outros} />
+              <TabelaDePedidos adesoes={outros} />
             )}
           </Secao>
         </>
@@ -115,30 +134,49 @@ type AdesaoComRelacoes = {
   };
 };
 
-function ListaDePedidos({ adesoes }: { adesoes: AdesaoComRelacoes[] }) {
+function TabelaDePedidos({ adesoes }: { adesoes: AdesaoComRelacoes[] }) {
   return (
-    <ul className="mt-3 flex flex-col gap-3">
-      {adesoes.map((adesao) => (
-        <li key={adesao.id}>
-          <Link
-            href={`/adesoes/${adesao.id}`}
-            className="painel block p-4 transition-colors hover:border-[var(--cor-borda-forte)]"
-          >
-            <div className="flex items-baseline justify-between">
-              <span className="font-medium" style={{ color: "var(--cor-texto)" }}>
-                {adesao.item.descricao}
-              </span>
-              <span className="eyebrow">{ROTULO_ESTAGIO[adesao.estagio]}</span>
-            </div>
-            <p className="mt-1 text-sm" style={{ color: "var(--cor-texto-2)" }}>
-              <Numero>
-                {adesao.quantidadeSolicitada} {adesao.item.unidade}
-              </Numero>{" "}
-              — Ata {adesao.item.ata.numero} ({adesao.item.ata.fornecedor.razaoSocial})
-            </p>
-          </Link>
-        </li>
-      ))}
-    </ul>
+    <div className="overflow-x-auto rounded-[12px] border" style={{ borderColor: "var(--cor-borda)" }}>
+      <table className="tabela-atas min-w-[640px]">
+        <thead>
+          <tr>
+            <th>Item</th>
+            <th className="text-right">Quantidade</th>
+            <th>Estágio</th>
+            <th className="w-[1%]"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {adesoes.map((adesao) => (
+            <tr key={adesao.id}>
+              <td>
+                <Link
+                  href={`/adesoes/${adesao.id}`}
+                  className="block font-bold tracking-[-0.01em] text-[var(--cor-texto)] transition-colors hover:text-[var(--cor-marca-clara)]"
+                >
+                  {adesao.item.descricao}
+                </Link>
+                <span className="mt-0.5 block text-xs" style={{ color: "var(--cor-texto-3)" }}>
+                  Ata <span className="codigo">Nº {adesao.item.ata.numero}</span> · {adesao.item.ata.fornecedor.razaoSocial}
+                </span>
+              </td>
+              <td className="whitespace-nowrap text-right" style={{ color: "var(--cor-texto)" }}>
+                <Numero>
+                  {adesao.quantidadeSolicitada} {adesao.item.unidade}
+                </Numero>
+              </td>
+              <td>
+                <Badge tom={tomEstagioAdesao(adesao.estagio)}>{ROTULO_ESTAGIO[adesao.estagio]}</Badge>
+              </td>
+              <td className="whitespace-nowrap text-right">
+                <Link href={`/adesoes/${adesao.id}`} className="botao-atas link">
+                  Ver →
+                </Link>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }

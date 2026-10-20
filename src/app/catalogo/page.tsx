@@ -1,13 +1,13 @@
 import Link from "next/link";
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
-import { Logo } from "@/components/ui/logo";
+import { BarraTopo } from "@/components/ui/barra-topo";
 import { Secao } from "@/components/ui/secao";
-import { Badge } from "@/components/ui/badge";
-import { SeloCategoria } from "@/components/ui/selo-categoria";
-import { rotuloDaCategoria, resolverSlugCategoria } from "@/lib/categorias";
+import { CATEGORIAS_ATAS, resolverSlugCategoria } from "@/lib/categorias";
+import { percentualSaldo, UFS } from "@/lib/vitrine";
 import { Cifra } from "@/components/ui/valores";
 import { VazioComAcao } from "@/components/ui/vazio-com-acao";
+import { TabelaAtasVitrine } from "@/components/ui/tabela-atas-vitrine";
 
 export const dynamic = "force-dynamic";
 
@@ -34,52 +34,63 @@ export default async function CatalogoPage({
   const uf = filtros.uf?.trim().toUpperCase() ?? "";
   const valorMax = filtros.valorMax?.trim() ?? "";
 
-  return (
-    <main className="mx-auto flex max-w-4xl flex-col gap-5 px-6 py-10">
-      <div>
-        <Logo altura={26} />
-        <h1 className="marca mt-4 text-2xl" style={{ color: "var(--cor-texto)" }}>
-          Catálogo de atas de registro de preços
-        </h1>
-        <p className="mt-2 max-w-2xl text-sm" style={{ color: "var(--cor-texto-2)" }}>
-          Consulta pública, sem necessidade de cadastro. Um órgão público pode aderir a
-          qualquer item aqui listado, respeitando o limite de 50% por órgão e o teto do
-          dobro da quantidade registrada, previstos no art. 86 da Lei 14.133/2021.
-        </p>
-      </div>
+  const slugCategoria = categoria ? (resolverSlugCategoria(categoria) ?? categoria) : "";
 
-      <Secao titulo="Buscar">
-        <form className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <input name="q" defaultValue={q} placeholder="Buscar um item específico" className="campo-atas col-span-2 sm:col-span-1" />
-          <input
-            name="categoria"
-            defaultValue={categoria ? rotuloDaCategoria(categoria) : ""}
-            placeholder="Tema da ata"
-            className="campo-atas"
-          />
-          <input
-            name="uf"
-            defaultValue={uf}
-            placeholder="UF"
-            maxLength={2}
-            className="campo-atas uppercase"
-          />
-          <input
-            name="valorMax"
-            defaultValue={valorMax}
-            placeholder="Valor unitário até (R$)"
-            type="number"
-            step="0.01"
-            className="campo-atas"
-          />
-          <button type="submit" className="botao-atas col-span-2 sm:col-span-4">
-            Buscar
+  return (
+    <>
+      <BarraTopo />
+      <main className="mx-auto flex w-full max-w-[1040px] flex-col gap-6 px-6 py-12">
+        <div>
+          <p className="selo-ponto">Consulta pública, sem cadastro</p>
+          <h1 className="marca mt-4" style={{ color: "var(--cor-texto)" }}>
+            Catálogo de atas de registro de preços
+          </h1>
+          <p className="mt-2 max-w-2xl text-[15px] leading-relaxed" style={{ color: "var(--cor-texto-2)" }}>
+            Um órgão público pode aderir a qualquer item aqui listado, respeitando o limite de 50%
+            por órgão e o teto do dobro da quantidade registrada, previstos no art. 86 da Lei
+            14.133/2021.
+          </p>
+        </div>
+
+        <form className="painel grid grid-cols-2 gap-x-4 gap-y-3 p-4 sm:grid-cols-[1.6fr_1.2fr_0.7fr_1fr_auto] sm:items-end">
+          <label className="col-span-2 sm:col-span-1">
+            <span className="mb-1 block text-[11.5px] font-semibold">Objeto ou item</span>
+            <input name="q" defaultValue={q} placeholder="Ex.: luminária LED, dipirona" className="campo-atas" />
+          </label>
+          <label className="col-span-2 sm:col-span-1">
+            <span className="mb-1 block text-[11.5px] font-semibold">Categoria</span>
+            <select name="categoria" defaultValue={slugCategoria} className="campo-atas">
+              <option value="">Todas as categorias</option>
+              {CATEGORIAS_ATAS.map((c) => (
+                <option key={c.slug} value={c.slug}>
+                  {c.rotulo}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <span className="mb-1 block text-[11.5px] font-semibold">UF</span>
+            <select name="uf" defaultValue={uf} className="campo-atas">
+              <option value="">Todas</option>
+              {UFS.map((sigla) => (
+                <option key={sigla} value={sigla}>
+                  {sigla}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <span className="mb-1 block text-[11.5px] font-semibold">Valor unitário até (R$)</span>
+            <input name="valorMax" defaultValue={valorMax} placeholder="0,00" type="number" step="0.01" className="campo-atas" />
+          </label>
+          <button type="submit" className="botao-atas col-span-2 sm:col-span-1">
+            Buscar atas
           </button>
         </form>
-      </Secao>
 
-      {q ? <ResultadoBuscaPorItem q={q} /> : <ListaDeAtas categoria={categoria} uf={uf} valorMax={valorMax} />}
-    </main>
+        {q ? <ResultadoBuscaPorItem q={q} uf={uf} /> : <ListaDeAtas categoria={categoria} uf={uf} valorMax={valorMax} />}
+      </main>
+    </>
   );
 }
 
@@ -89,14 +100,20 @@ export default async function CatalogoPage({
  * escala PNCP têm dezenas de itens quase idênticos, e o que importa pra
  * quem pesquisa é a ata, não a linha.
  */
-async function ResultadoBuscaPorItem({ q }: { q: string }) {
+async function ResultadoBuscaPorItem({ q, uf }: { q: string; uf: string }) {
+  // "Buscar ata por objeto ou item" (busca do cabeçalho do site): casa a
+  // descrição do item OU o objeto da ata.
   const itens = await prisma.item.findMany({
     where: {
-      descricao: { contains: q, mode: "insensitive" },
-      ata: ataDisponivel,
+      OR: [
+        { descricao: { contains: q, mode: "insensitive" } },
+        { ata: { objeto: { contains: q, mode: "insensitive" } } },
+      ],
+      ata: { ...ataDisponivel, ...(uf ? { orgaoGerenciador: { uf } } : {}) },
     },
     include: { ata: { include: { fornecedor: true, orgaoGerenciador: true } } },
     orderBy: { descricao: "asc" },
+    take: 200,
   });
 
   if (itens.length === 0) {
@@ -114,7 +131,7 @@ async function ResultadoBuscaPorItem({ q }: { q: string }) {
         {itens.map((item) => (
           <li key={item.id} className="painel p-5">
             <div className="flex items-baseline justify-between gap-3">
-              <h2 className="font-medium" style={{ color: "var(--cor-texto)" }}>
+              <h2 className="marca text-[15px]" style={{ color: "var(--cor-texto)" }}>
                 {item.descricao}
               </h2>
               <span className="text-sm" style={{ color: "var(--cor-texto-2)" }}>
@@ -165,9 +182,8 @@ async function ListaDeAtas({
   const atas = await prisma.ata.findMany({
     where,
     include: {
-      fornecedor: true,
-      orgaoGerenciador: true,
-      _count: { select: { itens: true } },
+      orgaoGerenciador: { select: { nome: true, uf: true } },
+      itens: { select: { quantidadeRegistrada: true, saldo: { select: { quantidadeConsumida: true } } } },
     },
     orderBy: { dataVigenciaFim: "asc" },
   });
@@ -182,36 +198,23 @@ async function ListaDeAtas({
   }
 
   return (
-    <ul className="flex flex-col gap-3">
-      {atas.map((ata) => (
-        <li key={ata.id} className="painel p-5">
-          <div className="flex items-baseline justify-between gap-3">
-            <h2 className="font-medium" style={{ color: "var(--cor-texto)" }}>
-              Ata {ata.numero}
-            </h2>
-            <Badge tom="neutro">{ata.orgaoGerenciador.uf}</Badge>
-          </div>
-          {ata.categoria && (
-            <div className="mt-1">
-              <SeloCategoria categoria={rotuloDaCategoria(ata.categoria)} />
-            </div>
-          )}
-          <p className="mt-2 text-sm" style={{ color: "var(--cor-texto-2)" }}>
-            {ata.objeto}
-          </p>
-          <p className="mt-1 text-sm" style={{ color: "var(--cor-texto-2)" }}>
-            {ata.fornecedor.razaoSocial} · Órgão gerenciador: {ata.orgaoGerenciador.nome}
-          </p>
-          <div className="mt-3 flex items-center justify-between">
-            <span className="text-sm" style={{ color: "var(--cor-texto-3)" }}>
-              {ata._count.itens} {ata._count.itens === 1 ? "item" : "itens"}
-            </span>
-            <Link href={`/catalogo/${ata.id}`} className="botao-atas secundario">
-              Ver itens da ata
-            </Link>
-          </div>
-        </li>
-      ))}
-    </ul>
+    <div className="flex flex-col gap-3">
+      <p className="text-[13px]" style={{ color: "var(--cor-texto-3)" }}>
+        {atas.length} {atas.length === 1 ? "ata vigente encontrada" : "atas vigentes encontradas"}
+      </p>
+      <TabelaAtasVitrine
+        atas={atas.map((ata) => ({
+          id: ata.id,
+          numero: ata.numero,
+          objeto: ata.objeto,
+          categoria: ata.categoria,
+          orgao: ata.orgaoGerenciador.nome,
+          uf: ata.orgaoGerenciador.uf,
+          itens: ata.itens.length,
+          vigenciaFim: ata.dataVigenciaFim,
+          saldo: percentualSaldo(ata.itens),
+        }))}
+      />
+    </div>
   );
 }

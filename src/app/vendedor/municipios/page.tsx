@@ -5,8 +5,9 @@ import { vendedorIdLogado } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { AppShell } from "@/components/ui/app-shell";
 import { Badge } from "@/components/ui/badge";
+import { CabecalhoPagina } from "@/components/ui/cabecalho-pagina";
+import { FaixaNumeros } from "@/components/ui/faixa-numeros";
 import { Icone } from "@/components/ui/icones";
-import { Secao } from "@/components/ui/secao";
 import { VazioComAcao } from "@/components/ui/vazio-com-acao";
 import { linkEmail, linkTelefone, linkWhatsapp } from "@/lib/contato-links";
 import {
@@ -149,161 +150,195 @@ export default async function MunicipiosVendedorPage({
         </form>
       }
     >
-      <div>
-        <h1 className="marca text-2xl" style={{ color: "var(--cor-texto)" }}>
-          Municípios
-        </h1>
-        <p className="mt-1 text-sm" style={{ color: "var(--cor-texto-2)" }}>
-          Quem decide em cada prefeitura e como falar com essa pessoa — a base de apoio para toda negociação.
-        </p>
-      </div>
+      <CabecalhoPagina
+        rotulo="Prospecção"
+        titulo="Municípios"
+        descricao="Quem decide em cada prefeitura e como falar com essa pessoa — a base de apoio para toda negociação."
+      />
 
-      <div className="kb-kpis">
-        <div className="kb-kpi">
-          <p className="eyebrow">Municípios</p>
-          <p className="kb-kpi-valor numero">{total.todos.toLocaleString("pt-BR")}</p>
-          <p className="kb-kpi-nota">{uf || busca ? "neste filtro de busca" : "levantados no país"}</p>
-        </div>
-        <div className="kb-kpi">
-          <p className="eyebrow">Com decisor com contato</p>
-          <p className="kb-kpi-valor numero" style={{ color: "var(--cor-marca-clara)" }}>
-            {total.com_contato.toLocaleString("pt-BR")}
-          </p>
-          <p className="kb-kpi-nota">{pctCobertura}% de cobertura</p>
-        </div>
-        <div className="kb-kpi">
-          <p className="eyebrow">Sem contato</p>
-          <p className="kb-kpi-valor numero" style={{ color: total.sem_contato > 0 ? "var(--cor-atencao)" : undefined }}>
-            {total.sem_contato.toLocaleString("pt-BR")}
-          </p>
-          <p className="kb-kpi-nota">sem telefone nem e-mail de ninguém</p>
-        </div>
-        <div className="kb-kpi">
-          <p className="eyebrow">Com sinal de compra</p>
-          <p className="kb-kpi-valor numero">{total.com_sinal.toLocaleString("pt-BR")}</p>
-          <p className="kb-kpi-nota">PCA, licitação, contrato a vencer…</p>
-        </div>
-      </div>
+      <FaixaNumeros
+        itens={[
+          {
+            valor: total.todos.toLocaleString("pt-BR"),
+            rotulo: "Municípios",
+            nota: uf || busca ? "neste filtro de busca" : "levantados no país",
+          },
+          {
+            valor: total.com_contato.toLocaleString("pt-BR"),
+            rotulo: "Com decisor com contato",
+            nota: `${pctCobertura}% de cobertura`,
+            tom: "marca",
+          },
+          {
+            valor: total.sem_contato.toLocaleString("pt-BR"),
+            rotulo: "Sem contato",
+            nota: "sem telefone nem e-mail de ninguém",
+            tom: total.sem_contato > 0 ? "atencao" : undefined,
+          },
+          {
+            valor: total.com_sinal.toLocaleString("pt-BR"),
+            rotulo: "Com sinal de compra",
+            nota: "PCA, licitação, contrato a vencer…",
+          },
+        ]}
+      />
 
-      <Secao titulo="Buscar">
-        <form className="flex flex-wrap gap-3">
-          <input
-            name="q"
-            defaultValue={busca}
-            placeholder="Nome do município"
-            className="campo-atas"
-            style={{ flex: 1, minWidth: 200 }}
-          />
-          <select name="uf" defaultValue={uf} className="campo-atas" style={{ width: "auto" }}>
-            <option value="">Todas as UFs</option>
-            {ufs.map((u) => (
-              <option key={u.uf} value={u.uf ?? ""}>
-                {u.uf}
-              </option>
-            ))}
-          </select>
+      <div className="flex flex-col gap-4">
+        {/* Busca no formato da busca da home do site: um cartão só, campos sem borda e o botão verde. */}
+        <form className="painel flex flex-col gap-3 p-2 sm:flex-row sm:items-stretch">
+          <label className="flex-1 px-3 py-1.5">
+            <span className="block text-[11.5px] font-semibold" style={{ color: "var(--cor-texto)" }}>
+              Buscar
+            </span>
+            <input
+              name="q"
+              defaultValue={busca}
+              placeholder="Nome do município"
+              className="mt-1 w-full bg-transparent text-[15px] outline-none placeholder:text-[var(--cor-texto-3)]"
+              style={{ color: "var(--cor-texto)" }}
+            />
+          </label>
+          <label className="px-3 py-1.5 sm:w-44 sm:border-l" style={{ borderColor: "var(--cor-borda)" }}>
+            <span className="block text-[11.5px] font-semibold" style={{ color: "var(--cor-texto)" }}>
+              Estado (UF)
+            </span>
+            <select
+              name="uf"
+              defaultValue={uf}
+              className="mt-1 w-full bg-transparent text-[15px] outline-none"
+              style={{ color: "var(--cor-texto)" }}
+            >
+              <option value="">Todas as UFs</option>
+              {ufs.map((u) => (
+                <option key={u.uf} value={u.uf ?? ""}>
+                  {u.uf}
+                </option>
+              ))}
+            </select>
+          </label>
           {filtro !== "todos" && <input type="hidden" name="f" value={filtro} />}
-          <button type="submit" className="botao-atas">
+          <button type="submit" className="botao-atas px-6">
             Buscar
           </button>
         </form>
-      </Secao>
 
-      <div className="kb-barra">
-        {chaves.map((f) => (
-          <Link key={f} href={href({ f })} className="kb-chip" aria-current={filtro === f ? "page" : undefined}>
-            {ROTULO_FILTRO[f]}
-            <b className="numero">{total[f].toLocaleString("pt-BR")}</b>
-          </Link>
-        ))}
+        <div className="kb-barra">
+          {chaves.map((f) => (
+            <Link key={f} href={href({ f })} className="kb-chip" aria-current={filtro === f ? "page" : undefined}>
+              {ROTULO_FILTRO[f]}
+              <b className="numero">{total[f].toLocaleString("pt-BR")}</b>
+            </Link>
+          ))}
+        </div>
       </div>
 
       {municipios.length === 0 ? (
         <VazioComAcao titulo="Nenhum município encontrado" descricao="Tente outro termo de busca ou outro filtro." />
       ) : (
-        <ul className="flex flex-col gap-3">
-          {municipios.map((m) => {
-            const { principal, semCanal } = montarContatosView(m.contatos, null);
-            const wa = linkWhatsapp(principal?.telefone ?? null);
-            const tel = linkTelefone(principal?.telefone ?? null);
-            const mail = linkEmail(principal?.email ?? null);
-            const emNegociacao = m.oportunidades.length > 0;
-            return (
-              <li key={m.id} className="painel p-4 transition-colors hover:border-[var(--cor-borda-forte)]">
-                <div className="kb-municipio">
-                  <div style={{ minWidth: 220, flex: 1 }}>
-                    <Link href={`/vendedor/municipios/${m.id}`} className="kb-cartao-nome underline">
-                      {m.nome}
-                      {m.uf ? ` / ${m.uf}` : ""}
-                    </Link>
-                    <p className="kb-sub">
-                      {m._count.historicoConsumo > 0
-                        ? `${m._count.historicoConsumo} categoria(s) no raio-X`
-                        : "raio-X sem categorias identificadas"}
-                      {m._count.sinais > 0 ? ` · ${m._count.sinais} sinal(is) de compra` : ""}
-                    </p>
-                    <div className="kb-cobertura mt-2" aria-label="Cobertura de decisores com contato">
-                      {COBERTURA.map((c) => (
-                        <span
-                          key={c.cargo}
-                          data-ok={m.contatos.some((x) => x.cargo === c.cargo && !x.contatoErradoEm && temCanal(x))}
+        <div className="painel overflow-x-auto">
+          <table className="tabela-atas min-w-[820px]">
+            <thead>
+              <tr>
+                <th>Município</th>
+                <th className="w-[40%]">Decisor principal</th>
+                <th className="w-[1%]" aria-label="Ações" />
+              </tr>
+            </thead>
+            <tbody>
+              {municipios.map((m) => {
+                const { principal, semCanal } = montarContatosView(m.contatos, null);
+                const wa = linkWhatsapp(principal?.telefone ?? null);
+                const tel = linkTelefone(principal?.telefone ?? null);
+                const mail = linkEmail(principal?.email ?? null);
+                const emNegociacao = m.oportunidades.length > 0;
+                return (
+                  <tr key={m.id}>
+                    <td>
+                      <span className="flex items-center gap-2">
+                        <Link
+                          href={`/vendedor/municipios/${m.id}`}
+                          className="titulo-linha hover:text-[var(--cor-marca-clara)]"
                         >
-                          {c.sigla}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div style={{ minWidth: 260, flex: 1 }}>
-                    {principal && !semCanal ? (
-                      <div className="kb-decisor" style={{ marginTop: 0 }}>
-                        <div className="kb-avatar">{iniciais(principal.nomeContato)}</div>
-                        <div className="kb-decisor-texto">
-                          <b>{principal.cargo}</b>
-                          <span>{principal.nomeContato}</span>
-                        </div>
-                        <div className="kb-acoes">
-                          {wa && (
-                            <a className="kb-icone-link" data-tipo="whatsapp" href={wa} target="_blank" rel="noopener noreferrer" aria-label="Abrir WhatsApp">
-                              <Icone nome="chat" />
-                            </a>
-                          )}
-                          {tel && (
-                            <a className="kb-icone-link" href={tel} aria-label="Ligar">
-                              <Icone nome="tel" />
-                            </a>
-                          )}
-                          {mail && (
-                            <a className="kb-icone-link" href={mail} aria-label="Enviar e-mail">
-                              <Icone nome="mail" />
-                            </a>
-                          )}
-                        </div>
+                          {m.nome}
+                        </Link>
+                        {m.uf && <span className="selo-uf">{m.uf}</span>}
+                      </span>
+                      <span className="mt-0.5 block text-xs" style={{ color: "var(--cor-texto-3)" }}>
+                        {m._count.historicoConsumo > 0
+                          ? `${m._count.historicoConsumo} categoria(s) no raio-X`
+                          : "raio-X sem categorias identificadas"}
+                        {m._count.sinais > 0 ? ` · ${m._count.sinais} sinal(is) de compra` : ""}
+                      </span>
+                      <div className="kb-cobertura mt-2" aria-label="Cobertura de decisores com contato">
+                        {COBERTURA.map((c) => (
+                          <span
+                            key={c.cargo}
+                            data-ok={m.contatos.some((x) => x.cargo === c.cargo && !x.contatoErradoEm && temCanal(x))}
+                          >
+                            {c.sigla}
+                          </span>
+                        ))}
                       </div>
-                    ) : (
-                      <div className="kb-sem-canal" style={{ marginTop: 0 }}>
-                        {principal ? `${principal.cargo} sem telefone nem e-mail.` : "Nenhum contato levantado."}
-                      </div>
-                    )}
-                  </div>
+                    </td>
 
-                  <div className="flex shrink-0 flex-col items-end gap-1.5">
-                    {emNegociacao && <Badge tom="marca">Em negociação por você</Badge>}
-                    <Link href={`/vendedor/municipios/${m.id}`} className="botao-atas secundario">
-                      Ver dossiê
-                    </Link>
-                  </div>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
+                    <td>
+                      {principal && !semCanal ? (
+                        <div className="kb-decisor" style={{ marginTop: 0 }}>
+                          <div className="kb-avatar">{iniciais(principal.nomeContato)}</div>
+                          <div className="kb-decisor-texto">
+                            <b>{principal.cargo}</b>
+                            <span>{principal.nomeContato}</span>
+                          </div>
+                          <div className="kb-acoes">
+                            {wa && (
+                              <a className="kb-icone-link" data-tipo="whatsapp" href={wa} target="_blank" rel="noopener noreferrer" aria-label="Abrir WhatsApp">
+                                <Icone nome="chat" />
+                              </a>
+                            )}
+                            {tel && (
+                              <a className="kb-icone-link" href={tel} aria-label="Ligar">
+                                <Icone nome="tel" />
+                              </a>
+                            )}
+                            {mail && (
+                              <a className="kb-icone-link" href={mail} aria-label="Enviar e-mail">
+                                <Icone nome="mail" />
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="kb-sem-canal" style={{ marginTop: 0 }}>
+                          {principal ? `${principal.cargo} sem telefone nem e-mail.` : "Nenhum contato levantado."}
+                        </div>
+                      )}
+                    </td>
+
+                    <td>
+                      <div className="flex flex-col items-end gap-1.5 whitespace-nowrap">
+                        {emNegociacao && <Badge tom="marca">Em negociação por você</Badge>}
+                        <Link href={`/vendedor/municipios/${m.id}`} className="botao-atas secundario">
+                          Ver dossiê
+                        </Link>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       )}
 
       {totalPaginas > 1 && (
-        <div className="flex items-center justify-between gap-3 text-sm" style={{ color: "var(--cor-texto-2)" }}>
+        <div className="flex flex-wrap items-center justify-between gap-3 text-[13px]" style={{ color: "var(--cor-texto-3)" }}>
           <span>
-            Página {pagina} de {totalPaginas} · {totalDoFiltro.toLocaleString("pt-BR")} município(s)
+            Página{" "}
+            <b className="numero" style={{ color: "var(--cor-texto)" }}>
+              {pagina}
+            </b>{" "}
+            de <span className="numero">{totalPaginas}</span> ·{" "}
+            <span className="numero">{totalDoFiltro.toLocaleString("pt-BR")}</span> município(s)
           </span>
           <div className="flex gap-2">
             {pagina > 1 && (

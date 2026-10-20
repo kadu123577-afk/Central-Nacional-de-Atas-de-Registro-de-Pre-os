@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { adicionarItemNaAta, type EstadoAdicionarItem } from "../../../actions";
 import type { CategoriaAta } from "@/lib/categorias";
+import { Aviso } from "@/components/ui/aviso";
 
 const estadoInicial: EstadoAdicionarItem = {};
 
@@ -16,14 +17,16 @@ export function FormularioAdicionarItem({
   const [estado, formAction, pendente] = useActionState(adicionarItemNaAta, estadoInicial);
 
   return (
-    <form action={formAction} className="flex flex-col gap-4">
+    <form
+      action={formAction}
+      className="flex flex-col gap-4 rounded-[var(--raio-grande)] border p-5"
+      style={{ borderColor: "var(--cor-borda)", background: "var(--cor-superficie-2)" }}
+    >
       <input type="hidden" name="ataId" value={ataId} />
       <Campo label="Descrição" name="descricao" required />
-      <div className="grid grid-cols-2 gap-4 items-start">
+      <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
         <label className="block text-sm">
-          <span className="mb-1 block font-medium" style={{ color: "var(--cor-texto-2)" }}>
-            Categoria
-          </span>
+          <span className="rotulo-campo">Categoria</span>
           <select name="categoria" required className="campo-atas" defaultValue="">
             <option value="" disabled>
               Selecione...
@@ -37,7 +40,7 @@ export function FormularioAdicionarItem({
         </label>
         <Campo label="Unidade" name="unidade" required />
       </div>
-      <div className="grid grid-cols-2 gap-4 items-start">
+      <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
         <Campo
           label="Quantidade registrada"
           name="quantidadeRegistrada"
@@ -55,18 +58,7 @@ export function FormularioAdicionarItem({
         />
       </div>
 
-      {estado.erro && (
-        <p
-          className="rounded-[var(--raio)] border px-4 py-3 text-sm"
-          style={{
-            borderColor: "var(--cor-critico)",
-            background: "var(--cor-critico-fundo)",
-            color: "var(--cor-critico)",
-          }}
-        >
-          {estado.erro}
-        </p>
-      )}
+      {estado.erro && <Aviso tom="critico">{estado.erro}</Aviso>}
 
       <button type="submit" disabled={pendente} className="botao-atas secundario self-start">
         {pendente ? "Adicionando..." : "+ Adicionar item"}
@@ -92,9 +84,7 @@ function Campo({
 }) {
   return (
     <label className="block text-sm">
-      <span className="mb-1 block font-medium" style={{ color: "var(--cor-texto-2)" }}>
-        {label}
-      </span>
+      <span className="rotulo-campo">{label}</span>
       <input
         name={name}
         type={type}

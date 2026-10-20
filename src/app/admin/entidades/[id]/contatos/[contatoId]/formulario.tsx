@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { registrarInteracaoPontoFocal, type EstadoInteracaoPontoFocal } from "../../../../actions";
 import { Secao } from "@/components/ui/secao";
+import { Aviso } from "@/components/ui/aviso";
 import { RESULTADOS_INTERACAO } from "@/lib/pontos-focais";
 
 const estadoInicial: EstadoInteracaoPontoFocal = {};
@@ -22,9 +23,9 @@ export function FormularioInteracao({
         <input type="hidden" name="pontoFocalId" value={pontoFocalId} />
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <label className="block text-sm">
-            <span className="mb-1 block font-medium" style={{ color: "var(--cor-texto-2)" }}>
-              Ata oferecida (opcional)
+          <label className="block">
+            <span className="rotulo-campo">
+              Ata oferecida <small>(opcional)</small>
             </span>
             <select name="ataId" className="campo-atas" defaultValue="">
               <option value="">Nenhuma ata específica</option>
@@ -36,10 +37,8 @@ export function FormularioInteracao({
             </select>
           </label>
 
-          <label className="block text-sm">
-            <span className="mb-1 block font-medium" style={{ color: "var(--cor-texto-2)" }}>
-              Resultado
-            </span>
+          <label className="block">
+            <span className="rotulo-campo">Resultado</span>
             <select name="resultado" required className="campo-atas" defaultValue="">
               <option value="" disabled>
                 Selecione...
@@ -53,25 +52,12 @@ export function FormularioInteracao({
           </label>
         </div>
 
-        <label className="block text-sm">
-          <span className="mb-1 block font-medium" style={{ color: "var(--cor-texto-2)" }}>
-            Observação
-          </span>
+        <label className="block">
+          <span className="rotulo-campo">Observação</span>
           <textarea name="observacao" rows={2} className="campo-atas" />
         </label>
 
-        {estado.erro && (
-          <p
-            className="rounded-[var(--raio)] border px-4 py-3 text-sm"
-            style={{
-              borderColor: "var(--cor-critico)",
-              background: "var(--cor-critico-fundo)",
-              color: "var(--cor-critico)",
-            }}
-          >
-            {estado.erro}
-          </p>
-        )}
+        {estado.erro && <Aviso tom="critico">{estado.erro}</Aviso>}
 
         <button type="submit" disabled={pendente} className="botao-atas self-start">
           {pendente ? "Salvando..." : "Registrar"}

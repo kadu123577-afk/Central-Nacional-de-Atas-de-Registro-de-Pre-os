@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
+import { Aviso } from "@/components/ui/aviso";
 import { Badge } from "@/components/ui/badge";
 import { Icone } from "@/components/ui/icones";
 import { abordagemSugerida } from "@/lib/abordagem";
@@ -72,10 +73,11 @@ export function Gaveta({
       <aside className="kb-gaveta" role="dialog" aria-label={`Dossiê de ${c.nomeMunicipio}`}>
         <div className="kb-gaveta-topo">
           <div className="flex items-start justify-between gap-3">
-            <div>
-              <h2 className="kb-gaveta-titulo">
+            <div className="min-w-0">
+              <p className="eyebrow">Dossiê do município</p>
+              <h2 className="kb-gaveta-titulo mt-1">
                 {c.nomeMunicipio}
-                {c.uf ? ` / ${c.uf}` : ""}
+                {c.uf && <span className="selo-uf ml-2 align-middle">{c.uf}</span>}
               </h2>
               <p className="kb-sub" style={{ fontSize: 12.5 }}>
                 {ROTULO_ESTAGIO_OPORTUNIDADE[c.estagio as keyof typeof ROTULO_ESTAGIO_OPORTUNIDADE] ?? c.estagio}
@@ -206,7 +208,13 @@ export function Gaveta({
                             {tipoSinalValido(sn.tipo) ? ROTULO_TIPO_SINAL[sn.tipo] : sn.tipo}
                             {sn.valorEstimado != null ? ` · ${moedaCurta(sn.valorEstimado)}` : ""} ·{" "}
                             {sn.fonteUrl ? (
-                              <a href={sn.fonteUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "underline" }}>
+                              <a
+                                href={sn.fonteUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="font-semibold underline underline-offset-2"
+                                style={{ color: "var(--cor-marca-clara)" }}
+                              >
                                 {sn.fonte}
                               </a>
                             ) : (
@@ -321,7 +329,7 @@ function Pessoa({
             {p.telefone && (
               <a href={wa ?? tel ?? undefined} target={wa ? "_blank" : undefined} rel="noopener noreferrer">
                 <Icone nome={wa ? "chat" : "tel"} />
-                {p.telefone}
+                <span className="numero">{p.telefone}</span>
               </a>
             )}
             {p.email && (
@@ -356,7 +364,13 @@ function Pessoa({
               <>
                 fonte:{" "}
                 {p.fonteUrl ? (
-                  <a href={p.fonteUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "underline" }}>
+                  <a
+                    href={p.fonteUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-semibold underline underline-offset-2"
+                    style={{ color: "var(--cor-marca-clara)" }}
+                  >
                     {p.fonte}
                   </a>
                 ) : (
@@ -396,6 +410,7 @@ function Pessoa({
               <input
                 name="motivo"
                 placeholder="O que está errado? (opcional)"
+                aria-label="O que está errado? (opcional)"
                 className="campo-atas"
                 style={{ flex: 1, minWidth: 160, padding: "4px 8px", fontSize: 12 }}
               />
@@ -427,8 +442,8 @@ function PainelContato({ cartao: c, aoConcluir }: { cartao: CartaoView; aoConclu
 
   return (
     <form action={formAction} className="kb-painel-acao">
-      <label className="block text-xs">
-        <span className="mb-1 block font-medium" style={{ color: "var(--cor-texto-2)" }}>
+      <label className="block">
+        <span className="rotulo-campo">
           Falou com
         </span>
         <select name="pontoFocalId" className="campo-atas" defaultValue={c.principal?.id ?? c.contatos[0].id}>
@@ -439,8 +454,8 @@ function PainelContato({ cartao: c, aoConcluir }: { cartao: CartaoView; aoConclu
           ))}
         </select>
       </label>
-      <label className="block text-xs">
-        <span className="mb-1 block font-medium" style={{ color: "var(--cor-texto-2)" }}>
+      <label className="block">
+        <span className="rotulo-campo">
           Resultado
         </span>
         <select name="resultado" className="campo-atas" defaultValue="Em conversa">
@@ -451,17 +466,13 @@ function PainelContato({ cartao: c, aoConcluir }: { cartao: CartaoView; aoConclu
           ))}
         </select>
       </label>
-      <label className="block text-xs">
-        <span className="mb-1 block font-medium" style={{ color: "var(--cor-texto-2)" }}>
+      <label className="block">
+        <span className="rotulo-campo">
           Observação
         </span>
         <textarea name="observacao" rows={2} className="campo-atas" />
       </label>
-      {estado.erro && (
-        <p className="text-xs" style={{ color: "var(--cor-critico)" }}>
-          {estado.erro}
-        </p>
-      )}
+      {estado.erro && <Aviso tom="critico">{estado.erro}</Aviso>}
       <button type="submit" disabled={pendente} className="botao-atas self-start">
         {pendente ? "Salvando..." : "Salvar contato"}
       </button>
@@ -476,8 +487,8 @@ function PainelEstagio({ cartao: c }: { cartao: CartaoView }) {
 
   return (
     <form action={formAction} className="kb-painel-acao">
-      <label className="block text-xs">
-        <span className="mb-1 block font-medium" style={{ color: "var(--cor-texto-2)" }}>
+      <label className="block">
+        <span className="rotulo-campo">
           Estágio
         </span>
         <select
@@ -497,14 +508,14 @@ function PainelEstagio({ cartao: c }: { cartao: CartaoView }) {
 
       {selecionado === "aderiu" && (
         <div
-          className="flex flex-col gap-2 rounded-[var(--raio)] border p-2"
-          style={{ borderColor: "var(--cor-marca)" }}
+          className="flex flex-col gap-2.5 rounded-[12px] border p-3"
+          style={{ borderColor: "var(--cor-marca-borda)", background: "var(--cor-marca-fundo)" }}
         >
-          <p className="text-xs" style={{ color: "var(--cor-texto-3)" }}>
+          <p className="text-xs" style={{ color: "var(--cor-texto-2)" }}>
             Controle de recebíveis — obrigatório para marcar como aderiu.
           </p>
-          <label className="block text-xs">
-            <span className="mb-1 block font-medium" style={{ color: "var(--cor-texto-2)" }}>
+          <label className="block">
+            <span className="rotulo-campo">
               Valor aderido (R$)
             </span>
             <input
@@ -522,17 +533,17 @@ function PainelEstagio({ cartao: c }: { cartao: CartaoView }) {
               Comissão pactuada no contrato: {percentualDeFracao(c.percentualContrato)}
             </p>
           ) : (
-            <p className="text-xs" style={{ color: "var(--cor-critico)" }}>
+            <Aviso tom="critico">
               Esta ata ainda não tem contrato de intermediação — peça ao administrador para cadastrar antes de marcar
               como Aderiu.
-            </p>
+            </Aviso>
           )}
         </div>
       )}
 
-      <label className="block text-xs">
-        <span className="mb-1 block font-medium" style={{ color: "var(--cor-texto-2)" }}>
-          Próximo contato (opcional)
+      <label className="block">
+        <span className="rotulo-campo">
+          Próximo contato <small>(opcional)</small>
         </span>
         <input
           name="proximoContatoEm"
@@ -541,8 +552,8 @@ function PainelEstagio({ cartao: c }: { cartao: CartaoView }) {
           defaultValue={c.proximoContatoEm ? c.proximoContatoEm.slice(0, 10) : ""}
         />
       </label>
-      <label className="block text-xs">
-        <span className="mb-1 block font-medium" style={{ color: "var(--cor-texto-2)" }}>
+      <label className="block">
+        <span className="rotulo-campo">
           Observação / próximo passo
         </span>
         <textarea
@@ -553,16 +564,8 @@ function PainelEstagio({ cartao: c }: { cartao: CartaoView }) {
         />
       </label>
 
-      {estado.erro && (
-        <p className="text-xs" style={{ color: "var(--cor-critico)" }}>
-          {estado.erro}
-        </p>
-      )}
-      {estado.ok && !estado.erro && (
-        <p className="text-xs" style={{ color: "var(--cor-marca-clara)" }}>
-          Salvo.
-        </p>
-      )}
+      {estado.erro && <Aviso tom="critico">{estado.erro}</Aviso>}
+      {estado.ok && !estado.erro && <Aviso tom="sucesso">Salvo.</Aviso>}
       <button type="submit" disabled={pendente} className="botao-atas self-start">
         {pendente ? "Salvando..." : "Salvar"}
       </button>

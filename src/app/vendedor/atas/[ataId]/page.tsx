@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { vendedorIdLogado } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { AppShell } from "@/components/ui/app-shell";
+import { CabecalhoPagina } from "@/components/ui/cabecalho-pagina";
 import { rotuloDaCategoria } from "@/lib/categorias";
 import { percentualDeFracao } from "@/lib/formato";
 import { carregarCartoes } from "@/lib/kanban-db";
@@ -57,37 +58,45 @@ export default async function KanbanAtaPage({ params }: { params: Promise<{ ataI
         </form>
       }
     >
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="marca text-2xl" style={{ color: "var(--cor-texto)" }}>
-            Ata {ata.numero} — {ata.fornecedor.razaoSocial}
-          </h1>
-          <p className="mt-1 text-sm" style={{ color: "var(--cor-texto-2)" }}>
+      <CabecalhoPagina
+        rotulo="Kanban da ata"
+        voltar={{ href: "/vendedor", rotulo: "Painel" }}
+        titulo={`Ata ${ata.numero} — ${ata.fornecedor.razaoSocial}`}
+        descricao={
+          <>
             {ata.objeto}
             {ata.categoria ? ` · ${rotuloDaCategoria(ata.categoria)}` : ""}
-            {percentualContrato != null ? ` · comissão pactuada ${percentualDeFracao(percentualContrato)}` : ""}
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
+            {percentualContrato != null ? (
+              <>
+                {" · comissão pactuada "}
+                <b className="numero font-semibold" style={{ color: "var(--cor-texto)" }}>
+                  {percentualDeFracao(percentualContrato)}
+                </b>
+              </>
+            ) : (
+              ""
+            )}
+          </>
+        }
+        acoes={
           <Link href={`/vendedor/atas/${ataId}/solicitar`} className="botao-atas secundario">
             Pedir mais municípios
           </Link>
-          <Link href="/vendedor" className="botao-atas link">
-            ← Painel
-          </Link>
-        </div>
-      </div>
+        }
+      />
 
       {temContatoTecnico && (
         <div
-          className="painel flex flex-wrap items-center gap-x-4 gap-y-1 p-3 text-xs"
+          className="painel flex flex-wrap items-center gap-x-5 gap-y-1.5 px-5 py-3.5 text-[13px]"
           style={{ color: "var(--cor-texto-2)" }}
         >
-          <span className="eyebrow" style={{ color: "var(--cor-texto-3)" }}>
-            Contato técnico do fornecedor
-          </span>
-          {tecnico.contatoTecnicoNome && <span>{tecnico.contatoTecnicoNome}</span>}
-          {tecnico.contatoTecnicoTelefone && <span>{tecnico.contatoTecnicoTelefone}</span>}
+          <span className="eyebrow">Contato técnico do fornecedor</span>
+          {tecnico.contatoTecnicoNome && (
+            <span className="font-semibold" style={{ color: "var(--cor-texto)" }}>
+              {tecnico.contatoTecnicoNome}
+            </span>
+          )}
+          {tecnico.contatoTecnicoTelefone && <span className="numero">{tecnico.contatoTecnicoTelefone}</span>}
           {tecnico.contatoTecnicoEmail && <span>{tecnico.contatoTecnicoEmail}</span>}
         </div>
       )}

@@ -1,9 +1,9 @@
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { adminIdLogado } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { alternarStatusPontoFocal, logoutAdmin } from "../../../../actions";
 import { AppShell } from "@/components/ui/app-shell";
+import { CabecalhoPagina } from "@/components/ui/cabecalho-pagina";
 import { Secao } from "@/components/ui/secao";
 import { Badge } from "@/components/ui/badge";
 import { VazioComAcao } from "@/components/ui/vazio-com-acao";
@@ -58,23 +58,21 @@ export default async function DetalheContatoPage({
         </form>
       }
     >
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="marca text-2xl" style={{ color: "var(--cor-texto)" }}>
-            {contato.nomeContato}
-          </h1>
-          <p className="mt-1 text-sm" style={{ color: "var(--cor-texto-2)" }}>
+      <CabecalhoPagina
+        rotulo="Cadastros"
+        titulo={contato.nomeContato}
+        descricao={
+          <>
             {contato.cargo}
             {contato.area ? ` · ${contato.area}` : ""} · {contato.entidadeAlvo.nome}
-          </p>
-        </div>
-        <Link href={`/admin/entidades/${id}`} className="botao-atas link">
-          ← {contato.entidadeAlvo.nome}
-        </Link>
-      </div>
+          </>
+        }
+        voltar={{ href: `/admin/entidades/${id}`, rotulo: contato.entidadeAlvo.nome }}
+      />
 
       <Secao
         titulo="Contato"
+        destaque
         acao={
           <div className="flex items-center gap-3">
             <Badge tom={contato.ativo ? "neutro" : "critico"}>
@@ -92,16 +90,17 @@ export default async function DetalheContatoPage({
           </div>
         }
       >
-        <div className="grid grid-cols-2 gap-3 text-sm">
-          <p style={{ color: "var(--cor-texto-2)" }}>Telefone: {contato.telefone ?? "—"}</p>
-          <p style={{ color: "var(--cor-texto-2)" }}>E-mail: {contato.email ?? "—"}</p>
-        </div>
-        {contato.particularidades && (
-          <p className="mt-3 text-sm" style={{ color: "var(--cor-texto-2)" }}>
-            <strong style={{ color: "var(--cor-texto)" }}>Particularidades:</strong>{" "}
-            {contato.particularidades}
-          </p>
-        )}
+        <dl className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+          <Dado rotulo="Telefone">{contato.telefone ?? "—"}</Dado>
+          <Dado rotulo="E-mail">{contato.email ?? "—"}</Dado>
+          {contato.particularidades && (
+            <Dado rotulo="Particularidades" className="sm:col-span-2">
+              <span className="leading-relaxed" style={{ color: "var(--cor-texto-2)" }}>
+                {contato.particularidades}
+              </span>
+            </Dado>
+          )}
+        </dl>
       </Secao>
 
       <FormularioInteracao pontoFocalId={contato.id} atas={atasVigentes} />
@@ -113,32 +112,68 @@ export default async function DetalheContatoPage({
             descricao="Registre acima a primeira oferta feita a este contato."
           />
         ) : (
-          <ul className="flex flex-col gap-2">
-            {contato.interacoes.map((i) => (
-              <li key={i.id} className="painel p-4">
-                <div className="flex items-baseline justify-between gap-2">
-                  <Badge tom={i.resultado === "Converteu" ? "marca" : i.resultado === "Recusou" ? "critico" : "neutro"}>
-                    {i.resultado}
-                  </Badge>
-                  <span className="text-xs" style={{ color: "var(--cor-texto-3)" }}>
-                    {i.criadoEm.toLocaleDateString("pt-BR")}
-                  </span>
-                </div>
-                {i.ata && (
-                  <p className="mt-1 text-sm" style={{ color: "var(--cor-texto)" }}>
-                    Ata {i.ata.numero} — {i.ata.objeto}
-                  </p>
-                )}
-                {i.observacao && (
-                  <p className="mt-1 text-xs" style={{ color: "var(--cor-texto-2)" }}>
-                    {i.observacao}
-                  </p>
-                )}
-              </li>
-            ))}
-          </ul>
+          <div className="overflow-x-auto">
+            <table className="tabela-atas min-w-[620px]">
+              <thead>
+                <tr>
+                  <th className="w-[1%]">Resultado</th>
+                  <th>Ata oferecida</th>
+                  <th>Observação</th>
+                  <th className="w-[1%]">Data</th>
+                </tr>
+              </thead>
+              <tbody>
+                {contato.interacoes.map((i) => (
+                  <tr key={i.id}>
+                    <td>
+                      <Badge tom={i.resultado === "Converteu" ? "marca" : i.resultado === "Recusou" ? "critico" : "neutro"}>
+                        {i.resultado}
+                      </Badge>
+                    </td>
+                    <td>
+                      {i.ata ? (
+                        <>
+                          <span className="titulo-linha block">{i.ata.objeto}</span>
+                          <span className="codigo mt-0.5 block text-xs" style={{ color: "var(--cor-texto-3)" }}>
+                            Ata {i.ata.numero}
+                          </span>
+                        </>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                    <td className="text-[13px]">{i.observacao || "—"}</td>
+                    <td className="numero whitespace-nowrap text-[13px]" style={{ color: "var(--cor-texto)" }}>
+                      {i.criadoEm.toLocaleDateString("pt-BR")}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </Secao>
     </AppShell>
+  );
+}
+
+function Dado({
+  rotulo,
+  className,
+  children,
+}: {
+  rotulo: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className={className}>
+      <dt className="text-xs font-semibold" style={{ color: "var(--cor-texto-3)" }}>
+        {rotulo}
+      </dt>
+      <dd className="mt-1 text-[14px]" style={{ color: "var(--cor-texto)" }}>
+        {children}
+      </dd>
+    </div>
   );
 }

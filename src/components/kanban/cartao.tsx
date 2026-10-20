@@ -61,15 +61,15 @@ export function Cartao({
         }}
       >
         <div className="kb-cartao-topo">
-          <div>
+          <div className="min-w-0">
             <p className="kb-cartao-nome">
               {c.nomeMunicipio}
-              {c.uf ? ` / ${c.uf}` : ""}
+              {c.uf && <span className="selo-uf ml-1.5 align-middle">{c.uf}</span>}
             </p>
             <p className="kb-sub">{c.casaComAta ? "Já contratou esta categoria" : "Município"}</p>
             {mostrarOrigem && (
               <p className="kb-origem">
-                Ata {c.ataNumero} · {c.vendedorNome}
+                Ata <span className="codigo">{c.ataNumero}</span> · {c.vendedorNome}
               </p>
             )}
           </div>
@@ -181,7 +181,7 @@ function ResumoAderido({ c }: { c: CartaoView }) {
           <p className="valor numero">{moedaCurta(c.liquidado)}</p>
         </div>
       </div>
-      <div className="kb-progresso" aria-label={`${pct}% do valor aderido já liquidado`}>
+      <div className="barra-saldo mt-2.5" aria-label={`${pct}% do valor aderido já liquidado`}>
         <div style={{ width: `${pct}%` }} />
       </div>
       <div className="kb-rodape">

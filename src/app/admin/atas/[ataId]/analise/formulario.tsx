@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { analisarAta, type EstadoAnaliseAta } from "../../../actions";
 import { ITENS_CONFORMIDADE, type RespostasConformidade } from "@/lib/conformidade";
+import { Aviso } from "@/components/ui/aviso";
 
 interface Props {
   ataId: string;
@@ -19,16 +20,20 @@ export function FormularioAnalise({ ataId, respostasAtuais, parecerAtual }: Prop
   const respostas = estado.valores?.respostas ?? respostasAtuais;
 
   return (
-    <form action={formAction} className="flex flex-col gap-4">
-      <ul className="flex flex-col gap-2">
+    <form action={formAction} className="flex flex-col gap-5">
+      <ul className="lista-linhas">
         {ITENS_CONFORMIDADE.map((item) => (
           <li key={item.campo}>
-            <label className="flex items-start gap-2 text-sm" style={{ color: "var(--cor-texto)" }}>
+            <label
+              className="flex cursor-pointer items-start gap-3 text-[14px] leading-relaxed"
+              style={{ color: "var(--cor-texto)" }}
+            >
               <input
                 type="checkbox"
                 name={item.campo}
                 defaultChecked={respostas[item.campo]}
-                className="mt-1"
+                className="mt-1 size-4 shrink-0"
+                style={{ accentColor: "var(--cor-marca)" }}
               />
               {item.rotulo}
             </label>
@@ -37,31 +42,16 @@ export function FormularioAnalise({ ataId, respostasAtuais, parecerAtual }: Prop
       </ul>
 
       <label className="block text-sm">
-        <span className="mb-1 block font-medium" style={{ color: "var(--cor-texto-2)" }}>
-          Parecer (obrigatório para aprovar com itens não confirmados)
+        <span className="rotulo-campo">
+          Parecer <small>(obrigatório para aprovar com itens não confirmados)</small>
         </span>
         <textarea name="parecer" rows={3} defaultValue={estado.valores?.parecer ?? parecerAtual} className="campo-atas" />
       </label>
 
-      {estado.erro && (
-        <p
-          className="rounded-[var(--raio)] border px-4 py-3 text-sm"
-          style={{
-            borderColor: "var(--cor-critico)",
-            background: "var(--cor-critico-fundo)",
-            color: "var(--cor-critico)",
-          }}
-        >
-          {estado.erro}
-        </p>
-      )}
-      {estado.mensagem && (
-        <p className="text-sm" style={{ color: "var(--cor-marca-clara)" }}>
-          {estado.mensagem}
-        </p>
-      )}
+      {estado.erro && <Aviso tom="critico">{estado.erro}</Aviso>}
+      {estado.mensagem && <Aviso tom="sucesso">{estado.mensagem}</Aviso>}
 
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <button type="submit" name="decisao" value="salvar" disabled={pendente} className="botao-atas secundario">
           Salvar análise
         </button>

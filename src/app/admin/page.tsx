@@ -6,7 +6,8 @@ import { saldoAgregadoDisponivel } from "@/lib/saldo";
 import { logoutAdmin, rejeitarAta } from "./actions";
 import { AppShell } from "@/components/ui/app-shell";
 import { Secao } from "@/components/ui/secao";
-import { CartaoIndicador } from "@/components/ui/cartao-indicador";
+import { CabecalhoPagina } from "@/components/ui/cabecalho-pagina";
+import { FaixaNumeros } from "@/components/ui/faixa-numeros";
 import { Badge, type Tom } from "@/components/ui/badge";
 import { Cifra } from "@/components/ui/valores";
 import { VazioComAcao } from "@/components/ui/vazio-com-acao";
@@ -195,24 +196,18 @@ export default async function PainelAdminPage() {
         </form>
       }
     >
-      <div>
-        <h1 className="marca text-2xl" style={{ color: "var(--cor-texto)" }}>
-          Painel administrativo
-        </h1>
-        <p className="mt-1 text-sm" style={{ color: "var(--cor-texto-2)" }}>
-          {totalFila === 0 ? "Tudo em dia." : `${totalFila} ponto(s) esperando uma decisão sua.`}
-        </p>
-      </div>
+      <CabecalhoPagina
+        rotulo="Operação"
+        titulo="Painel"
+        destaque="administrativo"
+        descricao={totalFila === 0 ? "Tudo em dia." : `${totalFila} ponto(s) esperando uma decisão sua.`}
+      />
 
-      <Secao titulo="Fila de ação">
-        <ul className="flex flex-col">
+      <Secao titulo="Fila de ação" destaque>
+        <ul className="lista-linhas">
           {fila.map((item) => (
-            <li
-              key={item.rotulo}
-              className="flex flex-wrap items-center justify-between gap-3 border-b py-3 last:border-b-0"
-              style={{ borderColor: "var(--cor-borda)" }}
-            >
-              <div className="flex items-start gap-3">
+            <li key={item.rotulo} className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex min-w-0 items-start gap-3">
                 <i
                   className="kb-ponto mt-1.5"
                   style={{
@@ -226,18 +221,21 @@ export default async function PainelAdminPage() {
                             : "var(--cor-atencao)",
                   }}
                 />
-                <div>
-                  <p className="text-sm font-medium" style={{ color: item.n === 0 ? "var(--cor-texto-2)" : "var(--cor-texto)" }}>
+                <div className="min-w-0">
+                  <p
+                    className="text-[14px] font-bold tracking-[-0.01em]"
+                    style={{ color: item.n === 0 ? "var(--cor-texto-2)" : "var(--cor-texto)" }}
+                  >
                     {item.rotulo}
                   </p>
-                  <p className="text-xs" style={{ color: "var(--cor-texto-3)" }}>
+                  <p className="mt-0.5 text-xs" style={{ color: "var(--cor-texto-3)" }}>
                     {item.descricao}
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-4">
                 <span
-                  className="numero text-lg font-medium"
+                  className="numero text-[22px] font-extrabold tracking-[-0.03em]"
                   style={{ color: item.n === 0 ? "var(--cor-texto-3)" : "var(--cor-texto)" }}
                 >
                   {item.n}
@@ -254,13 +252,20 @@ export default async function PainelAdminPage() {
           ))}
         </ul>
         {atasSemContrato.length > 1 && (
-          <p className="mt-2 text-xs" style={{ color: "var(--cor-texto-3)" }}>
+          <p
+            className="mt-4 border-t pt-3 text-xs"
+            style={{ borderColor: "var(--cor-borda)", color: "var(--cor-texto-3)" }}
+          >
             Sem contrato:{" "}
             {atasSemContrato.map((a, i) => (
               <span key={a.id}>
                 {i > 0 ? " · " : ""}
-                <Link href={`/admin/atas/${a.id}/contrato`} className="underline">
-                  Ata {a.numero}
+                <Link
+                  href={`/admin/atas/${a.id}/contrato`}
+                  className="font-semibold hover:underline"
+                  style={{ color: "var(--cor-marca-clara)" }}
+                >
+                  Ata <span className="codigo">{a.numero}</span>
                 </Link>
               </span>
             ))}
@@ -269,46 +274,41 @@ export default async function PainelAdminPage() {
         )}
       </Secao>
 
-      <div className="kb-kpis">
-        <div className="kb-kpi">
-          <p className="eyebrow">Aderido (vendedores)</p>
-          <p className="kb-kpi-valor numero" style={{ color: "var(--cor-marca-clara)" }}>
-            {moedaCurta(k.aderido)}
-          </p>
-          <p className="kb-kpi-nota">{k.aderidos} município(s) aderiram</p>
-        </div>
-        <div className="kb-kpi">
-          <p className="eyebrow">Comissão a receber</p>
-          <p className="kb-kpi-valor numero" style={{ color: k.comissaoDevida - k.comissaoRecebida > 0 ? "var(--cor-atencao)" : undefined }}>
-            {moedaCurta(k.comissaoDevida - k.comissaoRecebida)}
-          </p>
-          <p className="kb-kpi-nota">
-            devida {moedaCurta(k.comissaoDevida)} · recebida {moedaCurta(k.comissaoRecebida)}
-          </p>
-        </div>
-        <div className="kb-kpi">
-          <p className="eyebrow">Em negociação</p>
-          <p className="kb-kpi-valor numero">{k.emNegociacao}</p>
-          <p className="kb-kpi-nota">
-            {k.abertos} município(s) em aberto · ~{moedaCurta(k.potencial)} em potencial
-          </p>
-        </div>
-        <div className="kb-kpi">
-          <p className="eyebrow">Sem decisor com contato</p>
-          <p className="kb-kpi-valor numero" style={{ color: k.semContato > 0 ? "var(--cor-atencao)" : undefined }}>
-            {k.semContato}
-          </p>
-          <p className="kb-kpi-nota">municípios em aberto sem telefone nem e-mail</p>
-        </div>
-      </div>
+      <FaixaNumeros
+        itens={[
+          {
+            valor: moedaCurta(k.aderido),
+            rotulo: "Aderido (vendedores)",
+            nota: `${k.aderidos} município(s) aderiram`,
+            tom: "marca",
+          },
+          {
+            valor: moedaCurta(k.comissaoDevida - k.comissaoRecebida),
+            rotulo: "Comissão a receber",
+            nota: `devida ${moedaCurta(k.comissaoDevida)} · recebida ${moedaCurta(k.comissaoRecebida)}`,
+            tom: k.comissaoDevida - k.comissaoRecebida > 0 ? "atencao" : undefined,
+          },
+          {
+            valor: k.emNegociacao,
+            rotulo: "Em negociação",
+            nota: `${k.abertos} município(s) em aberto · ~${moedaCurta(k.potencial)} em potencial`,
+          },
+          {
+            valor: k.semContato,
+            rotulo: "Sem decisor com contato",
+            nota: "municípios em aberto sem telefone nem e-mail",
+            tom: k.semContato > 0 ? "atencao" : undefined,
+          },
+        ]}
+      />
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <FunilVendedor funil={painel.funil} />
         <Secao
           titulo="Por vendedor"
           acao={
-            <Link href="/admin/pipeline" className="botao-atas secundario">
-              Abrir pipeline
+            <Link href="/admin/pipeline" className="botao-atas link">
+              Abrir pipeline →
             </Link>
           }
         >
@@ -331,13 +331,16 @@ export default async function PainelAdminPage() {
                   {porVendedor.slice(0, 6).map((v) => (
                     <tr key={v.vendedorId}>
                       <td>
-                        <Link href={`/admin/pipeline?vendedor=${v.vendedorId}`} className="underline">
+                        <Link
+                          href={`/admin/pipeline?vendedor=${v.vendedorId}`}
+                          className="titulo-linha hover:text-[var(--cor-marca-clara)]"
+                        >
                           {v.nome}
                         </Link>
                       </td>
                       <td className="numero">{v.abertos}</td>
                       <td className="numero">{v.aderidos}</td>
-                      <td>
+                      <td className="whitespace-nowrap" style={{ color: "var(--cor-texto)" }}>
                         <Cifra valor={v.valorAderido} />
                       </td>
                     </tr>
@@ -349,37 +352,29 @@ export default async function PainelAdminPage() {
         </Secao>
       </div>
 
-      <div id="moderacao">
-        <Secao titulo={`Atas aguardando moderação (${atasPendentes.length})`}>
-          <p className="text-sm" style={{ color: "var(--cor-texto-2)" }}>
-            Uma ata só aparece no catálogo público depois de aprovada aqui — e só chega ao vendedor com contrato de
-            intermediação cadastrado.
-          </p>
-
+      <div id="moderacao" className="scroll-mt-6">
+        <Secao
+          titulo={`Atas aguardando moderação (${atasPendentes.length})`}
+          descricao={
+            <>
+              Uma ata só aparece no catálogo público depois de aprovada aqui — e só chega ao vendedor com contrato de
+              intermediação cadastrado.
+            </>
+          }
+        >
           {atasPendentes.length === 0 ? (
-            <div className="mt-4">
-              <VazioComAcao titulo="Nada pendente" descricao="Nenhuma ata aguardando moderação no momento." />
-            </div>
+            <VazioComAcao titulo="Nada pendente" descricao="Nenhuma ata aguardando moderação no momento." />
           ) : (
-            <ul className="mt-4 flex flex-col gap-4">
+            <ul className="lista-linhas">
               {atasPendentes.map((ata) => {
                 const confirmados = ITENS_CONFORMIDADE.filter((i) => ata.conformidade?.[i.campo]).length;
                 return (
-                  <li key={ata.id} className="painel p-4">
-                    <div className="flex flex-wrap items-baseline justify-between gap-2">
-                      <h3 className="font-medium" style={{ color: "var(--cor-texto)" }}>
-                        Ata {ata.numero}
-                      </h3>
-                      <div className="flex flex-wrap items-center gap-2">
-                        {ataImportadaIncompleta(ata) && <Badge tom="alerta">Importação incompleta</Badge>}
-                        <Badge tom={confirmados === ITENS_CONFORMIDADE.length ? "marca" : confirmados > 0 ? "atencao" : "neutro"}>
-                          Conformidade {confirmados}/{ITENS_CONFORMIDADE.length}
-                        </Badge>
-                        <Badge tom={ata.contrato ? "marca" : "alerta"}>
-                          {ata.contrato
-                            ? `Contrato ${percentualDeFracao(Number(ata.contrato.percentualComissao))}`
-                            : "Sem contrato"}
-                        </Badge>
+                  <li key={ata.id} className="flex flex-col gap-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <h3 className="codigo text-xs font-semibold" style={{ color: "var(--cor-texto-3)" }}>
+                          Ata {ata.numero}
+                        </h3>
                         <span className="eyebrow">
                           {ata.origem === "PNCP"
                             ? "Importada do PNCP"
@@ -390,33 +385,67 @@ export default async function PainelAdminPage() {
                                 : "Cadastro manual"}
                         </span>
                       </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        {ataImportadaIncompleta(ata) && <Badge tom="alerta">Importação incompleta</Badge>}
+                        <Badge tom={confirmados === ITENS_CONFORMIDADE.length ? "marca" : confirmados > 0 ? "atencao" : "neutro"}>
+                          Conformidade {confirmados}/{ITENS_CONFORMIDADE.length}
+                        </Badge>
+                        <Badge tom={ata.contrato ? "marca" : "alerta"}>
+                          {ata.contrato
+                            ? `Contrato ${percentualDeFracao(Number(ata.contrato.percentualComissao))}`
+                            : "Sem contrato"}
+                        </Badge>
+                      </div>
                     </div>
-                    <p className="mt-1 text-sm" style={{ color: "var(--cor-texto-2)" }}>
-                      {ata.objeto}
-                    </p>
-                    <p className="mt-1 text-xs" style={{ color: "var(--cor-texto-3)" }}>
-                      {ata.fornecedor.cnpj === CNPJ_FORNECEDOR_A_CONFIRMAR
-                        ? "Fornecedor a confirmar"
-                        : ata.fornecedor.razaoSocial}{" "}
-                      · Órgão gerenciador: {ata.orgaoGerenciador.nome} ({ata.orgaoGerenciador.uf}) ·{" "}
-                      {ata.itens.length === 0
-                        ? "sem itens (a completar)"
-                        : `${ata.itens.length} ${ata.itens.length === 1 ? "item" : "itens"}`}
-                    </p>
-                    {ata.documentos.map((doc) => (
-                      <a
-                        key={doc.id}
-                        href={`/api/documentos/${doc.id}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="mt-1 inline-block text-xs underline"
-                        style={{ color: "var(--cor-texto-2)" }}
-                      >
-                        📎 {doc.nomeArquivo}
-                      </a>
-                    ))}
 
-                    <div className="mt-3 flex flex-wrap gap-2">
+                    <div className="min-w-0">
+                      <p className="text-[14.5px] font-bold leading-snug tracking-[-0.01em]" style={{ color: "var(--cor-texto)" }}>
+                        {ata.objeto}
+                      </p>
+                      <p className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs" style={{ color: "var(--cor-texto-3)" }}>
+                        <span>
+                          {ata.fornecedor.cnpj === CNPJ_FORNECEDOR_A_CONFIRMAR
+                            ? "Fornecedor a confirmar"
+                            : ata.fornecedor.razaoSocial}
+                        </span>
+                        <span aria-hidden="true">·</span>
+                        <span>Órgão gerenciador: {ata.orgaoGerenciador.nome}</span>
+                        <span className="selo-uf">{ata.orgaoGerenciador.uf}</span>
+                        <span aria-hidden="true">·</span>
+                        <span>
+                          {ata.itens.length === 0
+                            ? "sem itens (a completar)"
+                            : `${ata.itens.length} ${ata.itens.length === 1 ? "item" : "itens"}`}
+                        </span>
+                      </p>
+                      {ata.documentos.length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+                          {ata.documentos.map((doc) => (
+                            <a
+                              key={doc.id}
+                              href={`/api/documentos/${doc.id}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 text-xs font-semibold hover:underline"
+                              style={{ color: "var(--cor-marca-clara)" }}
+                            >
+                              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                                <path
+                                  d="M13.5 7.6 8.2 12.9a3.4 3.4 0 0 1-4.8-4.8l5.6-5.6a2.3 2.3 0 0 1 3.2 3.2L6.6 11.3a1.1 1.1 0 0 1-1.6-1.6l5-5"
+                                  stroke="currentColor"
+                                  strokeWidth="1.4"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
+                              {doc.nomeArquivo}
+                            </a>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
                       {ataImportadaIncompleta(ata) && (
                         <Link href={`/admin/atas/${ata.id}/completar`} className="botao-atas secundario">
                           Completar
@@ -443,31 +472,43 @@ export default async function PainelAdminPage() {
         </Secao>
       </div>
 
-      <Secao titulo="Canal de autoatendimento (órgãos)">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <CartaoIndicador rotulo="Atas aprovadas" valor={totalAtas} />
-          <CartaoIndicador rotulo="Saldo total disponível" valor={saldoTotalDisponivel} />
-          <CartaoIndicador
-            rotulo="Pedidos em andamento"
-            valor={pedidosEmAndamento}
-            tom={pedidosEmAndamento > 0 ? "atencao" : "neutro"}
-          />
-          <CartaoIndicador rotulo="Contratos faturados" valor={pedidosFaturados} tom="marca" />
-          <CartaoIndicador
-            rotulo="Total a receber"
-            valor={<Cifra valor={totalAReceber} />}
-            tom={totalAReceber > 0 ? "atencao" : "neutro"}
-          />
-          <CartaoIndicador rotulo="Total recebido" valor={<Cifra valor={totalRecebido} />} />
-          <CartaoIndicador rotulo="Atas com adesão" valor={atasComAdesao} nota={`de ${totalAtas} aprovadas`} />
-          <CartaoIndicador
-            rotulo="Taxa de conversão"
-            valor={taxaConversao === null ? "—" : `${taxaConversao}%`}
-            tom={taxaConversao !== null && taxaConversao > 0 ? "marca" : "neutro"}
-            nota="atas aprovadas que já fecharam ao menos 1 adesão"
-          />
-        </div>
-      </Secao>
+      <section className="flex flex-col gap-3">
+        <h2
+          className="marca text-[17px]"
+          style={{ color: "var(--cor-texto)", fontWeight: 800, letterSpacing: "-0.025em" }}
+        >
+          Canal de autoatendimento (órgãos)
+        </h2>
+        <FaixaNumeros
+          itens={[
+            { valor: totalAtas, rotulo: "Atas aprovadas" },
+            { valor: saldoTotalDisponivel.toLocaleString("pt-BR"), rotulo: "Saldo total disponível" },
+            { valor: atasComAdesao, rotulo: "Atas com adesão", nota: `de ${totalAtas} aprovadas` },
+            {
+              valor: taxaConversao === null ? "—" : `${taxaConversao}%`,
+              rotulo: "Taxa de conversão",
+              nota: "atas aprovadas que já fecharam ao menos 1 adesão",
+              tom: taxaConversao !== null && taxaConversao > 0 ? "marca" : undefined,
+            },
+          ]}
+        />
+        <FaixaNumeros
+          itens={[
+            { valor: pedidosFaturados, rotulo: "Contratos faturados", tom: "marca" },
+            {
+              valor: pedidosEmAndamento,
+              rotulo: "Pedidos em andamento",
+              tom: pedidosEmAndamento > 0 ? "atencao" : undefined,
+            },
+            {
+              valor: <Cifra valor={totalAReceber} />,
+              rotulo: "Total a receber",
+              tom: totalAReceber > 0 ? "atencao" : undefined,
+            },
+            { valor: <Cifra valor={totalRecebido} />, rotulo: "Total recebido" },
+          ]}
+        />
+      </section>
     </AppShell>
   );
 }

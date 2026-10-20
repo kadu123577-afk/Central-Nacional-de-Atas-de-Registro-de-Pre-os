@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { criarEntidadeAlvo, type EstadoEntidadeAlvo } from "../actions";
 import { Secao } from "@/components/ui/secao";
+import { Aviso } from "@/components/ui/aviso";
 import { ESFERAS_ORGAO } from "@/lib/esferas";
 import { ROTULO_TIPO_ENTIDADE, TIPOS_ENTIDADE_ALVO } from "@/lib/entidades-alvo";
 
@@ -16,10 +17,8 @@ export function FormularioNovaEntidade() {
       <form action={formAction} className="flex flex-col gap-4">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Campo label="Nome" name="nome" required placeholder="Prefeitura de Aquiraz" />
-          <label className="block text-sm">
-            <span className="mb-1 block font-medium" style={{ color: "var(--cor-texto-2)" }}>
-              Tipo
-            </span>
+          <label className="block">
+            <span className="rotulo-campo">Tipo</span>
             <select name="tipo" required className="campo-atas" defaultValue="">
               <option value="" disabled>
                 Selecione...
@@ -33,10 +32,10 @@ export function FormularioNovaEntidade() {
           </label>
         </div>
 
-        <div className="grid grid-cols-3 gap-4">
-          <label className="block text-sm">
-            <span className="mb-1 block font-medium" style={{ color: "var(--cor-texto-2)" }}>
-              Esfera (opcional)
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <label className="block">
+            <span className="rotulo-campo">
+              Esfera <small>(opcional)</small>
             </span>
             <select name="esfera" className="campo-atas" defaultValue="">
               <option value="">—</option>
@@ -53,18 +52,7 @@ export function FormularioNovaEntidade() {
 
         <Campo label="Endereço" name="endereco" />
 
-        {estado.erro && (
-          <p
-            className="rounded-[var(--raio)] border px-4 py-3 text-sm"
-            style={{
-              borderColor: "var(--cor-critico)",
-              background: "var(--cor-critico-fundo)",
-              color: "var(--cor-critico)",
-            }}
-          >
-            {estado.erro}
-          </p>
-        )}
+        {estado.erro && <Aviso tom="critico">{estado.erro}</Aviso>}
 
         <button type="submit" disabled={pendente} className="botao-atas self-start">
           {pendente ? "Salvando..." : "Cadastrar entidade"}
@@ -86,10 +74,8 @@ function Campo({
   placeholder?: string;
 }) {
   return (
-    <label className="block text-sm">
-      <span className="mb-1 block font-medium" style={{ color: "var(--cor-texto-2)" }}>
-        {label}
-      </span>
+    <label className="block">
+      <span className="rotulo-campo">{label}</span>
       <input name={name} required={required} placeholder={placeholder} className="campo-atas" />
     </label>
   );
