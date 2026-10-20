@@ -28,7 +28,7 @@ export default async function PaginaEntrar({ searchParams }: { searchParams: Pro
 
   // O contexto do pedido mostra só dado público da ata (código e objeto).
   const detalhe = ata ? await obterAta(ata, "publico") : null;
-  const contexto = detalhe ? { codigo: detalhe.codigo, objeto: detalhe.objeto } : null;
+  const contexto = detalhe ? { codigo: detalhe.codigo, titulo: detalhe.titulo } : null;
 
   return (
     <div className="entrar">

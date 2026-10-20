@@ -10,6 +10,7 @@ import {
 } from "./site/categorias";
 import { CATEGORIAS_ATAS } from "./categorias";
 import { normalizar, plural } from "./site/formato";
+import { tituloGenerico, tituloPublicoDaAta, validarTituloPublico } from "./site/titulo";
 import {
   codigoPublico,
   saldoDoItem,
@@ -174,5 +175,32 @@ describe("destino depois do login", () => {
     }
     expect(destinoSeguro(null, "orgao", padrao)).toBe(padrao);
     expect(destinoSeguro("/fornecedor", "orgao", padrao)).toBe(padrao);
+  });
+});
+
+describe("título público da ata", () => {
+  it("gera um título genérico a partir da categoria", () => {
+    expect(tituloGenerico("limpeza")).toBe("Ata de limpeza e conservação");
+    expect(tituloGenerico("material-hospitalar")).toBe("Ata de material hospitalar");
+    expect(tituloGenerico("equipamento-ti")).toBe("Ata de equipamento de TI");
+  });
+
+  it("sem categoria conhecida usa um título neutro, nunca texto da ata", () => {
+    expect(tituloGenerico(null)).toBe("Ata de registro de preços");
+    expect(tituloGenerico("categoria-que-nao-existe")).toBe("Ata de registro de preços");
+  });
+
+  it("usa o título escrito pela equipe, e o genérico quando está vazio", () => {
+    expect(tituloPublicoDaAta("  Ata de material de limpeza ", "limpeza")).toBe("Ata de material de limpeza");
+    expect(tituloPublicoDaAta("", "material-hospitalar")).toBe("Ata de material hospitalar");
+    expect(tituloPublicoDaAta("   ", null)).toBe("Ata de registro de preços");
+    expect(tituloPublicoDaAta(null, "limpeza")).toBe("Ata de limpeza e conservação");
+  });
+
+  it("valida o título: vazio vale, mas curto ou longo demais não", () => {
+    expect(validarTituloPublico("")).toBeNull();
+    expect(validarTituloPublico("Ata de medicamentos")).toBeNull();
+    expect(validarTituloPublico("abc")).not.toBeNull();
+    expect(validarTituloPublico("x".repeat(121))).not.toBeNull();
   });
 });

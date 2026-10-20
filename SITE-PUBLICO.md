@@ -29,9 +29,9 @@ ele também:
 
 | Quem | Vê |
 |---|---|
-| **Visitante** | **só categoria, objeto e um código público** (no lugar do número da ata). |
+| **Visitante** | **só categoria, título público e um código público** (no lugar do número da ata). |
 | **Órgão logado** | **exatamente o mesmo** que o visitante. A diferença é que ele pode **enviar o pedido de adesão** da ata. |
-| **Admin e vendedor** | tudo: órgão gerenciador, fornecedor, preço, itens, quantidade, saldo, vigência, nº PNCP, documentos. |
+| **Admin e vendedor** | tudo: **objeto original**, órgão gerenciador, fornecedor, preço, itens, quantidade, saldo, vigência, nº PNCP, documentos. |
 
 Pontos que importam:
 
@@ -47,6 +47,24 @@ Pontos que importam:
 - O painel do órgão mostra o código público da ata, nunca o fornecedor.
 - A home não mostra mapa por estado nem números por UF/saldo, só o total de atas e de
   categorias. (O componente `secao-mapa.tsx` e os dados do mapa ficam no projeto, sem uso.)
+
+### Título público (o único nome da ata fora da equipe)
+
+O objeto original de uma ata costuma ser o mesmo texto publicado no PNCP: quem o copiasse e
+buscasse lá acharia a ata. Por isso o site **nunca mostra o objeto**. Mostra o **título
+público**, genérico de propósito: *Ata de material de limpeza*, *Ata de material hospitalar*,
+*Ata de medicamentos*.
+
+- Quem cadastra a ata escreve o título no campo **"Título público"** (cadastro em
+  `/admin/atas/nova`). Para atas que já existem, ou que vieram do PNCP e do Compras.gov.br,
+  edite em **Atas → (a ata) → Título público** (`/admin/atas/<id>/municipios`).
+- Se ficar vazio, o site usa **"Ata de (categoria)"** (ex.: *Ata de limpeza e conservação*) e,
+  sem categoria, *Ata de registro de preços*. **Nunca** cai de volta para o objeto original.
+- O objeto original nem é lido do banco para visitante e órgão, e a **busca** deles olha só o
+  título público e as categorias (se olhasse o objeto, daria para descobrir o texto original
+  por tentativa). A equipe continua vendo e buscando pelo objeto.
+- Escreva títulos **genéricos**: um título detalhado ("Ata de dipirona 500 mg do município X")
+  desfaz a proteção.
 
 ### Como o órgão pede a adesão (sem ver os itens)
 
@@ -70,11 +88,11 @@ no sistema a partir do pedido, com o limite do art. 86) fica para uma próxima e
 
 ### Limites conhecidos (leia antes de confiar no sigilo)
 
-1. **O objeto da ata é, em geral, o mesmo texto publicado no PNCP.** Quem copiar a frase do
-   objeto e buscar no PNCP pode achar a ata. Remover UF, itens e saldo dificulta, mas não
-   impede. A solução mais forte é mostrar um **título público escrito pela equipe** (campo
-   novo na ata) em vez do objeto original. Decisão pendente.
-2. O PNCP é público: o sigilo remove a conveniência, não a informação.
+1. **Depende de a equipe escrever títulos genéricos.** O sistema garante que o objeto
+   original não sai; não garante que o título escrito não seja específico demais.
+2. O PNCP é público: o sigilo remove a conveniência, não a informação. A **categoria**
+   continua aparecendo e, com um título como *Ata de medicamentos* numa região pequena, ainda
+   pode haver alguma chance de alguém achar a ata por outros meios.
 3. Um órgão que **já conhece** a ata (por exemplo, o que a publicou) não ganha nada com o
    sigilo; ele serve contra quem descobriria a ata pela plataforma.
 

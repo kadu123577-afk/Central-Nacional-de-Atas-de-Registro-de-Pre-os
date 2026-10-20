@@ -10,6 +10,8 @@ import {
   slugsDoGrupo,
 } from "@/lib/site/categorias";
 import { dataBR, normalizar } from "@/lib/site/formato";
+import { tituloPublicoDaAta } from "@/lib/site/titulo";
+import { CATEGORIAS_ATAS } from "@/lib/categorias";
 import {
   DIA_MS,
   codigoPublico,
@@ -35,6 +37,10 @@ import {
  * existem para a equipe (nível "completo"). Os campos restritos nem são lidos do
  * banco para os demais. O órgão faz o pedido de adesão por ata, sem escolher
  * item; a equipe confere itens e saldo e monta o pedido.
+ *
+ * O "nome" da ata para quem não é da equipe é o TÍTULO PÚBLICO (genérico, escrito
+ * por quem cadastra, ou "Ata de <categoria>" se ficar vazio). O `objeto` original
+ * costuma ser o texto do PNCP e nunca é lido nem buscado para esses níveis.
  */
 
 export const POR_PAGINA = 12;
@@ -77,7 +83,11 @@ export interface AtaResumo {
   /** Visitante e órgão: código público derivado. Equipe: número real da ata. */
   codigo: string;
   grupoId: string;
-  objeto: string;
+  /**
+   * Nome da ata. Equipe: o objeto original. Demais: o título público genérico
+   * (nunca o objeto original).
+   */
+  titulo: string;
   /** A partir daqui, só a equipe (nunca visitante nem órgão logado). */
   uf?: string;
   nItens?: number;
@@ -170,10 +180,21 @@ function montarWhere(f: FiltrosCatalogo, nivel: NivelVisao): Prisma.AtaWhereInpu
     const gruposPeloNome = GRUPOS.filter((g) => normalizar(g.nome).includes(normalizar(q))).map(
       (g) => filtroDoGrupo(g.id),
     );
+    // Categorias cujo nome combina com o texto: o título genérico ("Ata de material de
+    // limpeza") vem da categoria, então buscar por ela precisa achar a ata.
+    const slugsPeloNome = CATEGORIAS_ATAS.filter((c) => normalizar(c.rotulo).includes(normalizar(q))).map(
+      (c) => c.slug,
+    );
     const buscas: Prisma.AtaWhereInput[] = [
-      { objeto: { contains: q, mode: "insensitive" } },
+      { tituloPublico: { contains: q, mode: "insensitive" } },
+      ...(slugsPeloNome.length ? [{ categoria: { in: slugsPeloNome } }] : []),
       ...gruposPeloNome,
     ];
+    // O objeto original só é pesquisável pela equipe: pesquisar nele revelaria o
+    // texto por tentativa (ele costuma ser o mesmo do PNCP).
+    if (nivel === "completo") {
+      buscas.push({ objeto: { contains: q, mode: "insensitive" } });
+    }
     // Buscar por item mostraria, por tentativa, o que há dentro de cada ata.
     if (detalhes) {
       buscas.push({ itens: { some: { descricao: { contains: q, mode: "insensitive" } } } });
@@ -197,7 +218,9 @@ function montarWhere(f: FiltrosCatalogo, nivel: NivelVisao): Prisma.AtaWhereInpu
 interface AtaSelecionada {
   id: string;
   categoria: string | null;
-  objeto: string;
+  tituloPublico: string | null;
+  /** Só é lido para a equipe. */
+  objeto?: string;
   dataVigenciaFim?: Date;
   numero?: string;
   fornecedor?: { razaoSocial: string };
@@ -207,11 +230,13 @@ interface AtaSelecionada {
 
 function selecionar(nivel: NivelVisao, comBusca: boolean) {
   const completo = nivel === "completo";
-  const base = { id: true, categoria: true, objeto: true } as const;
-  // O visitante recebe só o essencial: nada de UF, vigência nem itens.
+  // Quem não é da equipe recebe só o essencial: categoria e título público (o
+  // objeto original nem é lido), sem UF, vigência nem itens.
+  const base = { id: true, categoria: true, tituloPublico: true } as const;
   if (!comDetalhes(nivel)) return base;
   return {
     ...base,
+    objeto: true,
     dataVigenciaFim: true,
     ...(completo ? { numero: true } : {}),
     orgaoGerenciador: { select: completo ? { uf: true, nome: true } : { uf: true } },
@@ -237,7 +262,7 @@ function paraResumo(ata: AtaSelecionada, nivel: NivelVisao, q?: string): AtaResu
     id: ata.id,
     codigo: completo && ata.numero ? ata.numero : codigoPublico(ata.id),
     grupoId: grupoDaCategoria(ata.categoria),
-    objeto: ata.objeto,
+    titulo: completo && ata.objeto ? ata.objeto : tituloPublicoDaAta(ata.tituloPublico, ata.categoria),
   };
   if (!comDetalhes(nivel)) return resumo;
 
@@ -346,14 +371,14 @@ async function obterAtaSemCache(id: string, nivel: NivelVisao): Promise<AtaDetal
   if (!comDetalhes(nivel)) {
     const basica = await prisma.ata.findFirst({
       where: { AND: [{ id }, baseAtasVigentes()] },
-      select: { id: true, categoria: true, objeto: true },
+      select: { id: true, categoria: true, tituloPublico: true },
     });
     if (!basica) return null;
     return {
       id: basica.id,
       codigo: codigoPublico(basica.id),
       grupoId: grupoDaCategoria(basica.categoria),
-      objeto: basica.objeto,
+      titulo: tituloPublicoDaAta(basica.tituloPublico, basica.categoria),
       itens: [],
       relacionadas: await relacionadasDe(basica.categoria),
     };
@@ -365,6 +390,7 @@ async function obterAtaSemCache(id: string, nivel: NivelVisao): Promise<AtaDetal
       id: true,
       categoria: true,
       objeto: true,
+      tituloPublico: true,
       dataVigenciaFim: true,
       updatedAt: true,
       ...(completo
@@ -418,7 +444,7 @@ async function obterAtaSemCache(id: string, nivel: NivelVisao): Promise<AtaDetal
     codigo: completo && a.numero ? a.numero : codigoPublico(a.id),
     grupoId: grupoDaCategoria(a.categoria),
     uf: a.orgaoGerenciador.uf,
-    objeto: a.objeto,
+    titulo: a.objeto,
     nItens: itens.length,
     saldoMedio: saldoMedio(itens.map((i) => i.saldo)),
     vigencia: exibirVigencia(a.dataVigenciaFim, nivel),

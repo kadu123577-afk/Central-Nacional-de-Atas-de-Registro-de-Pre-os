@@ -90,7 +90,7 @@ export default async function PaginaInicial({ searchParams }: Parametros) {
                   <span className="mono">Nº {h.destaque.codigo}</span>
                 </div>
                 <h2 className="destaque__titulo">
-                  <Link href={`/catalogo/${h.destaque.id}`}>{h.destaque.objeto}</Link>
+                  <Link href={`/catalogo/${h.destaque.id}`}>{h.destaque.titulo}</Link>
                 </h2>
                 <p className="destaque__meta">{nomeDoGrupo(h.destaque.grupoId)}</p>
                 <p className="destaque__meta">

@@ -20,9 +20,9 @@ export async function generateMetadata({ params }: Parametros): Promise<Metadata
   const ata = await obterAta(ataId, nivel);
   if (!ata) return { title: "Ata não encontrada", robots: { index: false, follow: false } };
   return {
-    title: `Ata ${ata.codigo} · ${ata.objeto}`,
+    title: `Ata ${ata.codigo} · ${ata.titulo}`,
     // Sem UF, itens nem saldo: o que não aparece na página não vai para o Google.
-    description: `Ata ${ata.codigo}: ${ata.objeto} (${nomeDoGrupo(ata.grupoId)}). Entre com o acesso do seu órgão para pedir a adesão pela Central Nacional de Atas.`,
+    description: `Ata ${ata.codigo}: ${ata.titulo} (${nomeDoGrupo(ata.grupoId)}). Entre com o acesso do seu órgão para pedir a adesão pela Central Nacional de Atas.`,
     alternates: { canonical: `/catalogo/${ata.id}` },
   };
 }
@@ -41,7 +41,7 @@ export default async function PaginaAta({ params }: Parametros) {
 
   const hrefEntrar = `/entrar?perfil=orgao&ata=${encodeURIComponent(ata.id)}`;
   const externo = SITE.whatsapp ? { target: "_blank", rel: "noopener noreferrer" } : {};
-  const contatoDuvida = linkContato(`Olá! Tenho uma dúvida sobre a Ata ${ata.codigo} (${ata.objeto}).`);
+  const contatoDuvida = linkContato(`Olá! Tenho uma dúvida sobre a Ata ${ata.codigo} (${ata.titulo}).`);
 
   return (
     <>
@@ -55,7 +55,7 @@ export default async function PaginaAta({ params }: Parametros) {
               <li aria-current="page">Ata {ata.codigo}</li>
             </ol>
           </nav>
-          <h1>{ata.objeto}</h1>
+          <h1>{ata.titulo}</h1>
           <p className="ata-cabeca__meta">
             <span className="mono">Ata nº {ata.codigo}</span>
             <span>
@@ -130,7 +130,7 @@ export default async function PaginaAta({ params }: Parametros) {
               {!completo ? (
                 <a
                   className="botao botao--secundario botao--pequeno"
-                  href={linkContato(`Olá! Quero os documentos da Ata ${ata.codigo} (${ata.objeto}).`)}
+                  href={linkContato(`Olá! Quero os documentos da Ata ${ata.codigo} (${ata.titulo}).`)}
                   {...externo}
                 >
                   Falar com a equipe

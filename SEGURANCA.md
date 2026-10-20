@@ -16,7 +16,7 @@ Atualizado em 2026-10-20 (branch `seguranca-hardening`).
 | Trilha de auditoria (login, falhas, troca de senha, 2FA e toda ação do admin, com IP) | `src/lib/auditoria.ts`, tabela `logs_auditoria` |
 | Rotas de rastreamento fechadas sem `CRON_SECRET` (antes ficavam abertas) | `src/lib/cron-auth.ts` |
 | Download de documentos: tipo validado pelos bytes, nome escapado, `sandbox` + `nosniff` | `src/lib/documentos.ts` |
-| Sigilo da vitrine: o visitante recebe só categoria, objeto e código (sem UF, itens, saldo nem vigência, nem como filtro ou busca); o órgão logado recebe exatamente o mesmo que o visitante (o pedido de adesão é por ata, sem escolher item, e a equipe monta o pedido); download de documentos só para equipe e fornecedor dono (ver `SITE-PUBLICO.md`) | `src/lib/catalogo-publico.ts`, `src/lib/visibilidade.ts` |
+| Sigilo da vitrine: o visitante recebe só categoria, título público genérico e código (o objeto original, que costuma ser o texto do PNCP, nem é lido do banco) (sem UF, itens, saldo nem vigência, nem como filtro ou busca); o órgão logado recebe exatamente o mesmo que o visitante (o pedido de adesão é por ata, sem escolher item, e a equipe monta o pedido); download de documentos só para equipe e fornecedor dono (ver `SITE-PUBLICO.md`) | `src/lib/catalogo-publico.ts`, `src/lib/visibilidade.ts` |
 | Removida server action pública que permitia sobrescrever senha de fornecedor pelo CNPJ | `src/app/atas/actions.ts` (apagado) |
 | Resposta de login com tempo igual para e-mail inexistente | `gastarTempoDeHash` |
 

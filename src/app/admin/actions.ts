@@ -18,6 +18,7 @@ import {
 import { registrarAuditoria } from "@/lib/auditoria";
 import { detectarTipoDocumento, nomeArquivoSeguro } from "@/lib/documentos";
 import { statusDemandaValido } from "@/lib/demandas";
+import { validarTituloPublico } from "@/lib/site/titulo";
 import { validarSenhaNova } from "@/lib/senha";
 import {
   cifrarSegredo,
@@ -1150,6 +1151,11 @@ export async function cadastrarAtaComoAdmin(
   const numero = String(formData.get("numero") ?? "").trim();
   const objeto = String(formData.get("objeto") ?? "").trim();
   const ataCategoria = String(formData.get("ataCategoria") ?? "").trim();
+  const tituloPublico = String(formData.get("tituloPublico") ?? "").trim();
+  const erroTitulo = validarTituloPublico(tituloPublico);
+  if (erroTitulo) {
+    return { erro: erroTitulo };
+  }
   const dataAssinatura = String(formData.get("dataAssinatura") ?? "");
   const dataVigenciaFim = String(formData.get("dataVigenciaFim") ?? "");
   const origemBruta = String(formData.get("origem") ?? "MANUAL").trim();
@@ -1244,6 +1250,7 @@ export async function cadastrarAtaComoAdmin(
         numero,
         objeto,
         categoria: ataCategoria,
+        tituloPublico: tituloPublico || null,
         origem,
         dataAssinatura: new Date(dataAssinatura),
         dataVigenciaFim: new Date(dataVigenciaFim),
@@ -1415,4 +1422,33 @@ export async function atualizarDemanda(formData: FormData): Promise<void> {
     },
   });
   revalidatePath("/admin/demandas");
+}
+
+export interface EstadoTituloPublico {
+  erro?: string;
+  sucesso?: boolean;
+}
+
+/**
+ * Título público da ata (2026-10-20): o único nome que visitante e órgão veem no
+ * site. Genérico de propósito (ex.: "Ata de material de limpeza"). Vazio = o site
+ * gera "Ata de <categoria>". O objeto original nunca sai para o público.
+ */
+export async function definirTituloPublicoAta(
+  _estadoAnterior: EstadoTituloPublico,
+  formData: FormData,
+): Promise<EstadoTituloPublico> {
+  await exigirAdmin("admin.definirTituloPublicoAta");
+  const ataId = String(formData.get("ataId") ?? "");
+  const titulo = String(formData.get("tituloPublico") ?? "").trim();
+  if (!ataId) return { erro: "Ata inválida." };
+
+  const erro = validarTituloPublico(titulo);
+  if (erro) return { erro };
+
+  await prisma.ata.update({ where: { id: ataId }, data: { tituloPublico: titulo || null } });
+  revalidatePath("/atas");
+  revalidatePath(`/admin/atas/${ataId}/municipios`);
+  revalidatePath(`/catalogo/${ataId}`);
+  return { sucesso: true };
 }

@@ -10,6 +10,7 @@ import { VazioComAcao } from "@/components/ui/vazio-com-acao";
 import { corDaCategoria, rotuloDaCategoria } from "@/lib/categorias";
 import { buscarMunicipiosCompativeis } from "@/lib/match-ata-municipio";
 import { FormularioCategoriaAta } from "./formulario-categoria";
+import { FormularioTituloPublico } from "./formulario-titulo-publico";
 import { NAV_ADMIN } from "@/app/admin/nav";
 
 export const dynamic = "force-dynamic";
@@ -87,6 +88,14 @@ export default async function MunicipiosCompativeisPage({
 
       <Secao titulo="Categoria desta ata">
         <FormularioCategoriaAta ataId={ata.id} categoriaAtual={ata.categoria} />
+      </Secao>
+
+      <Secao titulo="Título público (o que o site mostra)">
+        <FormularioTituloPublico
+          ataId={ata.id}
+          tituloAtual={ata.tituloPublico}
+          categoria={ata.categoria}
+        />
       </Secao>
 
       {!ata.categoria ? (

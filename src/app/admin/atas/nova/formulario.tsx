@@ -88,7 +88,23 @@ export function FormularioNovaAtaAdmin() {
         <Secao titulo="Ata">
           <div className="flex flex-col gap-4">
             <Campo label="Número" name="numero" required />
-            <Campo label="Objeto" name="objeto" required />
+            <Campo label="Objeto (uso interno, não aparece no site)" name="objeto" required />
+            <label className="block text-sm">
+              <span className="mb-1 block font-medium" style={{ color: "var(--cor-texto-2)" }}>
+                Título público (aparece no site)
+              </span>
+              <input
+                name="tituloPublico"
+                type="text"
+                maxLength={120}
+                placeholder="Ex.: Ata de material de limpeza"
+                className="campo-atas"
+              />
+              <span className="mt-1 block text-xs" style={{ color: "var(--cor-texto-3)" }}>
+                Genérico de propósito: o objeto original costuma ser o mesmo texto do PNCP e permitiria
+                achar a ata lá e contratar direto. Se ficar vazio, o site usa &quot;Ata de &lt;tema&gt;&quot;.
+              </span>
+            </label>
             <label className="block text-sm">
               <span className="mb-1 block font-medium" style={{ color: "var(--cor-texto-2)" }}>
                 Origem

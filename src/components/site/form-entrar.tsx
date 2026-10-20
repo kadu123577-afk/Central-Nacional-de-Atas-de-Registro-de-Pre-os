@@ -29,7 +29,7 @@ interface Props {
   /** Para onde o órgão vai depois de entrar (ex.: o pedido do item escolhido). */
   destinoOrgao: string;
   /** Ata de onde veio o pedido de adesão (dado público: código e objeto). */
-  contexto: { codigo: string; objeto: string } | null;
+  contexto: { codigo: string; titulo: string } | null;
   hrefCadastroOrgao: string;
   hrefCadastroFornecedor: string;
   hrefEsqueci: string;
@@ -104,7 +104,7 @@ export function FormEntrar({
       {contexto ? (
         <p className="contexto-adesao">
           <b>Pedido de adesão</b>
-          Ata {contexto.codigo}: {contexto.objeto}. Entre com o acesso do seu órgão para montar o pedido.
+          Ata {contexto.codigo}: {contexto.titulo}. Entre com o acesso do seu órgão para montar o pedido.
         </p>
       ) : null}
 

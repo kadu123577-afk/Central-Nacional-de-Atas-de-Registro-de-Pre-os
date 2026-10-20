@@ -70,7 +70,7 @@ export function LivroAtas({ atas }: { atas: AtaResumo[] }) {
             <span className="lanc__num mono">Nº {ata.codigo}</span>
             <div className="lanc__objeto">
               <h3>
-                <Link href={`/catalogo/${ata.id}`}>{ata.objeto}</Link>
+                <Link href={`/catalogo/${ata.id}`}>{ata.titulo}</Link>
               </h3>
               {ata.nItens !== undefined || ata.orgao ? (
                 <p>

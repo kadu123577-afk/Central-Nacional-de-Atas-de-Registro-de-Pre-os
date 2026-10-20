@@ -135,6 +135,11 @@ model Ata {
   // Chave de deduplicação do rastreador do PNCP (Sprint 7) — nula para
   // atas cadastradas manualmente.
   numeroControlePncp String?   @unique
+  // Título genérico que aparece no site para quem não é da equipe (ex.: "Ata de
+  // material de limpeza"). O objeto original costuma ser o mesmo texto do PNCP e
+  // permitiria achar a ata lá e contratar direto, então nunca sai para o público.
+  // Vazio = o site usa "Ata de <categoria>" (src/lib/site/titulo.ts).
+  tituloPublico      String?
   dataAssinatura     DateTime
   dataVigenciaFim    DateTime
   fornecedorId       String
