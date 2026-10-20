@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { obterAta } from "@/lib/catalogo-publico";
+import { nomeDoOrgao, obterAta } from "@/lib/catalogo-publico";
+import { orgaoIdLogado } from "@/lib/auth";
 import { nomeDoGrupo } from "@/lib/site/categorias";
 import { linkContato, SITE } from "@/lib/site/config";
 import { numero } from "@/lib/site/formato";
 import { nivelDeVisao } from "@/lib/visibilidade";
+import { FormPedidoAdesao } from "@/components/site/form-pedido-adesao";
 import { IconeCadeado, IconeCategoria, IconeSeta } from "@/components/site/icones";
 import { LivroAtas, SeloVigencia } from "@/components/site/pecas";
 import { TabelaItens } from "@/components/site/tabela-itens";
@@ -20,7 +22,7 @@ export async function generateMetadata({ params }: Parametros): Promise<Metadata
   return {
     title: `Ata ${ata.codigo} · ${ata.objeto}`,
     // Sem UF, itens nem saldo: o que não aparece na página não vai para o Google.
-    description: `Ata ${ata.codigo}: ${ata.objeto} (${nomeDoGrupo(ata.grupoId)}). Entre com o acesso do seu órgão para ver os itens e pedir a adesão pela Central Nacional de Atas.`,
+    description: `Ata ${ata.codigo}: ${ata.objeto} (${nomeDoGrupo(ata.grupoId)}). Entre com o acesso do seu órgão para pedir a adesão pela Central Nacional de Atas.`,
     alternates: { canonical: `/catalogo/${ata.id}` },
   };
 }
@@ -32,12 +34,12 @@ export default async function PaginaAta({ params }: Parametros) {
   if (!ata) notFound();
 
   const completo = nivel === "completo";
-  const visitante = nivel === "publico";
   const orgaoLogado = nivel === "orgao";
+  const orgaoId = orgaoLogado ? await orgaoIdLogado() : null;
+  const nomeOrgao = orgaoId ? await nomeDoOrgao(orgaoId) : null;
   const grupo = nomeDoGrupo(ata.grupoId);
 
   const hrefEntrar = `/entrar?perfil=orgao&ata=${encodeURIComponent(ata.id)}`;
-  const hrefPedidoAta = orgaoLogado ? "#t-itens" : hrefEntrar;
   const externo = SITE.whatsapp ? { target: "_blank", rel: "noopener noreferrer" } : {};
   const contatoDuvida = linkContato(`Olá! Tenho uma dúvida sobre a Ata ${ata.codigo} (${ata.objeto}).`);
 
@@ -68,15 +70,30 @@ export default async function PaginaAta({ params }: Parametros) {
 
       <div className="wrap detalhe">
         <div className="detalhe__principal">
-          {visitante ? (
-            <section className="bloco" aria-labelledby="t-itens">
+          {completo ? (
+            <TabelaItens itens={ata.itens} codigo={ata.codigo} />
+          ) : orgaoLogado && nomeOrgao ? (
+            <section className="bloco" id="pedido" aria-labelledby="t-pedido">
               <div className="bloco__cabeca">
                 <div>
-                  <h2 id="t-itens">Itens, quantidades e saldo</h2>
+                  <h2 id="t-pedido">Pedir adesão a esta ata</h2>
+                  <p>
+                    Conte o que o seu órgão precisa. A equipe da Central confere os itens e o saldo, monta
+                    o pedido e encaminha ao órgão gerenciador.
+                  </p>
+                </div>
+              </div>
+              <FormPedidoAdesao ataId={ata.id} nomeOrgao={nomeOrgao} codigoAta={ata.codigo} />
+            </section>
+          ) : (
+            <section className="bloco" id="pedido" aria-labelledby="t-pedido">
+              <div className="bloco__cabeca">
+                <div>
+                  <h2 id="t-pedido">Pedir adesão a esta ata</h2>
                   <p>
                     <IconeCadeado estilo={{ width: 14, height: 14, verticalAlign: "-2px", marginRight: 4 }} />
-                    Disponíveis para órgãos públicos com acesso. Entre para ver o que há nesta ata, quanto
-                    ainda pode ser aderido e fazer o pedido.
+                    Entre com o acesso do seu órgão e conte o que precisa. A equipe da Central confere os
+                    itens, as quantidades e o saldo e monta o pedido para você.
                   </p>
                 </div>
                 <Link className="botao botao--primario botao--pequeno" href={hrefEntrar}>
@@ -84,15 +101,6 @@ export default async function PaginaAta({ params }: Parametros) {
                 </Link>
               </div>
             </section>
-          ) : (
-            <TabelaItens
-              ataId={ata.id}
-              itens={ata.itens}
-              total={ata.nItensTotal ?? ata.itens.length}
-              completo={completo}
-              orgaoLogado={orgaoLogado}
-              codigo={ata.codigo}
-            />
           )}
 
           <section className="bloco" aria-labelledby="t-docs">
@@ -134,14 +142,14 @@ export default async function PaginaAta({ params }: Parametros) {
 
         <aside className="resumo" aria-label="Resumo da ata">
           <div className="bloco">
-            {!visitante ? (
+            {completo ? (
               <>
                 <div className="resumo__vigencia">
                   <span className="rotulo-secao">
                     <span className="losango" aria-hidden="true" />
                     Vigência
                   </span>
-                  {completo && ata.diasRestantes !== undefined ? (
+                  {ata.diasRestantes !== undefined ? (
                     <>
                       <p className="dias tab">
                         {numero(Math.max(ata.diasRestantes, 0))}
@@ -151,40 +159,32 @@ export default async function PaginaAta({ params }: Parametros) {
                         De {ata.inicio} a {ata.fim}
                       </p>
                     </>
-                  ) : ata.vigencia ? (
-                    <p>
-                      <SeloVigencia vigencia={ata.vigencia} />
-                    </p>
                   ) : null}
                 </div>
                 <dl>
                   <div><dt>Itens</dt><dd>{ata.nItensTotal}</dd></div>
                   <div><dt>Saldo médio para adesão</dt><dd>{Math.round((ata.saldoMedio ?? 0) * 100)}%</dd></div>
-                  {completo ? (
-                    <>
-                      <div><dt>Órgão gerenciador</dt><dd className="longo">{ata.orgao}</dd></div>
-                      <div><dt>Fornecedor</dt><dd className="longo">{ata.fornecedor}</dd></div>
-                      {ata.numeroPncp ? (
-                        <div><dt>Nº de controle PNCP</dt><dd className="mono">{ata.numeroPncp}</dd></div>
-                      ) : null}
-                    </>
+                  <div><dt>Órgão gerenciador</dt><dd className="longo">{ata.orgao}</dd></div>
+                  <div><dt>Fornecedor</dt><dd className="longo">{ata.fornecedor}</dd></div>
+                  {ata.numeroPncp ? (
+                    <div><dt>Nº de controle PNCP</dt><dd className="mono">{ata.numeroPncp}</dd></div>
                   ) : null}
                   <div><dt>Última conferência</dt><dd>{ata.conferidaEm}</dd></div>
                 </dl>
               </>
             ) : (
               <p style={{ color: "var(--cor-texto-2)", fontSize: "var(--tam-sm)" }}>
-                Esta ata está vigente e disponível para adesão. Os detalhes (itens, quantidades, saldo e
-                vigência) aparecem depois que o seu órgão entra.
+                Esta ata está vigente e disponível para adesão. Itens, quantidades, saldo e vigência são
+                conferidos pela equipe da Central no momento do pedido.
               </p>
             )}
             {!completo ? (
               <Link
                 className="botao botao--primario botao--grande botao--largo"
                 style={{ marginTop: 16 }}
-                href={hrefPedidoAta}
+                href={orgaoLogado ? "#pedido" : hrefEntrar}
               >
-                {orgaoLogado ? "Escolher itens para pedir adesão" : "Pedir adesão a esta ata"}
+                Pedir adesão a esta ata
               </Link>
             ) : null}
             <a
@@ -201,8 +201,8 @@ export default async function PaginaAta({ params }: Parametros) {
             <ol className="mini-passos">
               <li>
                 <span>
-                  <b>Seu órgão faz o pedido</b>Escolha os itens e as quantidades. Cada órgão pode aderir a
-                  até 50% do registrado por item.
+                  <b>Seu órgão faz o pedido</b>Diga o que precisa. A equipe confere itens, quantidades e o
+                  saldo, respeitando o limite de 50% do registrado por órgão.
                 </span>
               </li>
               <li>

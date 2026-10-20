@@ -147,6 +147,17 @@ describe("destino depois do login", () => {
     expect(destinoSeguro("/fornecedor", "fornecedor", "/fornecedor")).toBe("/fornecedor");
   });
 
+  it("o órgão pode voltar à página da ata de onde veio, mas só a ela", () => {
+    expect(destinoSeguro("/catalogo/cmvh1t6uc0004bf1sikbxv4mw", "orgao", "/orgao")).toBe(
+      "/catalogo/cmvh1t6uc0004bf1sikbxv4mw",
+    );
+    // outras páginas do catálogo, ids curtos ou com sobra não passam
+    expect(destinoSeguro("/catalogo", "orgao", "/orgao")).toBe("/orgao");
+    expect(destinoSeguro("/catalogo/abc", "orgao", "/orgao")).toBe("/orgao");
+    expect(destinoSeguro("/catalogo/cmvh1t6uc0004bf1sikbxv4mw/x", "orgao", "/orgao")).toBe("/orgao");
+    expect(destinoSeguro("/catalogo/cmvh1t6uc0004bf1sikbxv4mw", "fornecedor", "/fornecedor")).toBe("/fornecedor");
+  });
+
   it("recusa endereço externo, outra área e truques de caminho", () => {
     const padrao = "/orgao";
     for (const ruim of [

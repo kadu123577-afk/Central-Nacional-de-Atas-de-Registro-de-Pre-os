@@ -53,8 +53,7 @@ export default async function PaginaInicial({ searchParams }: Parametros) {
             </h1>
             <p className="inicio__lead">
               Atas publicadas por outros órgãos, organizadas por objeto e categoria. Entre com o acesso do
-              seu órgão para ver os itens e quanto ainda pode ser aderido, e faça o pedido em um só
-              lugar.
+              seu órgão e peça a adesão: a equipe confere itens e saldo e monta o pedido para você.
             </p>
 
             <form className="busca-principal busca-principal--sem-uf" action="/catalogo" role="search">
@@ -95,7 +94,7 @@ export default async function PaginaInicial({ searchParams }: Parametros) {
                 </h2>
                 <p className="destaque__meta">{nomeDoGrupo(h.destaque.grupoId)}</p>
                 <p className="destaque__meta">
-                  Itens, quantidades e saldo ficam disponíveis para órgãos com acesso.
+                  Itens, quantidades e saldo são conferidos pela equipe no pedido de adesão.
                 </p>
                 <Link className="botao botao--primario botao--largo" href={`/catalogo/${h.destaque.id}`}>
                   Ver a ata
@@ -128,8 +127,7 @@ export default async function PaginaInicial({ searchParams }: Parametros) {
             <div>
               <h2 id="t-destaques">Atas publicadas recentemente</h2>
               <p>
-                As últimas atas que entraram no catálogo. Clique em uma para ver o objeto e pedir a
-                adesão.
+                As últimas atas que entraram no catálogo. Clique em uma para pedir a adesão.
               </p>
             </div>
             <Link className="link-seta" href="/catalogo">
@@ -201,13 +199,13 @@ export default async function PaginaInicial({ searchParams }: Parametros) {
             <li>
               <span className="passos__num" aria-hidden="true">1</span>
               <h3>Encontre a ata</h3>
-              <p>Busque pelo objeto ou pela categoria. Com o acesso do seu órgão, você vê os itens, a vigência e o saldo.</p>
+              <p>Busque pelo objeto ou pela categoria e escolha a ata que atende o seu órgão.</p>
               <p className="passos__quem">Seu órgão</p>
             </li>
             <li>
               <span className="passos__num" aria-hidden="true">2</span>
               <h3>Peça a adesão</h3>
-              <p>Escolha os itens e as quantidades. O pedido sai completo para o gerenciador avaliar.</p>
+              <p>Diga o que o seu órgão precisa. A equipe confere itens e saldo e monta o pedido para o gerenciador avaliar.</p>
               <p className="passos__quem">Seu órgão</p>
             </li>
             <li>
@@ -258,8 +256,8 @@ export default async function PaginaInicial({ searchParams }: Parametros) {
               </p>
               <ul>
                 <li>Consulta sem custo e sem cadastro</li>
-                <li>Saldo para adesão calculado por item</li>
-                <li>Pedido organizado para o gerenciador avaliar</li>
+                <li>Saldo para adesão conferido pela equipe</li>
+                <li>Pedido montado pela equipe para o gerenciador avaliar</li>
                 <li>Acompanhamento das respostas em um só painel</li>
               </ul>
               <Link className="botao botao--primario" href="/entrar?perfil=orgao">

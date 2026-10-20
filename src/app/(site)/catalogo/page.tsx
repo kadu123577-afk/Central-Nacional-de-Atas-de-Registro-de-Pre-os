@@ -37,8 +37,9 @@ export default async function PaginaCatalogo({ searchParams }: { searchParams: P
   const q = texto(busca.q);
   const cat = grupoValido(texto(busca.cat)) ? texto(busca.cat) : "";
   // UF, vigência e ordenação por dados ocultos só existem para quem pode ver
-  // esses dados; o visitante nunca os usa (nem montando o endereço na mão).
-  const detalhes = nivel !== "publico";
+  // esses dados (só a equipe). Visitante e órgão logado nunca os usam, nem
+  // montando o endereço na mão.
+  const detalhes = nivel === "completo";
   const uf = detalhes && ufValida(texto(busca.uf).toUpperCase()) ? texto(busca.uf).toUpperCase() : "";
   const vig = detalhes && VIGENCIAS.includes(texto(busca.vig)) ? texto(busca.vig) : "";
   const max = nivel === "completo" ? texto(busca.max) : "";
@@ -88,7 +89,7 @@ export default async function PaginaCatalogo({ searchParams }: { searchParams: P
             Só aparecem atas dentro da vigência.{" "}
             {detalhes
               ? "O saldo mostra quanto ainda pode ser aderido por outros órgãos."
-              : "Entre com o acesso do seu órgão para ver os itens, a vigência e o saldo de cada ata."}
+              : "Escolha a ata e peça a adesão: a equipe da Central confere itens, vigência e saldo para o seu órgão."}
           </p>
         </div>
       </header>

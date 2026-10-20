@@ -674,7 +674,14 @@ model DemandaSemAta {
   atendidaEm  DateTime?
   notaInterna String?
   ipHash      String?
+  // sem_ata (formulário "Não achei a ata") | pedido_adesao (órgão logado pede a
+  // adesão a uma ata sem ver os itens; a equipe monta o pedido). Sem chave
+  // estrangeira de propósito: a demanda sobrevive mesmo se a ata for apagada.
+  tipo        String    @default("sem_ata")
+  ataId       String?
+  orgaoId     String?
 
   @@index([status, criadoEm])
+  @@index([ataId])
   @@map("demandas_sem_ata")
 }

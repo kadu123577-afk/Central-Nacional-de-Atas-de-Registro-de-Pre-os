@@ -19,6 +19,14 @@ export function statusDemandaValido(valor: string): valor is StatusDemanda {
   return (STATUS_DEMANDA as readonly string[]).includes(valor);
 }
 
+export const TIPOS_DEMANDA = ["sem_ata", "pedido_adesao"] as const;
+export type TipoDemanda = (typeof TIPOS_DEMANDA)[number];
+
+export const ROTULO_TIPO_DEMANDA: Record<TipoDemanda, string> = {
+  sem_ata: "Não achei a ata",
+  pedido_adesao: "Pedido de adesão",
+};
+
 export const PRAZOS_DEMANDA = ["Urgente, até 30 dias", "De 1 a 3 meses", "Mais de 3 meses"] as const;
 
 export interface DadosDemanda {
@@ -50,10 +58,10 @@ export function contatoValido(contato: string): boolean {
 }
 
 /** Lê os campos do formulário, já aparados e com limite de tamanho. */
-export function lerDemanda(formData: FormData): DadosDemanda {
+export function lerDemanda(formData: FormData, maxObjeto = 300): DadosDemanda {
   const campo = (nome: string, max: number) => String(formData.get(nome) ?? "").trim().slice(0, max);
   return {
-    objeto: campo("objeto", 300),
+    objeto: campo("objeto", maxObjeto),
     quantidade: campo("quantidade", 100),
     uf: campo("uf", 2).toUpperCase(),
     prazo: campo("prazo", 40),

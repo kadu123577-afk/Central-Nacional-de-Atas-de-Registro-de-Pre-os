@@ -20,7 +20,7 @@ export const FAQ: { pergunta: string; resposta: string }[] = [
   {
     pergunta: "Quanto o meu órgão pode aderir de cada item?",
     resposta:
-      "Cada órgão não participante pode aderir a até 50% da quantidade registrada de cada item, e o total de adesões não pode passar do dobro dessa quantidade. A barra de saldo de cada ata mostra quanto ainda está disponível.",
+      "Cada órgão não participante pode aderir a até 50% da quantidade registrada de cada item, e o total de adesões não pode passar do dobro dessa quantidade. A equipe da Central confere o saldo disponível antes de encaminhar o pedido.",
   },
   {
     pergunta: "De onde vêm as atas do catálogo?",

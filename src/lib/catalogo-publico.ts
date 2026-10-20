@@ -26,14 +26,15 @@ import {
  * nível de visão (src/lib/visibilidade.ts). Nenhuma página da vitrine deve
  * consultar o Prisma diretamente.
  *
- * Regra de ouro: o visitante recebe SÓ categoria, objeto e um código. UF,
- * itens, quantidades, saldo e vigência ficam de fora, porque qualquer um
- * deles, somado ao objeto, basta para achar a ata no PNCP e contratar direto
- * com o fornecedor, sem passar pela plataforma (e sem a comissão). Isso vale
- * também para filtros e buscas: filtrar por UF ou buscar por item serviria
- * para descobrir esses dados por tentativa, então só existem para quem tem
- * nível "orgao" ou "completo". Os campos restritos nem são lidos do banco
- * para o visitante.
+ * Regra de ouro: quem não é da equipe (visitante E órgão logado) recebe SÓ
+ * categoria, objeto e um código. UF, itens, quantidades, saldo e vigência
+ * ficam de fora, porque qualquer um deles, somado ao objeto, basta para achar a
+ * ata no PNCP e contratar direto com o fornecedor, sem passar pela plataforma
+ * (e sem a comissão). Isso vale também para filtros e buscas: filtrar por UF ou
+ * buscar por item serviria para descobrir esses dados por tentativa, então só
+ * existem para a equipe (nível "completo"). Os campos restritos nem são lidos do
+ * banco para os demais. O órgão faz o pedido de adesão por ata, sem escolher
+ * item; a equipe confere itens e saldo e monta o pedido.
  */
 
 export const POR_PAGINA = 12;
@@ -51,9 +52,20 @@ function baseAtasVigentes(): Prisma.AtaWhereInput {
   };
 }
 
-/** Órgão logado e equipe veem detalhes (UF, vigência, itens). O visitante, não. */
+/** Só a equipe vê detalhes (UF, vigência, itens, órgão, fornecedor, preço). */
 function comDetalhes(nivel: NivelVisao): boolean {
-  return nivel !== "publico";
+  return nivel === "completo";
+}
+
+/** Nome do órgão logado (para o formulário de pedido de adesão). */
+export async function nomeDoOrgao(orgaoId: string): Promise<string | null> {
+  const orgao = await prisma.orgao.findUnique({ where: { id: orgaoId }, select: { nome: true } });
+  return orgao?.nome ?? null;
+}
+
+/** A ata existe, está aprovada e vigente (para aceitar um pedido de adesão). */
+export async function ataDisponivelParaPedido(id: string): Promise<boolean> {
+  return (await prisma.ata.count({ where: { AND: [{ id }, baseAtasVigentes()] } })) > 0;
 }
 
 // ---------------------------------------------------------------------------
@@ -66,7 +78,7 @@ export interface AtaResumo {
   codigo: string;
   grupoId: string;
   objeto: string;
-  /** A partir daqui, só órgão logado e equipe (nunca o visitante). */
+  /** A partir daqui, só a equipe (nunca visitante nem órgão logado). */
   uf?: string;
   nItens?: number;
   /** 0 a 1. */
@@ -91,7 +103,7 @@ export interface ItemDaAta {
 }
 
 export interface AtaDetalhe extends AtaResumo {
-  /** Vazio para o visitante. */
+  /** Vazio para quem não é da equipe. */
   itens: ItemDaAta[];
   nItensTotal?: number;
   conferidaEm?: string;
@@ -109,13 +121,13 @@ export type Ordenacao = "recentes" | "vigencia" | "itens" | "saldo";
 export interface FiltrosCatalogo {
   q?: string;
   grupo?: string;
-  /** Ignorado para o visitante. */
+  /** Ignorado para quem não é da equipe. */
   uf?: string;
-  /** Ignorado para o visitante. */
+  /** Ignorado para quem não é da equipe. */
   vigMeses?: number;
   /** Só vale para a equipe. */
   valorMax?: number;
-  /** Para o visitante a ordem é sempre "recentes". */
+  /** Para quem não é da equipe a ordem é sempre "recentes". */
   ord?: Ordenacao;
   pagina?: number;
 }
@@ -330,7 +342,7 @@ async function obterAtaSemCache(id: string, nivel: NivelVisao): Promise<AtaDetal
       })) as AtaSelecionada[]
     ).map((r) => paraResumo(r, nivel));
 
-  // Visitante: só objeto e categoria. Nada de itens, UF, saldo nem vigência.
+  // Quem não é da equipe: só objeto e categoria. Nada de itens, UF, saldo nem vigência.
   if (!comDetalhes(nivel)) {
     const basica = await prisma.ata.findFirst({
       where: { AND: [{ id }, baseAtasVigentes()] },

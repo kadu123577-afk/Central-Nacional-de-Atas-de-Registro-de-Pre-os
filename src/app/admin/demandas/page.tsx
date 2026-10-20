@@ -4,9 +4,11 @@ import { adminIdLogado } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import {
   ROTULO_STATUS_DEMANDA,
+  ROTULO_TIPO_DEMANDA,
   STATUS_DEMANDA,
   statusDemandaValido,
   type StatusDemanda,
+  type TipoDemanda,
 } from "@/lib/demandas";
 import { atualizarDemanda, logoutAdmin } from "../actions";
 import { AppShell } from "@/components/ui/app-shell";
@@ -42,6 +44,23 @@ export default async function DemandasPage({
   ]);
   const total = (s: string) => contagens.find((c) => c.status === s)?._count._all ?? 0;
 
+  // Pedidos de adesão apontam para uma ata: só aqui, na área da equipe, aparece quem é o
+  // fornecedor e o órgão gerenciador dela (o órgão que pediu não os vê).
+  const idsDeAta = [...new Set(demandas.map((d) => d.ataId).filter((id): id is string => Boolean(id)))];
+  const atas = idsDeAta.length
+    ? await prisma.ata.findMany({
+        where: { id: { in: idsDeAta } },
+        select: {
+          id: true,
+          numero: true,
+          objeto: true,
+          fornecedor: { select: { razaoSocial: true } },
+          orgaoGerenciador: { select: { nome: true, uf: true } },
+        },
+      })
+    : [];
+  const ataPorId = new Map(atas.map((a) => [a.id, a]));
+
   return (
     <AppShell
       area="Administrativo"
@@ -59,8 +78,9 @@ export default async function DemandasPage({
           Demandas do site
         </h1>
         <p className="mt-1 text-sm" style={{ color: "var(--cor-texto-2)" }}>
-          Órgãos que não acharam a ata que precisam, pelo formulário &quot;Não achei a ata&quot; do site. Procure uma
-          ata compatível e responda pelo contato informado.
+          Dois tipos de demanda vindas do site: <strong>pedido de adesão</strong> (órgão logado que quer aderir
+          a uma ata; ele não vê os itens, então a equipe confere itens e saldo e monta o pedido) e <strong>não achei a ata</strong> (órgão que
+          procura uma ata que não está no catálogo). Responda pelo contato informado.
         </p>
       </div>
 
@@ -96,10 +116,25 @@ export default async function DemandasPage({
                   <p className="font-medium" style={{ color: "var(--cor-texto)" }}>
                     {d.objeto}
                   </p>
-                  <Badge tom={d.status === "nova" ? "marca" : "neutro"}>
-                    {ROTULO_STATUS_DEMANDA[d.status as StatusDemanda] ?? d.status}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge tom={d.tipo === "pedido_adesao" ? "marca" : "neutro"}>
+                      {ROTULO_TIPO_DEMANDA[d.tipo as TipoDemanda] ?? d.tipo}
+                    </Badge>
+                    <Badge tom={d.status === "nova" ? "marca" : "neutro"}>
+                      {ROTULO_STATUS_DEMANDA[d.status as StatusDemanda] ?? d.status}
+                    </Badge>
+                  </div>
                 </div>
+                {d.ataId && ataPorId.get(d.ataId) ? (
+                  <p className="mt-1 text-sm" style={{ color: "var(--cor-texto-2)" }}>
+                    Ata{" "}
+                    <Link href={`/catalogo/${d.ataId}`} className="underline">
+                      {ataPorId.get(d.ataId)!.numero}
+                    </Link>{" "}
+                    — {ataPorId.get(d.ataId)!.fornecedor.razaoSocial} · gerenciador:{" "}
+                    {ataPorId.get(d.ataId)!.orgaoGerenciador.nome} ({ataPorId.get(d.ataId)!.orgaoGerenciador.uf})
+                  </p>
+                ) : null}
                 <p className="mt-1 text-sm" style={{ color: "var(--cor-texto-2)" }}>
                   {d.orgao} · {d.nome}
                   {d.cargo ? ` (${d.cargo})` : ""} ·{" "}

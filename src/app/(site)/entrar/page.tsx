@@ -14,14 +14,14 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-type Busca = { perfil?: string; ata?: string; item?: string };
+type Busca = { perfil?: string; ata?: string };
 
 export default async function PaginaEntrar({ searchParams }: { searchParams: Promise<Busca> }) {
-  const { perfil: p, ata, item } = await searchParams;
+  const { perfil: p, ata } = await searchParams;
   const perfil = p === "fornecedor" ? "fornecedor" : "orgao";
 
   // Quem já está logado vai direto ao destino em vez de ver o formulário.
-  const destinoOrgao = item ? `/orgao/pedido/novo?itemId=${encodeURIComponent(item)}` : "/orgao";
+  const destinoOrgao = ata && /^[A-Za-z0-9]{10,40}$/.test(ata) ? `/catalogo/${ata}` : "/orgao";
   const [orgaoId, fornecedorId] = await Promise.all([orgaoIdLogado(), fornecedorIdLogado()]);
   if (perfil === "orgao" && orgaoId) redirect(destinoOrgao);
   if (perfil === "fornecedor" && fornecedorId) redirect("/fornecedor");
@@ -41,13 +41,14 @@ export default async function PaginaEntrar({ searchParams }: { searchParams: Pro
           </span>
           <h1 id="t-painel">Pedidos de adesão organizados, do início ao aceite.</h1>
           <p>
-            Com o acesso, o seu órgão monta o pedido por item, envia ao gerenciador e acompanha as
-            respostas. O fornecedor vê os pedidos que chegam para as atas dele.
+            Com o acesso, o seu órgão pede a adesão a uma ata e a equipe da Central cuida do resto:
+            confere itens e saldo, monta o pedido, envia ao gerenciador e acompanha as respostas. O
+            fornecedor vê os pedidos que chegam para as atas dele.
           </p>
         </div>
         <ul className="entrar__lista">
-          <li><span className="losango" aria-hidden="true" />Pedido com itens, quantidades e justificativa no mesmo lugar</li>
-          <li><span className="losango" aria-hidden="true" />Saldo conferido antes de enviar</li>
+          <li><span className="losango" aria-hidden="true" />Pedido com a sua necessidade e a justificativa no mesmo lugar</li>
+          <li><span className="losango" aria-hidden="true" />Itens e saldo conferidos pela equipe antes de enviar</li>
           <li><span className="losango" aria-hidden="true" />Histórico de cada resposta, com data</li>
         </ul>
       </section>
