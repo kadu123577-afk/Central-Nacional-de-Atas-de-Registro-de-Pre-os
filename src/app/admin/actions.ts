@@ -6,9 +6,25 @@ import {
   adminIdLogado,
   criarSessaoAdmin,
   encerrarSessaoAdmin,
+  gastarTempoDeHash,
   hashSenha,
   verificarSenha,
 } from "@/lib/auth";
+import {
+  checarBloqueioLogin,
+  registrarFalhaLogin,
+  registrarSucessoLogin,
+} from "@/lib/limite-tentativas";
+import { registrarAuditoria } from "@/lib/auditoria";
+import { detectarTipoDocumento, nomeArquivoSeguro } from "@/lib/documentos";
+import { validarSenhaNova } from "@/lib/senha";
+import {
+  cifrarSegredo,
+  decifrarSegredo,
+  gerarSegredoTotp,
+  uriOtpauth,
+  verificarTotp,
+} from "@/lib/totp";
 import { prisma } from "@/lib/prisma";
 import type { EstadoTrocarSenha } from "@/components/ui/formulario-trocar-senha";
 import { esferaValida } from "@/lib/esferas";
@@ -34,21 +50,47 @@ export async function loginAdmin(
 ): Promise<EstadoLoginAdmin> {
   const email = String(formData.get("email") ?? "").trim();
   const senha = String(formData.get("senha") ?? "");
+  const codigo = String(formData.get("codigo") ?? "");
 
   if (!email || !senha) {
     return { erro: "Informe e-mail e senha." };
   }
 
+  const bloqueio = await checarBloqueioLogin("admin", email);
+  if (bloqueio) {
+    return { erro: bloqueio };
+  }
+
   const admin = await prisma.admin.findUnique({ where: { email } });
   if (!admin) {
+    await gastarTempoDeHash(senha);
+    await registrarFalhaLogin("admin", email);
     return { erro: "E-mail ou senha inválidos." };
   }
 
   const senhaCorreta = await verificarSenha(senha, admin.senhaHash);
   if (!senhaCorreta) {
+    await registrarFalhaLogin("admin", email);
+    await registrarAuditoria({ ator: `admin:${admin.id}`, acao: "admin.login_falhou" });
     return { erro: "E-mail ou senha inválidos." };
   }
 
+  // 2FA: com o autenticador ativado, a senha sozinha não basta.
+  if (admin.totpAtivo && admin.totpSegredo) {
+    if (!codigo.trim()) {
+      return { erro: "Informe o código de verificação do aplicativo autenticador." };
+    }
+    const passo = verificarTotp(decifrarSegredo(admin.totpSegredo), codigo, admin.totpUltimoPasso);
+    if (passo === null) {
+      await registrarFalhaLogin("admin", email);
+      await registrarAuditoria({ ator: `admin:${admin.id}`, acao: "admin.login_2fa_falhou" });
+      return { erro: "Código de verificação inválido ou já utilizado." };
+    }
+    await prisma.admin.update({ where: { id: admin.id }, data: { totpUltimoPasso: passo } });
+  }
+
+  await registrarSucessoLogin("admin", email);
+  await registrarAuditoria({ ator: `admin:${admin.id}`, acao: "admin.login" });
   await criarSessaoAdmin(admin.id);
   redirect("/admin");
 }
@@ -162,14 +204,15 @@ export async function trocarSenhaAdmin(
   const senhaNova = String(formData.get("senhaNova") ?? "");
   const confirmacao = String(formData.get("confirmacaoSenhaNova") ?? "");
 
-  if (senhaNova.length < 8) {
-    return { erro: "A nova senha precisa ter ao menos 8 caracteres." };
+  const admin = await prisma.admin.findUnique({ where: { id: adminId } });
+  const erroSenha = validarSenhaNova(senhaNova, admin?.email);
+  if (erroSenha) {
+    return { erro: erroSenha };
   }
   if (senhaNova !== confirmacao) {
     return { erro: "A confirmação não bate com a nova senha." };
   }
 
-  const admin = await prisma.admin.findUnique({ where: { id: adminId } });
   if (!admin) {
     return { erro: "Conta inválida." };
   }
@@ -180,19 +223,115 @@ export async function trocarSenhaAdmin(
   }
 
   const senhaHash = await hashSenha(senhaNova);
-  await prisma.admin.update({ where: { id: adminId }, data: { senhaHash } });
+  await prisma.admin.update({
+    where: { id: adminId },
+    data: { senhaHash, sessaoVersao: { increment: 1 } },
+  });
+  await criarSessaoAdmin(adminId);
+  await registrarAuditoria({ ator: `admin:${adminId}`, acao: "admin.troca_senha" });
   return { sucesso: true };
 }
 
-async function exigirAdmin(): Promise<void> {
+export interface EstadoTotp {
+  erro?: string;
+  sucesso?: boolean;
+  /** Segredo em base32 e URI otpauth, mostrados uma vez na ativação. */
+  segredo?: string;
+  uri?: string;
+}
+
+/** Passo 1 da ativação do 2FA: gera o segredo (ainda inativo) e o devolve. */
+export async function iniciarAtivacaoTotp(): Promise<EstadoTotp> {
+  const adminId = await adminIdLogado();
+  if (!adminId) redirect("/admin/login");
+
+  const admin = await prisma.admin.findUnique({ where: { id: adminId } });
+  if (!admin) return { erro: "Conta inválida." };
+  if (admin.totpAtivo) return { erro: "O 2FA já está ativado." };
+
+  const segredo = gerarSegredoTotp();
+  await prisma.admin.update({
+    where: { id: adminId },
+    data: { totpSegredo: cifrarSegredo(segredo), totpUltimoPasso: null },
+  });
+  return { segredo, uri: uriOtpauth(segredo, admin.email, "Central de Atas") };
+}
+
+/** Passo 2: confirma com um código gerado pelo app e só então ativa o 2FA. */
+export async function confirmarAtivacaoTotp(
+  _estadoAnterior: EstadoTotp,
+  formData: FormData,
+): Promise<EstadoTotp> {
+  const adminId = await adminIdLogado();
+  if (!adminId) redirect("/admin/login");
+
+  const codigo = String(formData.get("codigo") ?? "");
+  const admin = await prisma.admin.findUnique({ where: { id: adminId } });
+  if (!admin?.totpSegredo || admin.totpAtivo) {
+    return { erro: "Comece a ativação de novo." };
+  }
+
+  const passo = verificarTotp(decifrarSegredo(admin.totpSegredo), codigo, null);
+  if (passo === null) {
+    return { erro: "Código inválido. Confira o horário do celular e tente de novo." };
+  }
+
+  await prisma.admin.update({
+    where: { id: adminId },
+    data: { totpAtivo: true, totpUltimoPasso: passo },
+  });
+  await registrarAuditoria({ ator: `admin:${adminId}`, acao: "admin.2fa_ativado" });
+  revalidatePath("/admin/perfil");
+  return { sucesso: true };
+}
+
+/** Desativa o 2FA — exige a senha atual e um código válido. */
+export async function desativarTotp(
+  _estadoAnterior: EstadoTotp,
+  formData: FormData,
+): Promise<EstadoTotp> {
+  const adminId = await adminIdLogado();
+  if (!adminId) redirect("/admin/login");
+
+  const senha = String(formData.get("senha") ?? "");
+  const codigo = String(formData.get("codigo") ?? "");
+  const admin = await prisma.admin.findUnique({ where: { id: adminId } });
+  if (!admin?.totpAtivo || !admin.totpSegredo) {
+    return { erro: "O 2FA não está ativado." };
+  }
+
+  if (!(await verificarSenha(senha, admin.senhaHash))) {
+    return { erro: "Senha incorreta." };
+  }
+  const passo = verificarTotp(decifrarSegredo(admin.totpSegredo), codigo, admin.totpUltimoPasso);
+  if (passo === null) {
+    return { erro: "Código inválido ou já utilizado." };
+  }
+
+  await prisma.admin.update({
+    where: { id: adminId },
+    data: { totpAtivo: false, totpSegredo: null, totpUltimoPasso: null },
+  });
+  await registrarAuditoria({ ator: `admin:${adminId}`, acao: "admin.2fa_desativado" });
+  revalidatePath("/admin/perfil");
+  return { sucesso: true };
+}
+
+/**
+ * Exige admin logado e registra a ação na trilha de auditoria (quem, o quê,
+ * quando e de que IP). Cada server action passa o próprio nome.
+ */
+async function exigirAdmin(acao: string): Promise<string> {
   const adminId = await adminIdLogado();
   if (!adminId) {
     redirect("/admin/login");
   }
+  await registrarAuditoria({ ator: `admin:${adminId}`, acao });
+  return adminId;
 }
 
 export async function rejeitarAta(formData: FormData): Promise<void> {
-  await exigirAdmin();
+  await exigirAdmin("admin.rejeitarAta");
   const ataId = String(formData.get("ataId") ?? "");
   if (!ataId) return;
 
@@ -209,7 +348,7 @@ export async function rejeitarAta(formData: FormData): Promise<void> {
  * 7 dias (mesma duração de qualquer sessão, ver src/lib/auth.ts).
  */
 export async function alternarStatusFornecedor(formData: FormData): Promise<void> {
-  await exigirAdmin();
+  await exigirAdmin("admin.alternarStatusFornecedor");
   const fornecedorId = String(formData.get("fornecedorId") ?? "");
   if (!fornecedorId) return;
 
@@ -234,7 +373,7 @@ export async function criarVendedorAdmin(
   _estadoAnterior: EstadoCriarVendedor,
   formData: FormData,
 ): Promise<EstadoCriarVendedor> {
-  await exigirAdmin();
+  await exigirAdmin("admin.criarVendedorAdmin");
 
   const nome = String(formData.get("nome") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim();
@@ -244,8 +383,9 @@ export async function criarVendedorAdmin(
   if (!nome || !email) {
     return { erro: "Informe nome e e-mail." };
   }
-  if (senha.length < 8) {
-    return { erro: "A senha precisa ter ao menos 8 caracteres." };
+  const erroSenha = validarSenhaNova(senha, email);
+  if (erroSenha) {
+    return { erro: erroSenha };
   }
   if (!tipoVendedorValido(tipo)) {
     return { erro: "Selecione um tipo de vendedor válido." };
@@ -265,7 +405,7 @@ export async function criarVendedorAdmin(
 }
 
 export async function alternarStatusVendedor(formData: FormData): Promise<void> {
-  await exigirAdmin();
+  await exigirAdmin("admin.alternarStatusVendedor");
   const vendedorId = String(formData.get("vendedorId") ?? "");
   if (!vendedorId) return;
 
@@ -286,7 +426,7 @@ export async function alternarStatusVendedor(formData: FormData): Promise<void> 
  * libera os municípios pra novo pedido. Não apaga nada.
  */
 export async function devolverAtaAoPool(formData: FormData): Promise<void> {
-  await exigirAdmin();
+  await exigirAdmin("admin.devolverAtaAoPool");
   const ataId = String(formData.get("ataId") ?? "");
   const vendedorId = String(formData.get("vendedorId") ?? "");
   if (!ataId || !vendedorId) return;
@@ -314,7 +454,7 @@ export async function devolverAtaAoPool(formData: FormData): Promise<void> {
  * vendedores na mesma ata só em municípios diferentes).
  */
 export async function decidirPedidosNegociacao(formData: FormData): Promise<void> {
-  await exigirAdmin();
+  await exigirAdmin("admin.decidirPedidosNegociacao");
   const ataId = String(formData.get("ataId") ?? "");
   const vendedorId = String(formData.get("vendedorId") ?? "");
   const decisao = String(formData.get("decisao") ?? "");
@@ -395,7 +535,7 @@ export async function decidirPedidosNegociacao(formData: FormData): Promise<void
  * vencedora da ata pra organizar a adesão com o ente, não só com o
  * município. Campo de contato simples, sem login próprio. */
 export async function atualizarContatoTecnicoFornecedor(formData: FormData): Promise<void> {
-  await exigirAdmin();
+  await exigirAdmin("admin.atualizarContatoTecnicoFornecedor");
   const fornecedorId = String(formData.get("fornecedorId") ?? "");
   if (!fornecedorId) return;
 
@@ -431,7 +571,7 @@ export async function analisarAta(
   _estadoAnterior: EstadoAnaliseAta,
   formData: FormData,
 ): Promise<EstadoAnaliseAta> {
-  await exigirAdmin();
+  await exigirAdmin("admin.analisarAta");
   const adminId = await adminIdLogado();
 
   const ata = await prisma.ata.findUnique({ where: { id: ataId } });
@@ -494,7 +634,7 @@ export async function salvarContratoIntermediacao(
   _estadoAnterior: EstadoContratoIntermediacao,
   formData: FormData,
 ): Promise<EstadoContratoIntermediacao> {
-  await exigirAdmin();
+  await exigirAdmin("admin.salvarContratoIntermediacao");
 
   const valores = {
     percentualComissao: String(formData.get("percentualComissao") ?? ""),
@@ -540,7 +680,7 @@ export async function salvarContratoIntermediacao(
 }
 
 export async function alternarStatusOrgao(formData: FormData): Promise<void> {
-  await exigirAdmin();
+  await exigirAdmin("admin.alternarStatusOrgao");
   const orgaoId = String(formData.get("orgaoId") ?? "");
   if (!orgaoId) return;
 
@@ -562,7 +702,7 @@ export async function marcarFaturamentoComoPago(
   _estadoAnterior: EstadoMarcarFaturamento,
   formData: FormData,
 ): Promise<EstadoMarcarFaturamento> {
-  await exigirAdmin();
+  await exigirAdmin("admin.marcarFaturamentoComoPago");
   const faturamentoId = String(formData.get("faturamentoId") ?? "");
   if (!faturamentoId) return { erro: "Registro inválido." };
 
@@ -594,7 +734,7 @@ export async function criarEntidadeAlvo(
   _estadoAnterior: EstadoEntidadeAlvo,
   formData: FormData,
 ): Promise<EstadoEntidadeAlvo> {
-  await exigirAdmin();
+  await exigirAdmin("admin.criarEntidadeAlvo");
 
   const nome = String(formData.get("nome") ?? "").trim();
   const tipo = String(formData.get("tipo") ?? "").trim();
@@ -626,7 +766,7 @@ export async function criarEntidadeAlvo(
 }
 
 export async function alternarStatusEntidadeAlvo(formData: FormData): Promise<void> {
-  await exigirAdmin();
+  await exigirAdmin("admin.alternarStatusEntidadeAlvo");
   const entidadeAlvoId = String(formData.get("entidadeAlvoId") ?? "");
   if (!entidadeAlvoId) return;
 
@@ -651,7 +791,7 @@ export async function criarPontoFocal(
   _estadoAnterior: EstadoPontoFocal,
   formData: FormData,
 ): Promise<EstadoPontoFocal> {
-  await exigirAdmin();
+  await exigirAdmin("admin.criarPontoFocal");
 
   const entidadeAlvoId = String(formData.get("entidadeAlvoId") ?? "").trim();
   const cargo = String(formData.get("cargo") ?? "").trim();
@@ -682,7 +822,7 @@ export async function criarPontoFocal(
 }
 
 export async function alternarStatusPontoFocal(formData: FormData): Promise<void> {
-  await exigirAdmin();
+  await exigirAdmin("admin.alternarStatusPontoFocal");
   const pontoFocalId = String(formData.get("pontoFocalId") ?? "");
   if (!pontoFocalId) return;
 
@@ -707,7 +847,7 @@ export async function registrarInteracaoPontoFocal(
   _estadoAnterior: EstadoInteracaoPontoFocal,
   formData: FormData,
 ): Promise<EstadoInteracaoPontoFocal> {
-  await exigirAdmin();
+  await exigirAdmin("admin.registrarInteracaoPontoFocal");
 
   const pontoFocalId = String(formData.get("pontoFocalId") ?? "");
   const ataId = String(formData.get("ataId") ?? "").trim();
@@ -746,7 +886,7 @@ export async function criarParceiro(
   _estadoAnterior: EstadoParceiro,
   formData: FormData,
 ): Promise<EstadoParceiro> {
-  await exigirAdmin();
+  await exigirAdmin("admin.criarParceiro");
 
   const nome = String(formData.get("nome") ?? "").trim();
   const contato = String(formData.get("contato") ?? "").trim();
@@ -769,7 +909,7 @@ export async function criarParceiro(
 }
 
 export async function alternarStatusParceiro(formData: FormData): Promise<void> {
-  await exigirAdmin();
+  await exigirAdmin("admin.alternarStatusParceiro");
   const parceiroId = String(formData.get("parceiroId") ?? "");
   if (!parceiroId) return;
 
@@ -787,7 +927,7 @@ export async function marcarFaturamentoComoPendente(
   _estadoAnterior: EstadoMarcarFaturamento,
   formData: FormData,
 ): Promise<EstadoMarcarFaturamento> {
-  await exigirAdmin();
+  await exigirAdmin("admin.marcarFaturamentoComoPendente");
   const faturamentoId = String(formData.get("faturamentoId") ?? "");
   if (!faturamentoId) return { erro: "Registro inválido." };
 
@@ -821,7 +961,7 @@ export async function lancarLiquidacao(
   _estadoAnterior: EstadoLancarLiquidacao,
   formData: FormData,
 ): Promise<EstadoLancarLiquidacao> {
-  await exigirAdmin();
+  await exigirAdmin("admin.lancarLiquidacao");
 
   const valorBruto = String(formData.get("valorLiquidado") ?? "").trim();
   const numeroNotaFiscal = String(formData.get("numeroNotaFiscal") ?? "").trim();
@@ -868,7 +1008,7 @@ export async function atualizarCobrancaLiquidacao(
   _estadoAnterior: EstadoCobrancaLiquidacao,
   formData: FormData,
 ): Promise<EstadoCobrancaLiquidacao> {
-  await exigirAdmin();
+  await exigirAdmin("admin.atualizarCobrancaLiquidacao");
 
   const statusCobranca = String(formData.get("statusCobranca") ?? "");
   const notaFiscalComissao = String(formData.get("notaFiscalComissao") ?? "").trim() || null;
@@ -911,7 +1051,7 @@ export async function atualizarRaioXConsumo(
   _estadoAnterior: EstadoRaioXConsumo,
   formData: FormData,
 ): Promise<EstadoRaioXConsumo> {
-  await exigirAdmin();
+  await exigirAdmin("admin.atualizarRaioXConsumo");
 
   const entidadeAlvoId = String(formData.get("entidadeAlvoId") ?? "");
   const entidade = await prisma.entidadeAlvo.findUnique({ where: { id: entidadeAlvoId } });
@@ -963,7 +1103,7 @@ export async function atualizarRaioXConsumo(
  * casa direto com `HistoricoConsumoCategoria.categoria`.
  */
 export async function definirCategoriaAta(formData: FormData): Promise<void> {
-  await exigirAdmin();
+  await exigirAdmin("admin.definirCategoriaAta");
   const ataId = String(formData.get("ataId") ?? "");
   const categoria = String(formData.get("categoria") ?? "").trim();
   if (!ataId) return;
@@ -994,7 +1134,7 @@ export async function cadastrarAtaComoAdmin(
   _estadoAnterior: EstadoCadastroAtaAdmin,
   formData: FormData,
 ): Promise<EstadoCadastroAtaAdmin> {
-  await exigirAdmin();
+  await exigirAdmin("admin.cadastrarAtaComoAdmin");
 
   const fornecedorNome = String(formData.get("fornecedorNome") ?? "").trim();
   const fornecedorCnpj = String(formData.get("fornecedorCnpj") ?? "").trim();
@@ -1074,6 +1214,10 @@ export async function cadastrarAtaComoAdmin(
     if (!TIPOS_MIME_DOCUMENTO_ACEITOS_ADMIN.includes(documento.type)) {
       return { erro: "Envie o documento em PDF, JPEG ou PNG." };
     }
+    // O tipo declarado pelo navegador não prova nada: confere os primeiros bytes.
+    if (!detectarTipoDocumento(Buffer.from(await documento.arrayBuffer()))) {
+      return { erro: "O arquivo enviado não é um PDF, JPEG ou PNG válido." };
+    }
   }
 
   const fornecedor = await prisma.fornecedor.upsert({
@@ -1089,6 +1233,8 @@ export async function cadastrarAtaComoAdmin(
   });
 
   const conteudoDocumento = temDocumento ? Buffer.from(await documento.arrayBuffer()) : null;
+  const tipoMimeDocumento =
+    (conteudoDocumento && detectarTipoDocumento(conteudoDocumento)) || "application/octet-stream";
 
   let ataId: string;
   try {
@@ -1116,8 +1262,8 @@ export async function cadastrarAtaComoAdmin(
           ? {
               documentos: {
                 create: {
-                  nomeArquivo: documento.name,
-                  tipoMime: documento.type,
+                  nomeArquivo: nomeArquivoSeguro(documento.name),
+                  tipoMime: tipoMimeDocumento,
                   tamanhoBytes: documento.size,
                   conteudo: conteudoDocumento!,
                 },
@@ -1142,7 +1288,7 @@ export async function cadastrarAtaComoAdmin(
  * é alternarStatusPontoFocal.
  */
 export async function confirmarContatoAdmin(formData: FormData): Promise<void> {
-  await exigirAdmin();
+  await exigirAdmin("admin.confirmarContatoAdmin");
   const pontoFocalId = String(formData.get("pontoFocalId") ?? "");
   if (!pontoFocalId) return;
 
@@ -1176,7 +1322,7 @@ export async function criarSinalMunicipio(
   _estadoAnterior: EstadoSinalMunicipio,
   formData: FormData,
 ): Promise<EstadoSinalMunicipio> {
-  await exigirAdmin();
+  await exigirAdmin("admin.criarSinalMunicipio");
 
   const valores: Record<string, string> = {
     tipo: String(formData.get("tipo") ?? ""),
@@ -1237,7 +1383,7 @@ export async function criarSinalMunicipio(
 }
 
 export async function removerSinalMunicipio(formData: FormData): Promise<void> {
-  await exigirAdmin();
+  await exigirAdmin("admin.removerSinalMunicipio");
   const sinalId = String(formData.get("sinalId") ?? "");
   if (!sinalId) return;
 

@@ -18,7 +18,7 @@ export function FormularioNovoVendedor() {
           <Campo label="E-mail" name="email" type="email" required />
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Campo label="Senha (mín. 8 caracteres)" name="senha" type="password" required />
+          <Campo label="Senha (mín. 12 caracteres)" name="senha" type="password" required />
           <label className="block text-sm">
             <span className="mb-1 block font-medium" style={{ color: "var(--cor-texto-2)" }}>
               Tipo

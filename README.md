@@ -143,6 +143,10 @@ passa a apontar pro mesmo lugar.
 
 ## Deploy em produção (site de verdade, no ar, com um banco só)
 
+> **Passo a passo atualizado:** [DEPLOY-PRODUCAO.md](DEPLOY-PRODUCAO.md). O que está
+> protegido e o que ainda falta: [SEGURANCA.md](SEGURANCA.md). O texto abaixo é o
+> resumo original.
+
 O código já está pronto pra isso — o que falta é só a criação de contas em
 serviços externos, que precisa ser feita por vocês diretamente (não é algo que
 se resolve neste repositório). Decisão já fechada (2026-09-04): banco no

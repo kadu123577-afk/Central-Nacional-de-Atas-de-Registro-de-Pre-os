@@ -45,33 +45,42 @@ enum EstagioAdesao {
 }
 
 model Admin {
-  id        String   @id @default(cuid())
-  nome      String
-  email     String   @unique
-  senhaHash String
-  createdAt DateTime @default(now())
+  id              String   @id @default(cuid())
+  nome            String
+  email           String   @unique
+  senhaHash       String
+  createdAt       DateTime @default(now())
   // Marca dados criados pelo seed de demonstração (prisma/seed.ts), pra
   // poder ser apagado seletivamente por prisma/seed-limpar.ts sem tocar
   // em admins reais criados por seed-admin.ts.
-  isSeed    Boolean  @default(false)
+  isSeed          Boolean  @default(false)
+  // Segurança (2026-10-20): incrementa a cada troca de senha e derruba todas
+  // as sessões já emitidas (o cookie carrega a versão).
+  sessaoVersao    Int      @default(0)
+  // 2FA por app autenticador (TOTP). O segredo fica cifrado (AES-256-GCM,
+  // ver src/lib/totp.ts). totpUltimoPasso evita reuso do mesmo código.
+  totpSegredo     String?
+  totpAtivo       Boolean  @default(false)
+  totpUltimoPasso Int?
 
   @@map("admins")
 }
 
 model Fornecedor {
-  id          String   @id @default(cuid())
-  razaoSocial String
-  cnpj        String   @unique
-  email       String   @unique
-  telefone    String?
-  senhaHash   String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  isSeed      Boolean  @default(false)
+  id           String   @id @default(cuid())
+  razaoSocial  String
+  cnpj         String   @unique
+  email        String   @unique
+  telefone     String?
+  senhaHash    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  isSeed       Boolean  @default(false)
   // Gestão de usuários (admin, 2026-09-04) — login recusado quando false,
   // sem apagar nada (atas/adesões/faturamento já existentes continuam
   // intactos, só a conta para de conseguir entrar).
-  ativo       Boolean  @default(true)
+  ativo        Boolean  @default(true)
+  sessaoVersao Int      @default(0)
 
   // Canal de contato técnico (2026-10-01) — pedido explícito: o vendedor
   // precisa conseguir falar com alguém técnico da empresa que venceu a
@@ -87,19 +96,20 @@ model Fornecedor {
 }
 
 model Orgao {
-  id        String   @id @default(cuid())
-  nome      String
-  cnpj      String   @unique
-  uf        String
-  municipio String
-  esfera    String
-  email     String?  @unique
-  senhaHash String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  isSeed    Boolean  @default(false)
+  id           String   @id @default(cuid())
+  nome         String
+  cnpj         String   @unique
+  uf           String
+  municipio    String
+  esfera       String
+  email        String?  @unique
+  senhaHash    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  isSeed       Boolean  @default(false)
   // Gestão de usuários (admin, 2026-09-04) — mesma regra do Fornecedor.
-  ativo     Boolean  @default(true)
+  ativo        Boolean  @default(true)
+  sessaoVersao Int      @default(0)
 
   atasGerenciadas Ata[]    @relation("OrgaoGerenciador")
   adesoes         Adesao[] @relation("OrgaoAderente")
@@ -158,17 +168,18 @@ model Ata {
 // pega uma ata disponível, e o sistema já levanta os municípios
 // compatíveis (ver OportunidadeVenda) pra trabalhar num Kanban.
 model Vendedor {
-  id        String   @id @default(cuid())
-  nome      String
-  email     String   @unique
-  senhaHash String
-  ativo     Boolean  @default(true)
+  id           String   @id @default(cuid())
+  nome         String
+  email        String   @unique
+  senhaHash    String
+  ativo        Boolean  @default(true)
+  sessaoVersao Int      @default(0)
   // Consultor de vendas empresarial interno ou externo (2026-10-01,
   // pedido explícito) — vocabulário fixo em src/lib/vendedores.ts, mesmo
   // racional de categoria/estágio (não enum, evolui sem migração).
-  tipo      String   @default("interno")
-  createdAt DateTime @default(now())
-  isSeed    Boolean  @default(false)
+  tipo         String   @default("interno")
+  createdAt    DateTime @default(now())
+  isSeed       Boolean  @default(false)
 
   atas              Ata[]
   oportunidades     OportunidadeVenda[]
@@ -610,4 +621,33 @@ model SinalMunicipio {
 
   @@index([entidadeAlvoId, dataSinal])
   @@map("sinais_municipio")
+}
+
+// Limite de tentativas de login/cadastro (2026-10-20). Uma linha por chave
+// (ex.: "login:admin:email@x.com" ou "ip:login:203.0.113.5"); bloqueia por um
+// tempo depois de muitas falhas na janela. Ver src/lib/limite-tentativas.ts.
+model TentativaLogin {
+  chave        String    @id
+  tentativas   Int       @default(0)
+  janelaInicio DateTime  @default(now())
+  bloqueadoAte DateTime?
+
+  @@map("tentativas_login")
+}
+
+// Trilha de auditoria (2026-10-20): quem fez o quê, quando e de onde.
+// Append-only na aplicação — nenhuma tela edita ou apaga estas linhas.
+model LogAuditoria {
+  id       String   @id @default(cuid())
+  criadoEm DateTime @default(now())
+  // "admin:<id>", "fornecedor:<id>", "anonimo" ...
+  ator     String
+  acao     String
+  alvo     String?
+  detalhe  String?
+  ip       String?
+
+  @@index([criadoEm])
+  @@index([ator])
+  @@map("logs_auditoria")
 }

@@ -6,6 +6,7 @@ import { AppShell } from "@/components/ui/app-shell";
 import { Secao } from "@/components/ui/secao";
 import { FormularioTrocarSenha } from "@/components/ui/formulario-trocar-senha";
 import { NAV_ADMIN } from "@/app/admin/nav";
+import { FormularioTotp } from "./formulario-totp";
 
 export const dynamic = "force-dynamic";
 
@@ -42,6 +43,8 @@ export default async function PerfilAdminPage() {
           <Campo rotulo="E-mail" valor={admin.email} />
         </div>
       </Secao>
+
+      <FormularioTotp ativo={admin.totpAtivo} />
 
       <FormularioTrocarSenha action={trocarSenhaAdmin} />
     </AppShell>

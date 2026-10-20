@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { cronAutorizado } from "@/lib/cron-auth";
 import { executarRastreamentoComprasGov } from "@/lib/rastreador-compras-gov";
 
 export const maxDuration = 60;
@@ -10,12 +11,8 @@ export const maxDuration = 60;
  * ele (decisão de 2026-09-04).
  */
 export async function GET(request: NextRequest) {
-  const segredoConfigurado = process.env.CRON_SECRET;
-  if (segredoConfigurado) {
-    const autorizacao = request.headers.get("authorization");
-    if (autorizacao !== `Bearer ${segredoConfigurado}`) {
-      return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
-    }
+  if (!cronAutorizado(request)) {
+    return NextResponse.json({ erro: "Não autorizado" }, { status: 401 });
   }
 
   const agora = new Date();

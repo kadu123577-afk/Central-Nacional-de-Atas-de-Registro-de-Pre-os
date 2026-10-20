@@ -16,6 +16,7 @@ export default function LoginAdminPage() {
       formAction={formAction}
       erro={estado.erro}
       pendente={pendente}
+      campoCodigo
     />
   );
 }

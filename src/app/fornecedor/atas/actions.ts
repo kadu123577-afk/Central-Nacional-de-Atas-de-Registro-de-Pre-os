@@ -6,6 +6,7 @@ import { fornecedorIdLogado } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { CATEGORIAS_ATAS } from "@/lib/categorias";
 import { esferaValida } from "@/lib/esferas";
+import { detectarTipoDocumento, nomeArquivoSeguro } from "@/lib/documentos";
 
 export interface EstadoCadastroAtaFornecedor {
   erro?: string;
@@ -100,6 +101,10 @@ export async function cadastrarAtaComoFornecedor(
     if (!TIPOS_MIME_DOCUMENTO_ACEITOS.includes(documento.type)) {
       return { erro: "Envie o documento em PDF, JPEG ou PNG." };
     }
+    // O tipo declarado pelo navegador não prova nada: confere os primeiros bytes.
+    if (!detectarTipoDocumento(Buffer.from(await documento.arrayBuffer()))) {
+      return { erro: "O arquivo enviado não é um PDF, JPEG ou PNG válido." };
+    }
   }
 
   const orgaoGerenciador = await prisma.orgao.upsert({
@@ -115,6 +120,8 @@ export async function cadastrarAtaComoFornecedor(
   });
 
   const conteudoDocumento = temDocumento ? Buffer.from(await documento.arrayBuffer()) : null;
+  const tipoMimeDocumento =
+    (conteudoDocumento && detectarTipoDocumento(conteudoDocumento)) || "application/octet-stream";
 
   let ataId: string;
   try {
@@ -141,8 +148,8 @@ export async function cadastrarAtaComoFornecedor(
           ? {
               documentos: {
                 create: {
-                  nomeArquivo: documento.name,
-                  tipoMime: documento.type,
+                  nomeArquivo: nomeArquivoSeguro(documento.name),
+                  tipoMime: tipoMimeDocumento,
                   tamanhoBytes: documento.size,
                   conteudo: conteudoDocumento!,
                 },

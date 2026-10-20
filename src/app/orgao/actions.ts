@@ -5,10 +5,19 @@ import { prisma } from "@/lib/prisma";
 import {
   criarSessaoOrgao,
   encerrarSessaoOrgao,
+  gastarTempoDeHash,
   hashSenha,
   orgaoIdLogado,
   verificarSenha,
 } from "@/lib/auth";
+import {
+  checarBloqueioLogin,
+  checarLimiteCadastro,
+  registrarFalhaLogin,
+  registrarSucessoLogin,
+} from "@/lib/limite-tentativas";
+import { registrarAuditoria } from "@/lib/auditoria";
+import { validarSenhaNova } from "@/lib/senha";
 import { esferaValida } from "@/lib/esferas";
 import type { EstadoTrocarSenha } from "@/components/ui/formulario-trocar-senha";
 
@@ -28,10 +37,16 @@ export async function cadastrarOrgao(
   const email = String(formData.get("email") ?? "").trim();
   const senha = String(formData.get("senha") ?? "");
 
-  if (!nome || !cnpj || !uf || !municipio || !esfera || !email || senha.length < 8) {
-    return {
-      erro: "Preencha todos os campos (senha precisa ter ao menos 8 caracteres).",
-    };
+  if (!nome || !cnpj || !uf || !municipio || !esfera || !email) {
+    return { erro: "Preencha todos os campos." };
+  }
+  const erroSenha = validarSenhaNova(senha, email);
+  if (erroSenha) {
+    return { erro: erroSenha };
+  }
+  const limiteCadastro = await checarLimiteCadastro();
+  if (limiteCadastro) {
+    return { erro: limiteCadastro };
   }
   if (!esferaValida(esfera)) {
     return { erro: "Selecione uma esfera válida (federal, estadual, distrital ou municipal)." };
@@ -49,6 +64,7 @@ export async function cadastrarOrgao(
     data: { nome, cnpj, uf, municipio, esfera, email, senhaHash },
   });
 
+  await registrarAuditoria({ ator: `orgao:${orgao.id}`, acao: "orgao.cadastro" });
   await criarSessaoOrgao(orgao.id);
   redirect("/orgao");
 }
@@ -64,13 +80,22 @@ export async function loginOrgao(
     return { erro: "Informe e-mail e senha." };
   }
 
+  const bloqueio = await checarBloqueioLogin("orgao", email);
+  if (bloqueio) {
+    return { erro: bloqueio };
+  }
+
   const orgao = await prisma.orgao.findUnique({ where: { email } });
   if (!orgao?.senhaHash) {
+    await gastarTempoDeHash(senha);
+    await registrarFalhaLogin("orgao", email);
     return { erro: "E-mail ou senha inválidos." };
   }
 
   const senhaCorreta = await verificarSenha(senha, orgao.senhaHash);
   if (!senhaCorreta) {
+    await registrarFalhaLogin("orgao", email);
+    await registrarAuditoria({ ator: `orgao:${orgao.id}`, acao: "orgao.login_falhou" });
     return { erro: "E-mail ou senha inválidos." };
   }
 
@@ -78,6 +103,8 @@ export async function loginOrgao(
     return { erro: "Esta conta foi desativada. Fale com a Tech 10 para reativar o acesso." };
   }
 
+  await registrarSucessoLogin("orgao", email);
+  await registrarAuditoria({ ator: `orgao:${orgao.id}`, acao: "orgao.login" });
   await criarSessaoOrgao(orgao.id);
   redirect("/orgao");
 }
@@ -100,14 +127,15 @@ export async function trocarSenhaOrgao(
   const senhaNova = String(formData.get("senhaNova") ?? "");
   const confirmacao = String(formData.get("confirmacaoSenhaNova") ?? "");
 
-  if (senhaNova.length < 8) {
-    return { erro: "A nova senha precisa ter ao menos 8 caracteres." };
+  const orgao = await prisma.orgao.findUnique({ where: { id: orgaoId } });
+  const erroSenha = validarSenhaNova(senhaNova, orgao?.email ?? undefined);
+  if (erroSenha) {
+    return { erro: erroSenha };
   }
   if (senhaNova !== confirmacao) {
     return { erro: "A confirmação não bate com a nova senha." };
   }
 
-  const orgao = await prisma.orgao.findUnique({ where: { id: orgaoId } });
   if (!orgao?.senhaHash) {
     return { erro: "Conta inválida." };
   }
@@ -118,6 +146,11 @@ export async function trocarSenhaOrgao(
   }
 
   const senhaHash = await hashSenha(senhaNova);
-  await prisma.orgao.update({ where: { id: orgaoId }, data: { senhaHash } });
+  await prisma.orgao.update({
+    where: { id: orgaoId },
+    data: { senhaHash, sessaoVersao: { increment: 1 } },
+  });
+  await criarSessaoOrgao(orgaoId);
+  await registrarAuditoria({ ator: `orgao:${orgaoId}`, acao: "orgao.troca_senha" });
   return { sucesso: true };
 }

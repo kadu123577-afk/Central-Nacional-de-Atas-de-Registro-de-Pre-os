@@ -22,7 +22,7 @@ export function FormularioTrocarSenha({
     <Secao titulo="Trocar senha">
       <form action={formAction} className="flex flex-col gap-4">
         <Campo label="Senha atual" name="senhaAtual" type="password" required />
-        <Campo label="Nova senha (mín. 8 caracteres)" name="senhaNova" type="password" required />
+        <Campo label="Nova senha (mín. 12 caracteres)" name="senhaNova" type="password" required />
         <Campo
           label="Confirmar nova senha"
           name="confirmacaoSenhaNova"

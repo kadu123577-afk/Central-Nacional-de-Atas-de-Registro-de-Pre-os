@@ -6,9 +6,18 @@ import {
   criarSessaoFornecedor,
   encerrarSessaoFornecedor,
   fornecedorIdLogado,
+  gastarTempoDeHash,
   hashSenha,
   verificarSenha,
 } from "@/lib/auth";
+import {
+  checarBloqueioLogin,
+  checarLimiteCadastro,
+  registrarFalhaLogin,
+  registrarSucessoLogin,
+} from "@/lib/limite-tentativas";
+import { registrarAuditoria } from "@/lib/auditoria";
+import { validarSenhaNova } from "@/lib/senha";
 import type { EstadoTrocarSenha } from "@/components/ui/formulario-trocar-senha";
 
 export interface EstadoLoginFornecedor {
@@ -25,10 +34,17 @@ export async function cadastrarFornecedor(
   const email = String(formData.get("email") ?? "").trim();
   const senha = String(formData.get("senha") ?? "");
 
-  if (!razaoSocial || !cnpj || !email || senha.length < 8) {
-    return {
-      erro: "Preencha razão social, CNPJ e e-mail (senha precisa ter ao menos 8 caracteres).",
-    };
+  if (!razaoSocial || !cnpj || !email) {
+    return { erro: "Preencha razão social, CNPJ e e-mail." };
+  }
+  const erroSenha = validarSenhaNova(senha, email);
+  if (erroSenha) {
+    return { erro: erroSenha };
+  }
+
+  const limiteCadastro = await checarLimiteCadastro();
+  if (limiteCadastro) {
+    return { erro: limiteCadastro };
   }
 
   const existentePorCnpj = await prisma.fornecedor.findUnique({ where: { cnpj } });
@@ -56,6 +72,10 @@ export async function cadastrarFornecedor(
     create: { razaoSocial, cnpj, telefone: telefone || null, email, senhaHash },
   });
 
+  await registrarAuditoria({
+    ator: `fornecedor:${fornecedor.id}`,
+    acao: "fornecedor.cadastro",
+  });
   await criarSessaoFornecedor(fornecedor.id);
   redirect("/fornecedor");
 }
@@ -71,13 +91,25 @@ export async function loginFornecedor(
     return { erro: "Informe e-mail e senha." };
   }
 
+  const bloqueio = await checarBloqueioLogin("fornecedor", email);
+  if (bloqueio) {
+    return { erro: bloqueio };
+  }
+
   const fornecedor = await prisma.fornecedor.findUnique({ where: { email } });
   if (!fornecedor?.senhaHash) {
+    await gastarTempoDeHash(senha);
+    await registrarFalhaLogin("fornecedor", email);
     return { erro: "E-mail ou senha inválidos." };
   }
 
   const senhaCorreta = await verificarSenha(senha, fornecedor.senhaHash);
   if (!senhaCorreta) {
+    await registrarFalhaLogin("fornecedor", email);
+    await registrarAuditoria({
+      ator: `fornecedor:${fornecedor.id}`,
+      acao: "fornecedor.login_falhou",
+    });
     return { erro: "E-mail ou senha inválidos." };
   }
 
@@ -85,6 +117,8 @@ export async function loginFornecedor(
     return { erro: "Esta conta foi desativada. Fale com a Tech 10 para reativar o acesso." };
   }
 
+  await registrarSucessoLogin("fornecedor", email);
+  await registrarAuditoria({ ator: `fornecedor:${fornecedor.id}`, acao: "fornecedor.login" });
   await criarSessaoFornecedor(fornecedor.id);
   redirect("/fornecedor");
 }
@@ -107,14 +141,15 @@ export async function trocarSenhaFornecedor(
   const senhaNova = String(formData.get("senhaNova") ?? "");
   const confirmacao = String(formData.get("confirmacaoSenhaNova") ?? "");
 
-  if (senhaNova.length < 8) {
-    return { erro: "A nova senha precisa ter ao menos 8 caracteres." };
+  const fornecedor = await prisma.fornecedor.findUnique({ where: { id: fornecedorId } });
+  const erroSenha = validarSenhaNova(senhaNova, fornecedor?.email);
+  if (erroSenha) {
+    return { erro: erroSenha };
   }
   if (senhaNova !== confirmacao) {
     return { erro: "A confirmação não bate com a nova senha." };
   }
 
-  const fornecedor = await prisma.fornecedor.findUnique({ where: { id: fornecedorId } });
   if (!fornecedor?.senhaHash) {
     return { erro: "Conta inválida." };
   }
@@ -125,6 +160,13 @@ export async function trocarSenhaFornecedor(
   }
 
   const senhaHash = await hashSenha(senhaNova);
-  await prisma.fornecedor.update({ where: { id: fornecedorId }, data: { senhaHash } });
+  // Incrementar sessaoVersao derruba as outras sessões abertas desta conta;
+  // a sessão atual é reemitida logo em seguida.
+  await prisma.fornecedor.update({
+    where: { id: fornecedorId },
+    data: { senhaHash, sessaoVersao: { increment: 1 } },
+  });
+  await criarSessaoFornecedor(fornecedorId);
+  await registrarAuditoria({ ator: `fornecedor:${fornecedorId}`, acao: "fornecedor.troca_senha" });
   return { sucesso: true };
 }

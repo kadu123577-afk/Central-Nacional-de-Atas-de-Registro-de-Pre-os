@@ -10,6 +10,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "seed:admin": "tsx prisma/seed-admin.ts",
+    "admin:resetar-2fa": "tsx prisma/reset-admin-2fa.ts",
     "seed:vendedor": "tsx prisma/seed-vendedor.ts",
     "seed": "tsx prisma/seed.ts",
     "seed:limpar": "tsx prisma/seed-limpar.ts",
@@ -24,7 +25,7 @@
   "dependencies": {
     "@prisma/client": "^6.19.3",
     "bcryptjs": "^3.0.3",
-    "next": "16.3.4",
+    "next": "16.4.2",
     "react": "19.2.8",
     "react-dom": "19.2.8"
   },
@@ -37,7 +38,7 @@
     "@vitest/coverage-v8": "^2.1.9",
     "dotenv": "^17.4.2",
     "eslint": "^9",
-    "eslint-config-next": "16.3.4",
+    "eslint-config-next": "16.4.2",
     "playwright": "^1.62.1",
     "prisma": "^6.19.3",
     "tailwindcss": "^4",

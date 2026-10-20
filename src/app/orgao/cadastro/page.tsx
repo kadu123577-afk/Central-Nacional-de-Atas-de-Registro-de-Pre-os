@@ -45,7 +45,7 @@ export default function CadastroOrgaoPage() {
           </select>
         </label>
         <Campo label="E-mail" name="email" type="email" required />
-        <Campo label="Senha (mín. 8 caracteres)" name="senha" type="password" required />
+        <Campo label="Senha (mín. 12 caracteres)" name="senha" type="password" required />
 
         {estado.erro && (
           <p

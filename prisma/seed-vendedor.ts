@@ -7,6 +7,7 @@
 import "dotenv/config";
 import { PrismaClient } from "../src/generated/prisma/client";
 import bcrypt from "bcryptjs";
+import { validarSenhaNova } from "../src/lib/senha";
 
 const prisma = new PrismaClient();
 
@@ -15,9 +16,9 @@ async function main() {
   const senha = process.env.VENDEDOR_SENHA;
   const nome = process.env.VENDEDOR_NOME ?? "Vendedor";
 
-  if (!email || !senha || senha.length < 8) {
+  if (!email || !senha || validarSenhaNova(senha, email) !== null) {
     console.error(
-      "Defina VENDEDOR_EMAIL e VENDEDOR_SENHA (mín. 8 caracteres) nas variáveis de ambiente.",
+      "Defina VENDEDOR_EMAIL e VENDEDOR_SENHA (mín. 12 caracteres, não óbvia) nas variáveis de ambiente.",
     );
     process.exit(1);
   }

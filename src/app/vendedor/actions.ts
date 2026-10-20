@@ -6,10 +6,18 @@ import { redirect } from "next/navigation";
 import {
   criarSessaoVendedor,
   encerrarSessaoVendedor,
+  gastarTempoDeHash,
   hashSenha,
   verificarSenha,
   vendedorIdLogado,
 } from "@/lib/auth";
+import {
+  checarBloqueioLogin,
+  registrarFalhaLogin,
+  registrarSucessoLogin,
+} from "@/lib/limite-tentativas";
+import { registrarAuditoria } from "@/lib/auditoria";
+import { validarSenhaNova } from "@/lib/senha";
 import { prisma } from "@/lib/prisma";
 import { prazoParaEstagio } from "@/lib/negociacao";
 import { resultadoInteracaoValido } from "@/lib/pontos-focais";
@@ -35,14 +43,15 @@ export async function trocarSenhaVendedor(
   const senhaNova = String(formData.get("senhaNova") ?? "");
   const confirmacao = String(formData.get("confirmacaoSenhaNova") ?? "");
 
-  if (senhaNova.length < 8) {
-    return { erro: "A nova senha precisa ter ao menos 8 caracteres." };
+  const vendedor = await prisma.vendedor.findUnique({ where: { id: vendedorId } });
+  const erroSenha = validarSenhaNova(senhaNova, vendedor?.email);
+  if (erroSenha) {
+    return { erro: erroSenha };
   }
   if (senhaNova !== confirmacao) {
     return { erro: "A confirmação não bate com a nova senha." };
   }
 
-  const vendedor = await prisma.vendedor.findUnique({ where: { id: vendedorId } });
   if (!vendedor) {
     return { erro: "Conta inválida." };
   }
@@ -53,7 +62,12 @@ export async function trocarSenhaVendedor(
   }
 
   const senhaHash = await hashSenha(senhaNova);
-  await prisma.vendedor.update({ where: { id: vendedorId }, data: { senhaHash } });
+  await prisma.vendedor.update({
+    where: { id: vendedorId },
+    data: { senhaHash, sessaoVersao: { increment: 1 } },
+  });
+  await criarSessaoVendedor(vendedorId);
+  await registrarAuditoria({ ator: `vendedor:${vendedorId}`, acao: "vendedor.troca_senha" });
   return { sucesso: true };
 }
 
@@ -68,16 +82,27 @@ export async function loginVendedor(
     return { erro: "Informe e-mail e senha." };
   }
 
+  const bloqueio = await checarBloqueioLogin("vendedor", email);
+  if (bloqueio) {
+    return { erro: bloqueio };
+  }
+
   const vendedor = await prisma.vendedor.findUnique({ where: { email } });
   if (!vendedor || !vendedor.ativo) {
+    await gastarTempoDeHash(senha);
+    await registrarFalhaLogin("vendedor", email);
     return { erro: "E-mail ou senha inválidos." };
   }
 
   const senhaCorreta = await verificarSenha(senha, vendedor.senhaHash);
   if (!senhaCorreta) {
+    await registrarFalhaLogin("vendedor", email);
+    await registrarAuditoria({ ator: `vendedor:${vendedor.id}`, acao: "vendedor.login_falhou" });
     return { erro: "E-mail ou senha inválidos." };
   }
 
+  await registrarSucessoLogin("vendedor", email);
+  await registrarAuditoria({ ator: `vendedor:${vendedor.id}`, acao: "vendedor.login" });
   await criarSessaoVendedor(vendedor.id);
   redirect("/vendedor");
 }

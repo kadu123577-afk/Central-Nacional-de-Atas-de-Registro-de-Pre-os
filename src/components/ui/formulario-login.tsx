@@ -7,6 +7,7 @@ export function FormularioLogin({
   erro,
   pendente,
   rodape,
+  campoCodigo,
 }: {
   titulo: string;
   subtitulo: string;
@@ -14,6 +15,8 @@ export function FormularioLogin({
   erro?: string;
   pendente: boolean;
   rodape?: React.ReactNode;
+  /** Mostra o campo do código de 2FA (app autenticador), opcional para quem não ativou. */
+  campoCodigo?: boolean;
 }) {
   return (
     <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 px-6">
@@ -40,6 +43,21 @@ export function FormularioLogin({
           </span>
           <input name="senha" type="password" required className="campo-atas" />
         </label>
+        {campoCodigo && (
+          <label className="block text-sm">
+            <span className="mb-1 block font-medium" style={{ color: "var(--cor-texto-2)" }}>
+              Código do autenticador (se o 2FA estiver ativado)
+            </span>
+            <input
+              name="codigo"
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              maxLength={7}
+              className="campo-atas"
+            />
+          </label>
+        )}
 
         {erro && (
           <p
