@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import { FaixaNumeros } from "@/components/ui/faixa-numeros";
 import { moedaCurta } from "@/lib/formato";
 import { totalDaColuna, type CartaoView } from "@/lib/kanban-view";
 import {
@@ -89,12 +90,33 @@ export function KanbanAta({
   return (
     <>
       {!semIndicadores && (
-        <div className="kb-kpis">
-          <Indicador rotulo="Aderido" valor={moedaCurta(totalAderido)} tom="marca" nota={`${aderidos.length} município(s) · comissão devida ${moedaCurta(comissaoDevida)}`} />
-          <Indicador rotulo="Em negociação" valor={String(emNegociacao.length)} nota={`~${moedaCurta(potencial)} em potencial estimado`} />
-          <Indicador rotulo="Prazos vencendo" valor={String(vencendo)} tom={vencendo > 0 ? "critico" : "neutro"} nota="expiram em até 3 dias" />
-          <Indicador rotulo="Sem decisor com contato" valor={String(contagens.sem_contato)} tom={contagens.sem_contato > 0 ? "atencao" : "neutro"} nota={`de ${abertos.length} município(s) em aberto`} />
-        </div>
+        <FaixaNumeros
+          itens={[
+            {
+              valor: moedaCurta(totalAderido),
+              rotulo: "Aderido",
+              nota: `${aderidos.length} município(s) · comissão devida ${moedaCurta(comissaoDevida)}`,
+              tom: "marca",
+            },
+            {
+              valor: String(emNegociacao.length),
+              rotulo: "Em negociação",
+              nota: `~${moedaCurta(potencial)} em potencial estimado`,
+            },
+            {
+              valor: String(vencendo),
+              rotulo: "Prazos vencendo",
+              nota: "expiram em até 3 dias",
+              tom: vencendo > 0 ? "critico" : undefined,
+            },
+            {
+              valor: String(contagens.sem_contato),
+              rotulo: "Sem decisor com contato",
+              nota: `de ${abertos.length} município(s) em aberto`,
+              tom: contagens.sem_contato > 0 ? "atencao" : undefined,
+            },
+          ]}
+        />
       )}
 
       <div className="kb-barra">
@@ -174,16 +196,42 @@ export function KanbanAta({
               {[...filtrados].sort(ordenarPorPrazo).map((c) => (
                 <tr key={c.id} className="kb-linha-clicavel" onClick={() => setSelecionadoId(c.id)}>
                   <td>
-                    {c.nomeMunicipio}
-                    {c.uf ? ` / ${c.uf}` : ""}
+                    <span className="inline-flex flex-wrap items-center gap-2">
+                      <span className="titulo-linha">{c.nomeMunicipio}</span>
+                      {c.uf && <span className="selo-uf">{c.uf}</span>}
+                    </span>
                   </td>
                   {mostrarOrigem && (
-                    <td>
-                      Ata {c.ataNumero} · {c.vendedorNome}
+                    <td className="whitespace-nowrap">
+                      <span className="codigo text-xs" style={{ color: "var(--cor-texto-3)" }}>
+                        Ata {c.ataNumero}
+                      </span>{" "}
+                      · {c.vendedorNome}
                     </td>
                   )}
-                  <td>{ROTULO_ESTAGIO_OPORTUNIDADE[c.estagio as EstagioOportunidade] ?? c.estagio}</td>
-                  <td>{c.principal ? `${c.principal.cargo} — ${c.principal.nomeContato}` : "—"}</td>
+                  <td>
+                    <span className="inline-flex items-center gap-2 whitespace-nowrap">
+                      <i
+                        className="kb-ponto"
+                        style={{ background: COR_ESTAGIO_OPORTUNIDADE[c.estagio as EstagioOportunidade] }}
+                      />
+                      {ROTULO_ESTAGIO_OPORTUNIDADE[c.estagio as EstagioOportunidade] ?? c.estagio}
+                    </span>
+                  </td>
+                  <td>
+                    {c.principal ? (
+                      <>
+                        <span className="block" style={{ color: "var(--cor-texto)" }}>
+                          {c.principal.cargo}
+                        </span>
+                        <span className="block text-xs" style={{ color: "var(--cor-texto-3)" }}>
+                          {c.principal.nomeContato}
+                        </span>
+                      </>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
                   <td>
                     {ABERTOS.includes(c.estagio) ? (
                       <Badge tom={c.urgencia.nivel === "critico" ? "critico" : c.urgencia.nivel === "atencao" ? "atencao" : "neutro"}>
@@ -193,7 +241,7 @@ export function KanbanAta({
                       "—"
                     )}
                   </td>
-                  <td className="numero">
+                  <td className="numero whitespace-nowrap" style={{ color: "var(--cor-texto)" }}>
                     {c.estagio === "aderiu"
                       ? moedaCurta(c.valorAderido ?? 0)
                       : c.valorEstimado != null
@@ -222,34 +270,6 @@ export function KanbanAta({
         />
       )}
     </>
-  );
-}
-
-function Indicador({
-  rotulo,
-  valor,
-  nota,
-  tom = "neutro",
-}: {
-  rotulo: string;
-  valor: string;
-  nota: string;
-  tom?: "neutro" | "marca" | "atencao" | "critico";
-}) {
-  const cor = {
-    neutro: "var(--cor-texto)",
-    marca: "var(--cor-marca-clara)",
-    atencao: "var(--cor-atencao)",
-    critico: "var(--cor-critico)",
-  }[tom];
-  return (
-    <div className="kb-kpi">
-      <p className="eyebrow">{rotulo}</p>
-      <p className="kb-kpi-valor numero" style={{ color: cor }}>
-        {valor}
-      </p>
-      <p className="kb-kpi-nota">{nota}</p>
-    </div>
   );
 }
 

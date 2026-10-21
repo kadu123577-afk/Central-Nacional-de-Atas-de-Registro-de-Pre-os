@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { criarPontoFocal, type EstadoPontoFocal } from "../../actions";
 import { Secao } from "@/components/ui/secao";
+import { Aviso } from "@/components/ui/aviso";
 
 const estadoInicial: EstadoPontoFocal = {};
 
@@ -19,29 +20,16 @@ export function FormularioNovoContato({ entidadeAlvoId }: { entidadeAlvoId: stri
           <Campo label="Cargo" name="cargo" required placeholder="Prefeito, Secretário..." />
           <Campo label="Área/pasta" name="area" placeholder="Saúde, Educação, Gabinete..." />
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Campo label="Telefone" name="telefone" />
           <Campo label="E-mail" name="email" type="email" />
         </div>
-        <label className="block text-sm">
-          <span className="mb-1 block font-medium" style={{ color: "var(--cor-texto-2)" }}>
-            Particularidades
-          </span>
+        <label className="block">
+          <span className="rotulo-campo">Particularidades</span>
           <textarea name="particularidades" rows={3} className="campo-atas" />
         </label>
 
-        {estado.erro && (
-          <p
-            className="rounded-[var(--raio)] border px-4 py-3 text-sm"
-            style={{
-              borderColor: "var(--cor-critico)",
-              background: "var(--cor-critico-fundo)",
-              color: "var(--cor-critico)",
-            }}
-          >
-            {estado.erro}
-          </p>
-        )}
+        {estado.erro && <Aviso tom="critico">{estado.erro}</Aviso>}
 
         <button type="submit" disabled={pendente} className="botao-atas self-start">
           {pendente ? "Salvando..." : "Cadastrar contato"}
@@ -65,10 +53,8 @@ function Campo({
   placeholder?: string;
 }) {
   return (
-    <label className="block text-sm">
-      <span className="mb-1 block font-medium" style={{ color: "var(--cor-texto-2)" }}>
-        {label}
-      </span>
+    <label className="block">
+      <span className="rotulo-campo">{label}</span>
       <input name={name} type={type} required={required} placeholder={placeholder} className="campo-atas" />
     </label>
   );

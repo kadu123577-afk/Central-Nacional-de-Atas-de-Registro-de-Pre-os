@@ -1,0 +1,478 @@
+/**
+ * Peças do site público (Is' Art) reaproveitadas no sistema: cabeçalho,
+ * rodapé, menu lateral das áreas logadas, chips com contagem, selo de UF,
+ * barra de saldo, faixa de números e passos. Só lê tokens de tokens.css.
+ */
+
+@layer components {
+  /* ---- cabeçalho público ---- */
+  .site-topo {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: var(--cor-superficie);
+    border-bottom: 1px solid var(--cor-borda);
+  }
+  .site-topo-interno {
+    margin: 0 auto;
+    max-width: 1040px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px 24px;
+    padding: 12px 24px;
+  }
+  .site-busca {
+    flex: 1;
+    max-width: 400px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 36px;
+    padding-left: 12px;
+    border: 1px solid var(--cor-borda);
+    border-radius: var(--raio);
+    background: var(--cor-superficie-2);
+    color: var(--cor-texto-3);
+    overflow: hidden;
+  }
+  .site-busca:focus-within {
+    border-color: var(--cor-marca);
+    box-shadow: 0 0 0 3px var(--cor-marca-fundo);
+  }
+  .site-busca input {
+    flex: 1;
+    min-width: 0;
+    background: transparent;
+    border: none;
+    outline: none;
+    font-size: 13.5px;
+    color: var(--cor-texto);
+  }
+  .site-busca input::placeholder {
+    color: var(--cor-texto-3);
+  }
+  .site-busca button {
+    align-self: stretch;
+    padding: 0 16px;
+    border-left: 1px solid var(--cor-borda);
+    background: var(--cor-superficie-2);
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--cor-texto);
+  }
+  .site-busca button:hover {
+    background: var(--cor-borda);
+  }
+  .site-topo-nav {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 22px;
+  }
+  .site-topo-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--cor-texto);
+  }
+  .site-topo-link:hover {
+    color: var(--cor-marca-clara);
+  }
+  .site-menu {
+    position: absolute;
+    top: calc(100% + 10px);
+    z-index: 60;
+    display: flex;
+    flex-direction: column;
+    padding: 6px;
+    background: var(--cor-superficie);
+    border: 1px solid var(--cor-borda);
+    border-radius: 12px;
+    box-shadow: var(--sombra-flutuante);
+  }
+  .site-menu a {
+    padding: 8px 10px;
+    border-radius: 6px;
+    font-size: 13px;
+    color: var(--cor-texto-2);
+  }
+  .site-menu a:hover {
+    background: var(--cor-marca-fundo);
+    color: var(--cor-marca-clara);
+  }
+  .site-menu-categorias {
+    left: 0;
+    width: min(560px, 90vw);
+    max-height: 60vh;
+    overflow-y: auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  /* ---- rodapé ---- */
+  .site-rodape {
+    background: var(--cor-profundo);
+    color: var(--cor-profundo-texto);
+  }
+  .site-rodape-interno {
+    margin: 0 auto;
+    max-width: 1040px;
+    padding: 44px 24px 26px;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+  }
+  .site-rodape a {
+    display: block;
+    font-size: 13px;
+    color: var(--cor-profundo-texto);
+    padding: 3px 0;
+  }
+  .site-rodape a:hover {
+    color: var(--cor-superficie);
+  }
+  .site-rodape-titulo {
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--cor-ouro-claro);
+    margin-bottom: 8px;
+  }
+  .site-rodape-aviso {
+    display: flex;
+    gap: 10px;
+    padding: 14px 18px;
+    border-radius: 12px;
+    background: var(--cor-profundo-2);
+    font-size: 12.5px;
+    line-height: 1.6;
+  }
+  .site-rodape-aviso svg {
+    color: var(--cor-ouro-claro);
+  }
+  .site-rodape-base {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding-top: 18px;
+    border-top: 1px solid var(--cor-profundo-2);
+    font-size: 12px;
+    color: var(--cor-profundo-texto-2);
+  }
+  .site-rodape-base a {
+    display: inline;
+    font-size: 12px;
+  }
+
+  /* ---- menu lateral das áreas logadas ---- */
+  .app-menu {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    width: 248px;
+    flex: none;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 20px 14px;
+    overflow-y: auto;
+    background: var(--cor-profundo);
+    color: var(--cor-profundo-texto);
+  }
+  .app-menu-area {
+    margin-top: 12px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--cor-ouro-claro);
+  }
+  .app-menu-grupo {
+    padding: 16px 12px 4px;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--cor-profundo-texto-2);
+  }
+  .app-menu-item {
+    position: relative;
+    display: block;
+    padding: 8px 12px;
+    border-radius: var(--raio);
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--cor-profundo-texto);
+    transition: background-color 120ms ease-out, color 120ms ease-out;
+  }
+  .app-menu-item:hover {
+    background: var(--cor-profundo-2);
+    color: var(--cor-superficie);
+  }
+  .app-menu-item[aria-current="page"] {
+    background: var(--cor-profundo-2);
+    color: var(--cor-superficie);
+    font-weight: 700;
+  }
+  .app-menu-item[aria-current="page"]::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 8px;
+    bottom: 8px;
+    width: 3px;
+    border-radius: 0 3px 3px 0;
+    background: var(--cor-ouro);
+  }
+  .app-menu-rodape {
+    padding: 12px 12px 0;
+    border-top: 1px solid var(--cor-profundo-2);
+    font-size: 13px;
+    color: var(--cor-profundo-texto);
+  }
+  .app-menu-rodape .botao-atas.link,
+  .app-menu-rodape a {
+    color: var(--cor-profundo-texto);
+    font-weight: 600;
+  }
+  .app-menu-rodape .botao-atas.link:hover:not(:disabled),
+  .app-menu-rodape a:hover {
+    color: var(--cor-superficie);
+  }
+
+  /* ---- chips "Mais procurados" (com contagem) ---- */
+  .chip-site {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px 6px 14px;
+    border: 1px solid var(--cor-borda);
+    border-radius: 999px;
+    background: var(--cor-superficie);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--cor-texto);
+    transition: border-color 120ms ease-out, background-color 120ms ease-out;
+  }
+  .chip-site:hover {
+    border-color: var(--cor-marca-borda);
+    background: var(--cor-linha-hover);
+  }
+  .chip-site:not(:has(b)) {
+    padding-right: 14px;
+  }
+  .chip-site b {
+    display: inline-grid;
+    place-items: center;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: var(--cor-marca-fundo);
+    color: var(--cor-marca-clara);
+    font-size: 11.5px;
+    font-weight: 700;
+  }
+
+  /* ---- selo de UF / código ---- */
+  .selo-uf {
+    display: inline-grid;
+    place-items: center;
+    min-width: 28px;
+    padding: 3px 6px;
+    border-radius: 6px;
+    background: var(--cor-superficie-2);
+    font-family: var(--fonte-codigo);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--cor-texto);
+  }
+
+  /* ---- barra de saldo (fina, verde, trilho cinza) ---- */
+  .barra-saldo {
+    height: 5px;
+    border-radius: 999px;
+    background: var(--cor-borda);
+    overflow: hidden;
+  }
+  .barra-saldo > div {
+    height: 100%;
+    border-radius: 999px;
+    background: var(--cor-marca);
+  }
+
+  /* ---- faixa de números (24 atas vigentes · 108 itens…) ---- */
+  .faixa-numeros {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    background: var(--cor-superficie);
+    border: 1px solid var(--cor-borda);
+    border-radius: var(--raio-grande);
+    box-shadow: var(--sombra-cartao);
+    overflow: hidden;
+  }
+  .faixa-numeros > div {
+    padding: 20px 22px;
+    border-left: 1px solid var(--cor-borda);
+  }
+  .faixa-numeros > div:first-child {
+    border-left: none;
+  }
+  .faixa-numeros strong {
+    display: block;
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    color: var(--cor-texto);
+    font-variant-numeric: tabular-nums;
+  }
+  /* Só o rótulo direto da célula — um <span> dentro do número (ex.: Cifra)
+     não pode herdar o tamanho pequeno. */
+  .faixa-numeros > div > span {
+    display: block;
+    margin-top: 4px;
+    font-size: 12.5px;
+    color: var(--cor-texto-2);
+  }
+
+  /* ---- selo verde com ponto ("● Catálogo nacional de atas…") ---- */
+  .selo-ponto {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--cor-marca-clara);
+  }
+  .selo-ponto::before {
+    content: "";
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--cor-marca);
+    box-shadow: 0 0 0 3px var(--cor-marca-fundo);
+  }
+
+  /* ---- passos (Como funciona a adesão) ---- */
+  .passos {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 24px;
+  }
+  .passo {
+    position: relative;
+    text-align: center;
+  }
+  .passo-numero {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    margin: 0 auto 14px;
+    border-radius: 50%;
+    background: var(--cor-marca-fundo);
+    color: var(--cor-marca-clara);
+    font-weight: 800;
+  }
+  .passo[data-ativo="true"] .passo-numero {
+    background: var(--cor-marca);
+    color: var(--cor-superficie);
+  }
+  .passo:not(:last-child)::after {
+    content: "";
+    position: absolute;
+    top: 19px;
+    left: calc(50% + 28px);
+    right: calc(-50% + 4px);
+    border-top: 1.5px dashed var(--cor-borda-forte);
+  }
+  @media (max-width: 760px) {
+    .passo:not(:last-child)::after {
+      display: none;
+    }
+  }
+
+  /* ---- caixas de aviso (componente Aviso) ---- */
+  .caixa-aviso {
+    display: flex;
+    gap: 10px;
+    border: 1px solid var(--cor-info-borda);
+    border-radius: 12px;
+    padding: 12px 16px;
+    font-size: 13px;
+    line-height: 1.55;
+    background: var(--cor-info-fundo);
+    color: var(--cor-info);
+  }
+  .caixa-aviso[data-tom="sucesso"] {
+    background: var(--cor-marca-fundo);
+    border-color: var(--cor-marca-borda);
+    color: var(--cor-marca-clara);
+  }
+  .caixa-aviso[data-tom="atencao"] {
+    background: var(--cor-atencao-fundo);
+    border-color: color-mix(in srgb, var(--cor-atencao) 30%, transparent);
+    color: var(--cor-atencao);
+  }
+  .caixa-aviso[data-tom="alerta"] {
+    background: var(--cor-alerta-fundo);
+    border-color: color-mix(in srgb, var(--cor-alerta) 30%, transparent);
+    color: var(--cor-alerta);
+  }
+  .caixa-aviso[data-tom="critico"] {
+    background: var(--cor-critico-fundo);
+    border-color: color-mix(in srgb, var(--cor-critico) 30%, transparent);
+    color: var(--cor-critico);
+  }
+
+  /* ---- rótulo de campo de formulário ("O que precisa comprar") ---- */
+  .rotulo-campo {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--cor-texto);
+  }
+  .rotulo-campo small,
+  .rotulo-campo .opcional {
+    font-weight: 400;
+    color: var(--cor-texto-3);
+  }
+
+  /* ---- lista em linhas (as linhas da tabela do site, sem <table>) ---- */
+  .lista-linhas > * {
+    padding: 13px 0;
+    border-bottom: 1px solid var(--cor-borda);
+  }
+  .lista-linhas > *:first-child {
+    padding-top: 0;
+  }
+  .lista-linhas > *:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  /* Bloco dentro de uma Secao: borda e cantos do cartão, sem sombra. */
+  .painel-interno {
+    background: var(--cor-superficie);
+    border: 1px solid var(--cor-borda);
+    border-radius: var(--raio-grande);
+  }
+
+  /* Tabela dentro de um cartão: moldura com borda e rolagem lateral. */
+  .moldura-tabela {
+    border: 1px solid var(--cor-borda);
+    border-radius: var(--raio-grande);
+    overflow-x: auto;
+  }
+}

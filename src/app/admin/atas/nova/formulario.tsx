@@ -3,6 +3,8 @@
 import { useActionState, useState } from "react";
 import { cadastrarAtaComoAdmin, logoutAdmin, type EstadoCadastroAtaAdmin } from "../../actions";
 import { AppShell } from "@/components/ui/app-shell";
+import { Aviso } from "@/components/ui/aviso";
+import { CabecalhoPagina } from "@/components/ui/cabecalho-pagina";
 import { Secao } from "@/components/ui/secao";
 import { CATEGORIAS_ATAS } from "@/lib/categorias";
 import { ESFERAS_ORGAO } from "@/lib/esferas";
@@ -34,28 +36,25 @@ export function FormularioNovaAtaAdmin() {
         </form>
       }
     >
-      <div>
-        <h1 className="marca text-2xl" style={{ color: "var(--cor-texto)" }}>
-          Cadastrar nova ata
-        </h1>
-        <p className="mt-1 text-sm" style={{ color: "var(--cor-texto-2)" }}>
-          Fornecedor, órgão gerenciador, dados da ata e ao menos um item — a ata entra como
-          PENDENTE até ser aprovada na fila de moderação.
-        </p>
-      </div>
+      <CabecalhoPagina
+        rotulo="Operação"
+        titulo="Cadastrar"
+        destaque="nova ata"
+        descricao="Fornecedor, órgão gerenciador, dados da ata e ao menos um item — a ata entra como PENDENTE até ser aprovada na fila de moderação."
+        voltar={{ href: "/atas", rotulo: "Atas" }}
+      />
 
-      <form action={formAction} className="flex flex-col gap-5" encType="multipart/form-data">
-        <Secao titulo="Fornecedor">
+      <form action={formAction} className="flex flex-col gap-6" encType="multipart/form-data">
+        <Secao
+          titulo="Fornecedor"
+          descricao="Se já existe um fornecedor com esse CNPJ, os dados dele são atualizados — essa ata entra vinculada a ele, sem duplicar cadastro."
+        >
           <div className="flex flex-col gap-4">
             <Campo label="Razão social" name="fornecedorNome" required />
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
               <Campo label="CNPJ" name="fornecedorCnpj" required />
               <Campo label="E-mail" name="fornecedorEmail" type="email" required />
             </div>
-            <p className="text-xs" style={{ color: "var(--cor-texto-3)" }}>
-              Se já existe um fornecedor com esse CNPJ, os dados dele são atualizados — essa
-              ata entra vinculada a ele, sem duplicar cadastro.
-            </p>
           </div>
         </Secao>
 
@@ -63,14 +62,12 @@ export function FormularioNovaAtaAdmin() {
           <div className="flex flex-col gap-4">
             <Campo label="Nome" name="orgaoNome" required />
             <Campo label="CNPJ" name="orgaoCnpj" required />
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-[120px_1fr]">
               <Campo label="UF" name="orgaoUf" required />
               <Campo label="Município" name="orgaoMunicipio" required />
             </div>
             <label className="block text-sm">
-              <span className="mb-1 block font-medium" style={{ color: "var(--cor-texto-2)" }}>
-                Esfera
-              </span>
+              <span className="rotulo-campo">Esfera</span>
               <select name="orgaoEsfera" required className="campo-atas" defaultValue="">
                 <option value="" disabled>
                   Selecione...
@@ -85,14 +82,14 @@ export function FormularioNovaAtaAdmin() {
           </div>
         </Secao>
 
-        <Secao titulo="Ata">
+        <Secao titulo="Ata" destaque>
           <div className="flex flex-col gap-4">
-            <Campo label="Número" name="numero" required />
-            <Campo label="Objeto (uso interno, não aparece no site)" name="objeto" required />
+            <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-[200px_1fr]">
+              <Campo label="Número" name="numero" required />
+              <Campo label="Objeto (uso interno, não aparece no site)" name="objeto" required />
+            </div>
             <label className="block text-sm">
-              <span className="mb-1 block font-medium" style={{ color: "var(--cor-texto-2)" }}>
-                Título público (aparece no site)
-              </span>
+              <span className="rotulo-campo">Título público (aparece no site)</span>
               <input
                 name="tituloPublico"
                 type="text"
@@ -105,37 +102,35 @@ export function FormularioNovaAtaAdmin() {
                 achar a ata lá e contratar direto. Se ficar vazio, o site usa &quot;Ata de &lt;tema&gt;&quot;.
               </span>
             </label>
-            <label className="block text-sm">
-              <span className="mb-1 block font-medium" style={{ color: "var(--cor-texto-2)" }}>
-                Origem
-              </span>
-              <select name="origem" className="campo-atas" defaultValue="MANUAL">
-                <option value="MANUAL">Cadastro manual</option>
-                <option value="CIABC">CIABC</option>
-              </select>
-            </label>
-            <label className="block text-sm">
-              <span className="mb-1 block font-medium" style={{ color: "var(--cor-texto-2)" }}>
-                Tema da ata
-              </span>
-              <select name="ataCategoria" required className="campo-atas" defaultValue="">
-                <option value="" disabled>
-                  Selecione...
-                </option>
-                {CATEGORIAS_ATAS.map((c) => (
-                  <option key={c.slug} value={c.slug}>
-                    {c.rotulo}
+            <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
+              <label className="block text-sm">
+                <span className="rotulo-campo">Origem</span>
+                <select name="origem" className="campo-atas" defaultValue="MANUAL">
+                  <option value="MANUAL">Cadastro manual</option>
+                  <option value="CIABC">CIABC</option>
+                </select>
+              </label>
+              <label className="block text-sm">
+                <span className="rotulo-campo">Tema da ata</span>
+                <select name="ataCategoria" required className="campo-atas" defaultValue="">
+                  <option value="" disabled>
+                    Selecione...
                   </option>
-                ))}
-              </select>
-            </label>
-            <div className="grid grid-cols-2 gap-4 items-start">
+                  {CATEGORIAS_ATAS.map((c) => (
+                    <option key={c.slug} value={c.slug}>
+                      {c.rotulo}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
               <Campo label="Data de assinatura" name="dataAssinatura" type="date" required />
               <Campo label="Vigência até" name="dataVigenciaFim" type="date" required />
             </div>
             <label className="block text-sm">
-              <span className="mb-1 block font-medium" style={{ color: "var(--cor-texto-2)" }}>
-                Documento (edital, ofício ou ata digitalizada) — opcional
+              <span className="rotulo-campo">
+                Documento (edital, ofício ou ata digitalizada) <small>(opcional)</small>
               </span>
               <input
                 name="documento"
@@ -143,7 +138,7 @@ export function FormularioNovaAtaAdmin() {
                 accept="application/pdf,image/jpeg,image/png"
                 className="campo-atas"
               />
-              <span className="mt-1 block text-xs" style={{ color: "var(--cor-texto-3)" }}>
+              <span className="mt-1.5 block text-xs" style={{ color: "var(--cor-texto-3)" }}>
                 PDF ou imagem, até 10MB.
               </span>
             </label>
@@ -158,12 +153,12 @@ export function FormularioNovaAtaAdmin() {
             </button>
           }
         >
-          <div className="flex flex-col gap-4">
+          <ol className="flex flex-col gap-4">
             {itens.map((chave, indice) => (
-              <div
+              <li
                 key={chave}
-                className="flex flex-col gap-4 rounded-[var(--raio)] border p-4"
-                style={{ borderColor: "var(--cor-borda)" }}
+                className="flex flex-col gap-4 rounded-[var(--raio-grande)] border p-5"
+                style={{ borderColor: "var(--cor-borda)", background: "var(--cor-superficie-2)" }}
               >
                 <div className="flex items-center justify-between">
                   <span className="eyebrow">Item {indice + 1}</span>
@@ -179,11 +174,9 @@ export function FormularioNovaAtaAdmin() {
                   )}
                 </div>
                 <Campo label="Descrição" name="itemDescricao[]" required />
-                <div className="grid grid-cols-2 gap-4 items-start">
+                <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
                   <label className="block text-sm">
-                    <span className="mb-1 block font-medium" style={{ color: "var(--cor-texto-2)" }}>
-                      Categoria
-                    </span>
+                    <span className="rotulo-campo">Categoria</span>
                     <select name="itemCategoria[]" required className="campo-atas" defaultValue="">
                       <option value="" disabled>
                         Selecione...
@@ -197,7 +190,7 @@ export function FormularioNovaAtaAdmin() {
                   </label>
                   <Campo label="Unidade" name="itemUnidade[]" required />
                 </div>
-                <div className="grid grid-cols-2 gap-4 items-start">
+                <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
                   <Campo
                     label="Quantidade registrada"
                     name="itemQuantidade[]"
@@ -214,27 +207,18 @@ export function FormularioNovaAtaAdmin() {
                     required
                   />
                 </div>
-              </div>
+              </li>
             ))}
-          </div>
+          </ol>
         </Secao>
 
-        {estado.erro && (
-          <p
-            className="rounded-[var(--raio)] border px-4 py-3 text-sm"
-            style={{
-              borderColor: "var(--cor-critico)",
-              background: "var(--cor-critico-fundo)",
-              color: "var(--cor-critico)",
-            }}
-          >
-            {estado.erro}
-          </p>
-        )}
+        {estado.erro && <Aviso tom="critico">{estado.erro}</Aviso>}
 
-        <button type="submit" disabled={pendente} className="botao-atas self-start">
-          {pendente ? "Salvando..." : "Cadastrar ata"}
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          <button type="submit" disabled={pendente} className="botao-atas">
+            {pendente ? "Salvando..." : "Cadastrar ata"}
+          </button>
+        </div>
       </form>
     </AppShell>
   );
@@ -263,9 +247,7 @@ function Campo({
 }) {
   return (
     <label className="block text-sm">
-      <span className="mb-1 block font-medium" style={{ color: "var(--cor-texto-2)" }}>
-        {label}
-      </span>
+      <span className="rotulo-campo">{label}</span>
       <input name={name} type={type} required={required} min={min} step={step} className="campo-atas" />
     </label>
   );

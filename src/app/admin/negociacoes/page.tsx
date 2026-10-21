@@ -6,13 +6,19 @@ import { decidirPedidosNegociacao, logoutAdmin } from "../actions";
 import { NAV_ADMIN } from "../nav";
 import { AppShell } from "@/components/ui/app-shell";
 import { Secao } from "@/components/ui/secao";
+import { CabecalhoPagina } from "@/components/ui/cabecalho-pagina";
+import { FaixaNumeros } from "@/components/ui/faixa-numeros";
 import { Badge } from "@/components/ui/badge";
 import { VazioComAcao } from "@/components/ui/vazio-com-acao";
 import { rotuloDaCategoria } from "@/lib/categorias";
 import { escolherDecisorPrincipal } from "@/lib/decisores";
 import { percentualDeFracao } from "@/lib/formato";
 import { expirarOportunidadesVencidas } from "@/lib/negociacao-expiracao";
-import { ROTULO_ESTAGIO_OPORTUNIDADE, estagioOportunidadeValido } from "@/lib/oportunidades";
+import {
+  COR_ESTAGIO_OPORTUNIDADE,
+  ROTULO_ESTAGIO_OPORTUNIDADE,
+  estagioOportunidadeValido,
+} from "@/lib/oportunidades";
 import { calcularUrgencia } from "@/lib/urgencia";
 
 export const dynamic = "force-dynamic";
@@ -117,7 +123,7 @@ export default async function NegociacoesPage() {
 
   return (
     <AppShell
-      area="Administração"
+      area="Administrativo"
       itens={NAV_ADMIN}
       larguraMaxima="max-w-6xl"
       rodape={
@@ -128,38 +134,35 @@ export default async function NegociacoesPage() {
         </form>
       }
     >
-      <div>
-        <h1 className="marca text-2xl" style={{ color: "var(--cor-texto)" }}>
-          Negociações
-        </h1>
-        <p className="mt-1 text-sm" style={{ color: "var(--cor-texto-2)" }}>
-          Libere ou negue os municípios que os vendedores pediram. Cada município liberado tem 10 dias para avançar.
-        </p>
-      </div>
+      <CabecalhoPagina
+        rotulo="Operação"
+        titulo="Negociações"
+        descricao="Libere ou negue os municípios que os vendedores pediram. Cada município liberado tem 10 dias para avançar."
+      />
 
-      <div className="kb-kpis">
-        <div className="kb-kpi">
-          <p className="eyebrow">Pedidos aguardando</p>
-          <p className="kb-kpi-valor numero" style={{ color: pendentes.length > 0 ? "var(--cor-atencao)" : undefined }}>
-            {pendentes.length}
-          </p>
-          <p className="kb-kpi-nota">em {porAta.size} ata(s)</p>
-        </div>
-        <div className="kb-kpi">
-          <p className="eyebrow">Municípios em aberto</p>
-          <p className="kb-kpi-valor numero">{totalAtivas}</p>
-          <p className="kb-kpi-nota">com {vendedoresAbertos.length} vendedor(es)</p>
-        </div>
-        <div className="kb-kpi">
-          <p className="eyebrow">Prazos vencendo</p>
-          <p className="kb-kpi-valor numero" style={{ color: vencendo > 0 ? "var(--cor-critico)" : undefined }}>
-            {vencendo}
-          </p>
-          <p className="kb-kpi-nota">expiram em até 3 dias</p>
-        </div>
-      </div>
+      <FaixaNumeros
+        itens={[
+          {
+            valor: pendentes.length,
+            rotulo: "Pedidos aguardando",
+            nota: `em ${porAta.size} ata(s)`,
+            tom: pendentes.length > 0 ? "atencao" : undefined,
+          },
+          {
+            valor: totalAtivas,
+            rotulo: "Municípios em aberto",
+            nota: `com ${vendedoresAbertos.length} vendedor(es)`,
+          },
+          {
+            valor: vencendo,
+            rotulo: "Prazos vencendo",
+            nota: "expiram em até 3 dias",
+            tom: vencendo > 0 ? "critico" : undefined,
+          },
+        ]}
+      />
 
-      <Secao titulo={`Pedidos aguardando liberação (${pendentes.length})`}>
+      <Secao titulo={`Pedidos aguardando liberação (${pendentes.length})`} destaque>
         {porAta.size === 0 ? (
           <VazioComAcao
             titulo="Nenhum pedido pendente"
@@ -171,13 +174,17 @@ export default async function NegociacoesPage() {
               const ocupados = comQuemEstaMunicipio(ataId);
               const jaAtivos = ocupadasPorAta.get(ataId) ?? [];
               return (
-                <li key={ataId} className="painel p-4">
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <div>
-                      <p className="text-sm font-medium" style={{ color: "var(--cor-texto)" }}>
-                        Ata {ata.numero} — {ata.fornecedor.razaoSocial}
+                <li
+                  key={ataId}
+                  className="rounded-[var(--raio-grande)] border p-5"
+                  style={{ borderColor: "var(--cor-borda)" }}
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-[14.5px] font-bold leading-snug tracking-[-0.01em]" style={{ color: "var(--cor-texto)" }}>
+                        Ata <span className="codigo">{ata.numero}</span> — {ata.fornecedor.razaoSocial}
                       </p>
-                      <p className="text-xs" style={{ color: "var(--cor-texto-3)" }}>
+                      <p className="mt-0.5 text-xs leading-relaxed" style={{ color: "var(--cor-texto-3)" }}>
                         {ata.objeto}
                       </p>
                     </div>
@@ -198,13 +205,13 @@ export default async function NegociacoesPage() {
                     <form
                       key={vendedorId}
                       action={decidirPedidosNegociacao}
-                      className="mt-3 flex flex-col gap-3 border-t pt-3"
+                      className="mt-4 flex flex-col gap-3 border-t pt-4"
                       style={{ borderColor: "var(--cor-borda)" }}
                     >
                       <input type="hidden" name="ataId" value={ataId} />
                       <input type="hidden" name="vendedorId" value={vendedorId} />
-                      <p className="text-sm" style={{ color: "var(--cor-texto-2)" }}>
-                        Vendedor: <span style={{ color: "var(--cor-texto)" }}>{pedidos[0].vendedor.nome}</span>{" "}
+                      <p className="text-[13.5px]" style={{ color: "var(--cor-texto-2)" }}>
+                        Vendedor: <b style={{ color: "var(--cor-texto)" }}>{pedidos[0].vendedor.nome}</b>{" "}
                         <span style={{ color: "var(--cor-texto-3)" }}>— {pedidos.length} município(s)</span>
                       </p>
                       <ul className="grid grid-cols-1 gap-2 md:grid-cols-2">
@@ -218,21 +225,27 @@ export default async function NegociacoesPage() {
                           return (
                             <li
                               key={p.id}
-                              className="rounded-[var(--raio)] border p-2"
-                              style={{ borderColor: comOutro ? "var(--cor-critico)" : "var(--cor-borda)" }}
+                              className="rounded-[var(--raio)] border px-3 py-2.5"
+                              style={{
+                                borderColor: comOutro ? "var(--cor-critico)" : "var(--cor-borda)",
+                                background: comOutro ? "var(--cor-critico-fundo)" : "var(--cor-superficie)",
+                              }}
                             >
-                              <label className="flex items-start gap-2 text-sm" style={{ color: "var(--cor-texto)" }}>
+                              <label className="flex cursor-pointer items-start gap-2.5 text-sm" style={{ color: "var(--cor-texto)" }}>
                                 <input
                                   type="checkbox"
                                   name="pedidoId"
                                   value={p.id}
                                   defaultChecked={!comOutro}
                                   className="mt-1"
+                                  style={{ accentColor: "var(--cor-marca)" }}
                                 />
-                                <span>
-                                  {p.entidadeAlvo.nome}
-                                  {p.entidadeAlvo.uf ? ` / ${p.entidadeAlvo.uf}` : ""}
-                                  <span className="mt-1 flex flex-wrap gap-1.5">
+                                <span className="min-w-0">
+                                  <span className="inline-flex flex-wrap items-center gap-1.5 font-semibold">
+                                    {p.entidadeAlvo.nome}
+                                    {p.entidadeAlvo.uf && <span className="selo-uf">{p.entidadeAlvo.uf}</span>}
+                                  </span>
+                                  <span className="mt-1.5 flex flex-wrap gap-1.5">
                                     {comOutro && <Badge tom="critico">já com {comOutro}</Badge>}
                                     <Badge tom={casa ? "marca" : "neutro"}>
                                       {casa ? "Já contratou a categoria" : "Sem histórico da categoria"}
@@ -245,11 +258,12 @@ export default async function NegociacoesPage() {
                           );
                         })}
                       </ul>
-                      <input
-                        name="motivo"
-                        placeholder="Motivo (opcional, aparece pro vendedor se negar)"
-                        className="campo-atas"
-                      />
+                      <label className="block">
+                        <span className="rotulo-campo">
+                          Motivo <small>(opcional, aparece pro vendedor se negar)</small>
+                        </span>
+                        <input name="motivo" className="campo-atas" />
+                      </label>
                       <div className="flex flex-wrap gap-2">
                         <button type="submit" name="decisao" value="aprovar" className="botao-atas">
                           Liberar selecionados
@@ -269,9 +283,14 @@ export default async function NegociacoesPage() {
 
       <Secao
         titulo={`Em aberto agora (${totalAtivas})`}
+        descricao={
+          ativas.length > 0 && totalAtivas > ativas.length
+            ? `Mostrando os ${ativas.length} com prazo mais curto de ${totalAtivas}.`
+            : undefined
+        }
         acao={
-          <Link href="/admin/pipeline" className="botao-atas secundario">
-            Abrir pipeline
+          <Link href="/admin/pipeline" className="botao-atas link">
+            Abrir pipeline →
           </Link>
         }
       >
@@ -281,11 +300,6 @@ export default async function NegociacoesPage() {
           </p>
         ) : (
           <div className="overflow-x-auto">
-            {totalAtivas > ativas.length && (
-              <p className="mb-2 text-xs" style={{ color: "var(--cor-texto-3)" }}>
-                Mostrando os {ativas.length} com prazo mais curto de {totalAtivas}.
-              </p>
-            )}
             <table className="tabela-atas">
               <thead>
                 <tr>
@@ -303,13 +317,24 @@ export default async function NegociacoesPage() {
                   return (
                     <tr key={o.id}>
                       <td>
-                        {o.entidadeAlvo.nome}
-                        {o.entidadeAlvo.uf ? ` / ${o.entidadeAlvo.uf}` : ""}
+                        <span className="inline-flex flex-wrap items-center gap-2">
+                          <span className="titulo-linha">{o.entidadeAlvo.nome}</span>
+                          {o.entidadeAlvo.uf && <span className="selo-uf">{o.entidadeAlvo.uf}</span>}
+                        </span>
                       </td>
-                      <td>{o.ata.numero}</td>
+                      <td className="codigo whitespace-nowrap text-xs" style={{ color: "var(--cor-texto-3)" }}>
+                        {o.ata.numero}
+                      </td>
                       <td>{o.vendedor.nome}</td>
                       <td>
-                        {estagioOportunidadeValido(o.estagio) ? ROTULO_ESTAGIO_OPORTUNIDADE[o.estagio] : o.estagio}
+                        {estagioOportunidadeValido(o.estagio) ? (
+                          <span className="inline-flex items-center gap-2 whitespace-nowrap">
+                            <i className="kb-ponto" style={{ background: COR_ESTAGIO_OPORTUNIDADE[o.estagio] }} />
+                            {ROTULO_ESTAGIO_OPORTUNIDADE[o.estagio]}
+                          </span>
+                        ) : (
+                          o.estagio
+                        )}
                       </td>
                       <td>
                         {aberto ? (

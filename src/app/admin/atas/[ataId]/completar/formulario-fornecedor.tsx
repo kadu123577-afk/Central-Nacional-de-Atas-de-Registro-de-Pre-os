@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { completarFornecedorDaAta, type EstadoCompletarAta } from "../../../actions";
+import { Aviso } from "@/components/ui/aviso";
 
 const estadoInicial: EstadoCompletarAta = {};
 
@@ -11,24 +12,13 @@ export function FormularioCompletarFornecedor({ ataId }: { ataId: string }) {
   return (
     <form action={formAction} className="flex flex-col gap-4">
       <input type="hidden" name="ataId" value={ataId} />
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-3">
         <Campo label="Razão social" name="razaoSocial" required />
         <Campo label="CNPJ" name="cnpj" required />
         <Campo label="E-mail" name="email" type="email" required />
       </div>
 
-      {estado.erro && (
-        <p
-          className="rounded-[var(--raio)] border px-4 py-3 text-sm"
-          style={{
-            borderColor: "var(--cor-critico)",
-            background: "var(--cor-critico-fundo)",
-            color: "var(--cor-critico)",
-          }}
-        >
-          {estado.erro}
-        </p>
-      )}
+      {estado.erro && <Aviso tom="critico">{estado.erro}</Aviso>}
 
       <button type="submit" disabled={pendente} className="botao-atas self-start">
         {pendente ? "Salvando..." : "Confirmar fornecedor"}
@@ -50,9 +40,7 @@ function Campo({
 }) {
   return (
     <label className="block text-sm">
-      <span className="mb-1 block font-medium" style={{ color: "var(--cor-texto-2)" }}>
-        {label}
-      </span>
+      <span className="rotulo-campo">{label}</span>
       <input name={name} type={type} required={required} className="campo-atas" />
     </label>
   );

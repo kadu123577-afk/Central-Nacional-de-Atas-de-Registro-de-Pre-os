@@ -1,13 +1,15 @@
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { adminIdLogado } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { alternarStatusParceiro, logoutAdmin } from "../../actions";
 import { AppShell } from "@/components/ui/app-shell";
+import { CabecalhoPagina } from "@/components/ui/cabecalho-pagina";
 import { Secao } from "@/components/ui/secao";
 import { Badge } from "@/components/ui/badge";
+import { Aviso } from "@/components/ui/aviso";
+import { SeloCategoria } from "@/components/ui/selo-categoria";
 import { VazioComAcao } from "@/components/ui/vazio-com-acao";
-import { corDaCategoria } from "@/lib/categorias";
+import { corDaCategoria, rotuloDaCategoria } from "@/lib/categorias";
 import { NAV_ADMIN } from "@/app/admin/nav";
 
 export const dynamic = "force-dynamic";
@@ -65,22 +67,16 @@ export default async function DetalheParceiroPage({
         </form>
       }
     >
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="marca text-2xl" style={{ color: "var(--cor-texto)" }}>
-            {parceiro.nome}
-          </h1>
-          <p className="mt-1 text-sm" style={{ color: "var(--cor-texto-2)" }}>
-            {parceiro.contato}
-          </p>
-        </div>
-        <Link href="/admin/parceiros" className="botao-atas link">
-          ← Parceiros
-        </Link>
-      </div>
+      <CabecalhoPagina
+        rotulo="Cadastros"
+        titulo={parceiro.nome}
+        descricao={parceiro.contato}
+        voltar={{ href: "/admin/parceiros", rotulo: "Parceiros" }}
+      />
 
       <Secao
         titulo="Interesses"
+        destaque
         acao={
           <div className="flex items-center gap-3">
             <Badge tom={parceiro.ativo ? "neutro" : "critico"}>
@@ -98,65 +94,93 @@ export default async function DetalheParceiroPage({
           </div>
         }
       >
-        <div className="flex flex-wrap gap-2">
-          {parceiro.categoriasInteresse.map((c) => (
-            <span
-              key={c}
-              className="eyebrow rounded-full border px-2.5 py-0.5"
-              style={{ borderColor: corDaCategoria(c), color: corDaCategoria(c) }}
-            >
-              {c}
-            </span>
-          ))}
-          {parceiro.ufsInteresse.map((uf) => (
-            <Badge key={uf} tom="neutro">
-              {uf}
-            </Badge>
-          ))}
-          {semInteresseDefinido && (
-            <p className="text-sm" style={{ color: "var(--cor-texto-3)" }}>
-              Nenhuma categoria ou UF de interesse definida ainda — edite o cadastro pra
-              começar a ver atas compatíveis aqui.
-            </p>
-          )}
-        </div>
+        {semInteresseDefinido ? (
+          <Aviso tom="atencao">
+            Nenhuma categoria ou UF de interesse definida ainda — edite o cadastro pra
+            começar a ver atas compatíveis aqui.
+          </Aviso>
+        ) : (
+          <div className="flex flex-col gap-4">
+            {parceiro.categoriasInteresse.length > 0 && (
+              <div>
+                <p className="eyebrow mb-2">Categorias</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {parceiro.categoriasInteresse.map((c) => (
+                    <SeloCategoria key={c} categoria={rotuloDaCategoria(c)} />
+                  ))}
+                </div>
+              </div>
+            )}
+            {parceiro.ufsInteresse.length > 0 && (
+              <div>
+                <p className="eyebrow mb-2">UFs</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {parceiro.ufsInteresse.map((uf) => (
+                    <span key={uf} className="selo-uf">
+                      {uf}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </Secao>
 
       <Secao titulo={`Atas compatíveis (${atasCompativeis.length})`}>
         {atasCompativeis.length === 0 ? (
-          <div className="mt-3">
-            <VazioComAcao
-              titulo="Nenhuma ata compatível no momento"
-              descricao={
-                semInteresseDefinido
-                  ? "Defina categorias ou UFs de interesse pra este parceiro."
-                  : "Nenhuma ata aprovada bate com os interesses cadastrados ainda."
-              }
-            />
-          </div>
+          <VazioComAcao
+            titulo="Nenhuma ata compatível no momento"
+            descricao={
+              semInteresseDefinido
+                ? "Defina categorias ou UFs de interesse pra este parceiro."
+                : "Nenhuma ata aprovada bate com os interesses cadastrados ainda."
+            }
+          />
         ) : (
-          <ul className="mt-3 flex flex-col gap-2">
-            {atasCompativeis.map((ata) => (
-              <li key={ata.id} className="painel p-4">
-                <div className="flex items-baseline justify-between gap-2">
-                  <p className="text-sm font-medium" style={{ color: "var(--cor-texto)" }}>
-                    Ata {ata.numero}
-                  </p>
-                  {ata.categoria && (
-                    <span
-                      className="eyebrow rounded-full border px-2.5 py-0.5"
-                      style={{ borderColor: corDaCategoria(ata.categoria), color: corDaCategoria(ata.categoria) }}
-                    >
-                      {ata.categoria}
-                    </span>
-                  )}
-                </div>
-                <p className="mt-1 text-xs" style={{ color: "var(--cor-texto-3)" }}>
-                  {ata.objeto} · {ata.orgaoGerenciador.nome} ({ata.orgaoGerenciador.uf})
-                </p>
-              </li>
-            ))}
-          </ul>
+          <div className="overflow-x-auto">
+            <table className="tabela-atas min-w-[640px]">
+              <thead>
+                <tr>
+                  <th className="w-[1%]">Nº</th>
+                  <th>Objeto da ata</th>
+                  <th className="w-[170px]">Categoria</th>
+                  <th className="w-[64px]">UF</th>
+                </tr>
+              </thead>
+              <tbody>
+                {atasCompativeis.map((ata) => (
+                  <tr key={ata.id}>
+                    <td className="codigo whitespace-nowrap text-xs" style={{ color: "var(--cor-texto-3)" }}>
+                      Ata {ata.numero}
+                    </td>
+                    <td>
+                      <span className="titulo-linha block">{ata.objeto}</span>
+                      <span className="mt-0.5 block text-xs" style={{ color: "var(--cor-texto-3)" }}>
+                        {ata.orgaoGerenciador.nome}
+                      </span>
+                    </td>
+                    <td className="text-[12.5px]">
+                      {ata.categoria ? (
+                        <span className="inline-flex items-start gap-2">
+                          <span
+                            className="mt-1.5 inline-block size-2 shrink-0 rounded-full"
+                            style={{ background: corDaCategoria(ata.categoria) }}
+                          />
+                          {rotuloDaCategoria(ata.categoria)}
+                        </span>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                    <td>
+                      <span className="selo-uf">{ata.orgaoGerenciador.uf}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </Secao>
     </AppShell>

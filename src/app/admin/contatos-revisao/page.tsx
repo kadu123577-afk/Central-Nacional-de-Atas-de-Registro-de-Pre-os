@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { alternarStatusPontoFocal, confirmarContatoAdmin, logoutAdmin } from "../actions";
 import { NAV_ADMIN } from "../nav";
 import { AppShell } from "@/components/ui/app-shell";
+import { CabecalhoPagina } from "@/components/ui/cabecalho-pagina";
 import { Secao } from "@/components/ui/secao";
 import { Badge } from "@/components/ui/badge";
 import { VazioComAcao } from "@/components/ui/vazio-com-acao";
@@ -36,7 +37,7 @@ export default async function ContatosRevisaoPage() {
 
   return (
     <AppShell
-      area="Administração"
+      area="Administrativo"
       itens={NAV_ADMIN}
       rodape={
         <form action={logoutAdmin}>
@@ -46,15 +47,11 @@ export default async function ContatosRevisaoPage() {
         </form>
       }
     >
-      <div>
-        <h1 className="marca text-2xl" style={{ color: "var(--cor-texto)" }}>
-          Revisão de contatos
-        </h1>
-        <p className="mt-1 text-sm" style={{ color: "var(--cor-texto-2)" }}>
-          Contatos que um vendedor marcou como errados. Enquanto estiverem aqui, não são sugeridos como decisor
-          principal.
-        </p>
-      </div>
+      <CabecalhoPagina
+        rotulo="Cadastros"
+        titulo="Revisão de contatos"
+        descricao="Contatos que um vendedor marcou como errados. Enquanto estiverem aqui, não são sugeridos como decisor principal."
+      />
 
       <Secao titulo={`Aguardando revisão (${contatos.length})`}>
         {contatos.length === 0 ? (
@@ -63,33 +60,41 @@ export default async function ContatosRevisaoPage() {
             descricao="Quando um vendedor marcar um contato como errado, ele aparece aqui."
           />
         ) : (
-          <ul className="flex flex-col gap-3">
+          <ul className="lista-linhas">
             {contatos.map((c) => (
-              <li key={c.id} className="painel p-4">
+              <li key={c.id} className="flex flex-col gap-3">
                 <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-medium" style={{ color: "var(--cor-texto)" }}>
+                  <div className="min-w-0">
+                    <p className="text-[14px] font-bold" style={{ color: "var(--cor-texto)", letterSpacing: "-0.01em" }}>
                       {c.nomeContato}{" "}
-                      <span style={{ color: "var(--cor-texto-3)", fontWeight: 400 }}>— {c.cargo}</span>
+                      <span className="font-normal" style={{ color: "var(--cor-texto-3)" }}>
+                        — {c.cargo}
+                      </span>
                     </p>
-                    <p className="text-xs" style={{ color: "var(--cor-texto-3)" }}>
-                      <Link href={`/admin/entidades/${c.entidadeAlvoId}`} className="underline">
+                    <p className="mt-0.5 text-xs">
+                      <Link
+                        href={`/admin/entidades/${c.entidadeAlvoId}`}
+                        className="font-semibold hover:underline"
+                        style={{ color: "var(--cor-marca-clara)" }}
+                      >
                         {c.entidadeAlvo.nome}
                         {c.entidadeAlvo.uf ? ` / ${c.entidadeAlvo.uf}` : ""}
                       </Link>
                     </p>
-                    <p className="mt-1 text-xs" style={{ color: "var(--cor-texto-2)" }}>
+                    <p className="mt-1.5 text-[13px]" style={{ color: "var(--cor-texto-2)" }}>
                       {c.telefone ?? "sem telefone"} · {c.email ?? "sem e-mail"}
                     </p>
                     <p className="mt-1 text-xs" style={{ color: "var(--cor-texto-3)" }}>
                       Marcado {c.contatoErradoEm ? haQuantoTempo(c.contatoErradoEm.toISOString()) : ""} por{" "}
-                      {(c.contatoErradoPorId && nomeVendedor.get(c.contatoErradoPorId)) || "vendedor"}
+                      <b className="font-semibold" style={{ color: "var(--cor-texto-2)" }}>
+                        {(c.contatoErradoPorId && nomeVendedor.get(c.contatoErradoPorId)) || "vendedor"}
+                      </b>
                       {c.contatoErradoMotivo ? ` — “${c.contatoErradoMotivo}”` : ""}
                     </p>
                   </div>
                   <Badge tom="critico">Errado?</Badge>
                 </div>
-                <div className="mt-3 flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2">
                   <form action={confirmarContatoAdmin}>
                     <input type="hidden" name="pontoFocalId" value={c.id} />
                     <button type="submit" className="botao-atas secundario">

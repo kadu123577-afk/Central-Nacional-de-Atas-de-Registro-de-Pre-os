@@ -27,8 +27,8 @@ export function FormularioLoginFornecedor() {
       rodape={
         <p className="text-sm" style={{ color: "var(--cor-texto-2)" }}>
           Ainda não tem conta?{" "}
-          <Link href="/fornecedor/cadastro" className="underline">
-            Cadastre sua empresa
+          <Link href="/fornecedor/cadastro" className="botao-atas link">
+            Cadastre sua empresa →
           </Link>
         </p>
       }

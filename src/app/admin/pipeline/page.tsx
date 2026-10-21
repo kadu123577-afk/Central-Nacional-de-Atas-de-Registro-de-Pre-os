@@ -7,6 +7,8 @@ import { logoutAdmin } from "../actions";
 import { NAV_ADMIN } from "../nav";
 import { AppShell } from "@/components/ui/app-shell";
 import { Secao } from "@/components/ui/secao";
+import { CabecalhoPagina } from "@/components/ui/cabecalho-pagina";
+import { Aviso } from "@/components/ui/aviso";
 import { Cifra } from "@/components/ui/valores";
 import { KanbanAta } from "@/components/kanban/kanban-ata";
 import { FunilVendedor, KpisVendedor } from "@/components/vendedor/painel-resumo";
@@ -70,7 +72,7 @@ export default async function PipelineGestorPage({ searchParams }: { searchParam
 
   return (
     <AppShell
-      area="Administração"
+      area="Administrativo"
       itens={NAV_ADMIN}
       larguraMaxima="max-w-7xl"
       rodape={
@@ -81,54 +83,70 @@ export default async function PipelineGestorPage({ searchParams }: { searchParam
         </form>
       }
     >
-      <div>
-        <h1 className="marca text-2xl" style={{ color: "var(--cor-texto)" }}>
-          Pipeline
-        </h1>
-        <p className="mt-1 text-sm" style={{ color: "var(--cor-texto-2)" }}>
-          Todos os municípios em negociação, de todos os vendedores. Clique num card para ver o dossiê do município
-          (somente leitura).
-        </p>
-      </div>
+      <CabecalhoPagina
+        rotulo="Operação"
+        titulo="Pipeline"
+        descricao={
+          <>
+            Todos os municípios em negociação, de todos os vendedores. Clique num card para ver o dossiê do município
+            (somente leitura).
+          </>
+        }
+      />
 
-      <form method="get" className="kb-barra" aria-label="Filtros do pipeline">
-        <select name="vendedor" defaultValue={filtros.vendedor ?? ""} className="campo-atas" style={{ width: "auto" }}>
-          <option value="">Todos os vendedores</option>
-          {vendedores.map((v) => (
-            <option key={v.id} value={v.id}>
-              {v.nome}
-            </option>
-          ))}
-        </select>
-        <select name="ata" defaultValue={filtros.ata ?? ""} className="campo-atas" style={{ width: "auto" }}>
-          <option value="">Todas as atas</option>
-          {atas.map((a) => (
-            <option key={a.id} value={a.id}>
-              Ata {a.numero} — {a.fornecedor.razaoSocial}
-            </option>
-          ))}
-        </select>
-        <select name="uf" defaultValue={filtros.uf ?? ""} className="campo-atas" style={{ width: "auto" }}>
-          <option value="">Todas as UFs</option>
-          {ufs.map((u) => (
-            <option key={u.uf} value={u.uf ?? ""}>
-              {u.uf}
-            </option>
-          ))}
-        </select>
-        <button type="submit" className="botao-atas secundario">
-          Filtrar
-        </button>
-        {filtrando && (
-          <Link href="/admin/pipeline" className="botao-atas link">
-            Limpar
-          </Link>
-        )}
+      <form
+        method="get"
+        className="painel grid grid-cols-1 gap-x-4 gap-y-3 p-4 sm:grid-cols-2 lg:grid-cols-[1fr_1.6fr_0.6fr_auto] lg:items-end"
+        aria-label="Filtros do pipeline"
+      >
+        <label className="block">
+          <span className="rotulo-campo">Vendedor</span>
+          <select name="vendedor" defaultValue={filtros.vendedor ?? ""} className="campo-atas">
+            <option value="">Todos os vendedores</option>
+            {vendedores.map((v) => (
+              <option key={v.id} value={v.id}>
+                {v.nome}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="block">
+          <span className="rotulo-campo">Ata</span>
+          <select name="ata" defaultValue={filtros.ata ?? ""} className="campo-atas">
+            <option value="">Todas as atas</option>
+            {atas.map((a) => (
+              <option key={a.id} value={a.id}>
+                Ata {a.numero} — {a.fornecedor.razaoSocial}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="block">
+          <span className="rotulo-campo">UF</span>
+          <select name="uf" defaultValue={filtros.uf ?? ""} className="campo-atas">
+            <option value="">Todas as UFs</option>
+            {ufs.map((u) => (
+              <option key={u.uf} value={u.uf ?? ""}>
+                {u.uf}
+              </option>
+            ))}
+          </select>
+        </label>
+        <div className="flex items-center gap-4">
+          <button type="submit" className="botao-atas">
+            Filtrar
+          </button>
+          {filtrando && (
+            <Link href="/admin/pipeline" className="botao-atas link">
+              Limpar
+            </Link>
+          )}
+        </div>
       </form>
 
       <KpisVendedor kpis={painel.kpis} />
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <FunilVendedor funil={painel.funil} />
         <Secao titulo="Por vendedor">
           {porVendedor.length === 0 ? (
@@ -151,16 +169,25 @@ export default async function PipelineGestorPage({ searchParams }: { searchParam
                   {porVendedor.map((v) => (
                     <tr key={v.vendedorId}>
                       <td>
-                        <Link href={`/admin/pipeline?vendedor=${v.vendedorId}`} className="underline">
+                        <Link
+                          href={`/admin/pipeline?vendedor=${v.vendedorId}`}
+                          className="titulo-linha hover:text-[var(--cor-marca-clara)]"
+                        >
                           {v.nome}
                         </Link>
                       </td>
                       <td className="numero">{v.abertos}</td>
                       <td className="numero">{v.aderidos}</td>
-                      <td>
+                      <td className="whitespace-nowrap" style={{ color: "var(--cor-texto)" }}>
                         <Cifra valor={v.valorAderido} />
                       </td>
-                      <td className="numero" style={{ color: v.vencendo > 0 ? "var(--cor-critico)" : undefined }}>
+                      <td
+                        className="numero whitespace-nowrap"
+                        style={{
+                          color: v.vencendo > 0 ? "var(--cor-critico)" : undefined,
+                          fontWeight: v.vencendo > 0 ? 600 : undefined,
+                        }}
+                      >
                         {v.vencendo > 0 ? `${v.vencendo} vencendo` : "—"}
                       </td>
                     </tr>
@@ -173,9 +200,9 @@ export default async function PipelineGestorPage({ searchParams }: { searchParam
       </div>
 
       {total > cartoes.length && (
-        <p className="text-xs" style={{ color: "var(--cor-texto-3)" }}>
+        <Aviso tom="info">
           Mostrando os {cartoes.length} cards mais urgentes de {total}. Filtre por vendedor, ata ou UF para ver o resto.
-        </p>
+        </Aviso>
       )}
 
       <KanbanAta cartoes={cartoes} somenteLeitura mostrarOrigem semIndicadores colunasRolaveis />

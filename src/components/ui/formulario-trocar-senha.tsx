@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { Aviso } from "@/components/ui/aviso";
 import { Secao } from "@/components/ui/secao";
 
 export interface EstadoTrocarSenha {
@@ -20,40 +21,16 @@ export function FormularioTrocarSenha({
 
   return (
     <Secao titulo="Trocar senha">
-      <form action={formAction} className="flex flex-col gap-4">
-        <Campo label="Senha atual" name="senhaAtual" type="password" required />
-        <Campo label="Nova senha (mín. 12 caracteres)" name="senhaNova" type="password" required />
-        <Campo
-          label="Confirmar nova senha"
-          name="confirmacaoSenhaNova"
-          type="password"
-          required
-        />
+      <form action={formAction} className="flex flex-col gap-5">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+          <Campo label="Senha atual" name="senhaAtual" type="password" required />
+          <div className="hidden sm:block" aria-hidden="true" />
+          <Campo label="Nova senha" dica="(mín. 12 caracteres)" name="senhaNova" type="password" required />
+          <Campo label="Confirmar nova senha" name="confirmacaoSenhaNova" type="password" required />
+        </div>
 
-        {estado.erro && (
-          <p
-            className="rounded-[var(--raio)] border px-4 py-3 text-sm"
-            style={{
-              borderColor: "var(--cor-critico)",
-              background: "var(--cor-critico-fundo)",
-              color: "var(--cor-critico)",
-            }}
-          >
-            {estado.erro}
-          </p>
-        )}
-        {estado.sucesso && (
-          <p
-            className="rounded-[var(--raio)] border px-4 py-3 text-sm"
-            style={{
-              borderColor: "var(--cor-marca)",
-              background: "var(--cor-marca-fundo)",
-              color: "var(--cor-marca-clara)",
-            }}
-          >
-            Senha atualizada com sucesso.
-          </p>
-        )}
+        {estado.erro && <Aviso tom="critico">{estado.erro}</Aviso>}
+        {estado.sucesso && <Aviso tom="sucesso">Senha atualizada com sucesso.</Aviso>}
 
         <button type="submit" disabled={pendente} className="botao-atas self-start">
           {pendente ? "Salvando..." : "Trocar senha"}
@@ -65,19 +42,23 @@ export function FormularioTrocarSenha({
 
 function Campo({
   label,
+  dica,
   name,
   type = "text",
   required,
 }: {
   label: string;
+  /** Complemento em cinza depois do rótulo, como o "(opcional)" do site. */
+  dica?: string;
   name: string;
   type?: string;
   required?: boolean;
 }) {
   return (
-    <label className="block text-sm">
-      <span className="mb-1 block font-medium" style={{ color: "var(--cor-texto-2)" }}>
+    <label className="block">
+      <span className="rotulo-campo">
         {label}
+        {dica && <small> {dica}</small>}
       </span>
       <input name={name} type={type} required={required} className="campo-atas" />
     </label>

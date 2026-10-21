@@ -4,9 +4,11 @@ import { adminIdLogado } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logoutAdmin } from "../actions";
 import { AppShell } from "@/components/ui/app-shell";
+import { CabecalhoPagina } from "@/components/ui/cabecalho-pagina";
 import { Secao } from "@/components/ui/secao";
 import { Badge } from "@/components/ui/badge";
 import { VazioComAcao } from "@/components/ui/vazio-com-acao";
+import { rotuloDaCategoria } from "@/lib/categorias";
 import { FormularioNovoParceiro } from "./formulario";
 import { NAV_ADMIN } from "@/app/admin/nav";
 
@@ -32,53 +34,74 @@ export default async function ParceirosPage() {
         </form>
       }
     >
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="marca text-2xl" style={{ color: "var(--cor-texto)" }}>
-            Parceiros
-          </h1>
-          <p className="mt-1 text-sm" style={{ color: "var(--cor-texto-2)" }}>
-            Quem revende/comercializa atas junto com a Tech 10 — cada parceiro define suas
-            categorias e UFs de interesse pra ver as atas compatíveis.
-          </p>
-        </div>
-        <Link href="/admin" className="botao-atas link">
-          ← Painel
-        </Link>
-      </div>
+      <CabecalhoPagina
+        rotulo="Cadastros"
+        titulo="Parceiros"
+        descricao="Quem revende/comercializa atas junto com a Tech 10 — cada parceiro define suas categorias e UFs de interesse pra ver as atas compatíveis."
+        voltar={{ href: "/admin", rotulo: "Painel" }}
+      />
 
       <FormularioNovoParceiro />
 
       <Secao titulo={`Cadastrados (${parceiros.length})`}>
         {parceiros.length === 0 ? (
-          <div className="mt-3">
-            <VazioComAcao
-              titulo="Nenhum parceiro cadastrado"
-              descricao="Use o formulário acima para registrar o primeiro parceiro."
-            />
-          </div>
+          <VazioComAcao
+            titulo="Nenhum parceiro cadastrado"
+            descricao="Use o formulário acima para registrar o primeiro parceiro."
+          />
         ) : (
-          <ul className="mt-3 flex flex-col gap-2">
-            {parceiros.map((p) => (
-              <li key={p.id} className="painel p-4">
-                <Link href={`/admin/parceiros/${p.id}`} className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-medium" style={{ color: "var(--cor-texto)" }}>
-                      {p.nome}
-                    </p>
-                    <p className="text-xs" style={{ color: "var(--cor-texto-3)" }}>
-                      {p.contato} ·{" "}
-                      {p.categoriasInteresse.length > 0
-                        ? p.categoriasInteresse.join(", ")
-                        : "sem categoria definida"}
-                      {p.ufsInteresse.length > 0 ? ` · ${p.ufsInteresse.join(", ")}` : ""}
-                    </p>
-                  </div>
-                  <Badge tom={p.ativo ? "neutro" : "critico"}>{p.ativo ? "Ativo" : "Inativo"}</Badge>
-                </Link>
-              </li>
-            ))}
-          </ul>
+          <div className="overflow-x-auto">
+            <table className="tabela-atas min-w-[640px]">
+              <thead>
+                <tr>
+                  <th>Parceiro</th>
+                  <th>Categorias de interesse</th>
+                  <th className="w-[160px]">UFs</th>
+                  <th className="w-[1%]">Situação</th>
+                </tr>
+              </thead>
+              <tbody>
+                {parceiros.map((p) => (
+                  <tr key={p.id}>
+                    <td>
+                      <Link
+                        href={`/admin/parceiros/${p.id}`}
+                        className="titulo-linha block hover:text-[var(--cor-marca-clara)]"
+                      >
+                        {p.nome}
+                      </Link>
+                      <span className="mt-0.5 block text-xs" style={{ color: "var(--cor-texto-3)" }}>
+                        {p.contato}
+                      </span>
+                    </td>
+                    <td className="text-[13px]">
+                      {p.categoriasInteresse.length > 0 ? (
+                        p.categoriasInteresse.map(rotuloDaCategoria).join(", ")
+                      ) : (
+                        <span style={{ color: "var(--cor-texto-3)" }}>sem categoria definida</span>
+                      )}
+                    </td>
+                    <td>
+                      {p.ufsInteresse.length > 0 ? (
+                        <span className="flex flex-wrap gap-1">
+                          {p.ufsInteresse.map((uf) => (
+                            <span key={uf} className="selo-uf">
+                              {uf}
+                            </span>
+                          ))}
+                        </span>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                    <td>
+                      <Badge tom={p.ativo ? "neutro" : "critico"}>{p.ativo ? "Ativo" : "Inativo"}</Badge>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </Secao>
     </AppShell>

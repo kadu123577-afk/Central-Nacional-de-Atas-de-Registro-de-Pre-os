@@ -4,10 +4,13 @@ import { adminIdLogado } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logoutAdmin } from "../../../actions";
 import { AppShell } from "@/components/ui/app-shell";
+import { Aviso } from "@/components/ui/aviso";
+import { CabecalhoPagina } from "@/components/ui/cabecalho-pagina";
 import { Secao } from "@/components/ui/secao";
 import { Badge } from "@/components/ui/badge";
+import { SeloCategoria } from "@/components/ui/selo-categoria";
 import { VazioComAcao } from "@/components/ui/vazio-com-acao";
-import { corDaCategoria, rotuloDaCategoria } from "@/lib/categorias";
+import { rotuloDaCategoria } from "@/lib/categorias";
 import { buscarMunicipiosCompativeis } from "@/lib/match-ata-municipio";
 import { FormularioCategoriaAta } from "./formulario-categoria";
 import { FormularioTituloPublico } from "./formulario-titulo-publico";
@@ -72,19 +75,20 @@ export default async function MunicipiosCompativeisPage({
         </form>
       }
     >
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="marca text-2xl" style={{ color: "var(--cor-texto)" }}>
-            Municípios com necessidade — Ata {ata.numero}
-          </h1>
-          <p className="mt-1 text-sm" style={{ color: "var(--cor-texto-2)" }}>
-            {ata.objeto} · {ata.fornecedor.razaoSocial}
-          </p>
-        </div>
-        <Link href="/atas" className="botao-atas link">
-          ← Atas
-        </Link>
-      </div>
+      <CabecalhoPagina
+        rotulo="Operação"
+        titulo="Municípios com necessidade — Ata"
+        destaque={ata.numero}
+        descricao={
+          <>
+            {ata.objeto} ·{" "}
+            <span className="font-semibold" style={{ color: "var(--cor-texto)" }}>
+              {ata.fornecedor.razaoSocial}
+            </span>
+          </>
+        }
+        voltar={{ href: "/atas", rotulo: "Atas" }}
+      />
 
       <Secao titulo="Categoria desta ata">
         <FormularioCategoriaAta ataId={ata.id} categoriaAtual={ata.categoria} />
@@ -107,6 +111,7 @@ export default async function MunicipiosCompativeisPage({
         <>
           <Secao
             titulo={`Já contrataram ${jaContrataram.length > 0 ? `(${jaContrataram.length})` : ""} — candidatos fortes`}
+            destaque
           >
             {jaContrataram.length === 0 ? (
               <VazioComAcao
@@ -114,22 +119,27 @@ export default async function MunicipiosCompativeisPage({
                 descricao="Nenhum dos 1.073 municípios levantados mostrou ter contratado essa categoria."
               />
             ) : (
-              <ul className="flex flex-col gap-2">
+              <ul className="lista-linhas">
                 {jaContrataram.map((m) => {
                   const atrasado = m.ultimaContratacao < dataLimiteAtraso;
                   return (
-                    <li key={m.id} className="painel p-4">
-                      <div className="flex items-center justify-between gap-3">
-                        <Link href={`/admin/entidades/${m.id}`}>
-                          <p className="text-sm font-medium" style={{ color: "var(--cor-texto)" }}>
+                    <li key={m.id} className="flex flex-wrap items-center justify-between gap-3">
+                      <Link href={`/admin/entidades/${m.id}`} className="group flex min-w-0 items-start gap-3">
+                        {m.uf && <span className="selo-uf mt-0.5 shrink-0">{m.uf}</span>}
+                        <span className="min-w-0">
+                          <span
+                            className="block text-[14px] font-bold text-[color:var(--cor-texto)] group-hover:text-[color:var(--cor-marca-clara)]"
+                            style={{ letterSpacing: "-0.01em" }}
+                          >
                             {m.nome}
-                          </p>
-                          <p className="text-xs" style={{ color: "var(--cor-texto-3)" }}>
-                            {m.municipio}/{m.uf} · última contratação: {m.ultimaContratacao.toLocaleDateString("pt-BR")}
-                          </p>
-                        </Link>
-                        {atrasado && <Badge tom="atencao">Sem renovar há {ANOS_PARA_CONSIDERAR_ATRASADO}+ anos</Badge>}
-                      </div>
+                          </span>
+                          <span className="block text-xs" style={{ color: "var(--cor-texto-3)" }}>
+                            {m.municipio ? `${m.municipio} · ` : ""}última contratação:{" "}
+                            <span className="numero">{m.ultimaContratacao.toLocaleDateString("pt-BR")}</span>
+                          </span>
+                        </span>
+                      </Link>
+                      {atrasado && <Badge tom="atencao">Sem renovar há {ANOS_PARA_CONSIDERAR_ATRASADO}+ anos</Badge>}
                     </li>
                   );
                 })}
@@ -139,30 +149,19 @@ export default async function MunicipiosCompativeisPage({
 
           <Secao
             titulo="Possível oportunidade (raio-X não achou contratação nessa categoria)"
-            acao={
-              <span
-                className="eyebrow rounded-full border px-2.5 py-0.5"
-                style={{ borderColor: corDaCategoria(ata.categoria), color: corDaCategoria(ata.categoria) }}
-              >
-                {rotuloDaCategoria(ata.categoria)}
-              </span>
-            }
+            acao={<SeloCategoria categoria={rotuloDaCategoria(ata.categoria)} />}
           >
-            <p className="mb-3 text-xs" style={{ color: "var(--cor-texto-3)" }}>
+            <Aviso tom="atencao" className="mb-5">
               Especulativo — pode ser que o município nunca tenha licitado isso, ou que o
               classificador por palavra-chave não tenha pegado o contrato certo.
-            </p>
+            </Aviso>
             {nuncaContrataram.length === 0 ? (
               <VazioComAcao titulo="Nenhum candidato nesta lista" descricao="" />
             ) : (
               <ul className="flex flex-wrap gap-2">
                 {nuncaContrataram.map((m) => (
                   <li key={m.id}>
-                    <Link
-                      href={`/admin/entidades/${m.id}`}
-                      className="eyebrow inline-block rounded-full border px-2.5 py-1"
-                      style={{ borderColor: "var(--cor-borda-forte)", color: "var(--cor-texto-2)" }}
-                    >
+                    <Link href={`/admin/entidades/${m.id}`} className="chip-site" style={{ paddingRight: 14 }}>
                       {m.nome}
                     </Link>
                   </li>

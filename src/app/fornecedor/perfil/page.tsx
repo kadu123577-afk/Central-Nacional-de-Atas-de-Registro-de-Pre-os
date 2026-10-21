@@ -3,6 +3,7 @@ import { fornecedorIdLogado } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logoutFornecedor, trocarSenhaFornecedor } from "../actions";
 import { AppShell } from "@/components/ui/app-shell";
+import { CabecalhoPagina } from "@/components/ui/cabecalho-pagina";
 import { Secao } from "@/components/ui/secao";
 import { FormularioTrocarSenha } from "@/components/ui/formulario-trocar-senha";
 
@@ -35,17 +36,15 @@ export default async function PerfilFornecedorPage() {
         </form>
       }
     >
-      <h1 className="marca text-2xl" style={{ color: "var(--cor-texto)" }}>
-        Perfil
-      </h1>
+      <CabecalhoPagina rotulo="Conta" titulo="Perfil" descricao={fornecedor.razaoSocial} />
 
-      <Secao titulo="Dados cadastrais">
-        <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+      <Secao titulo="Dados cadastrais" destaque>
+        <dl className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2">
           <Campo rotulo="Razão social" valor={fornecedor.razaoSocial} />
-          <Campo rotulo="CNPJ" valor={fornecedor.cnpj} />
+          <Campo rotulo="CNPJ" valor={<span className="codigo">{fornecedor.cnpj}</span>} />
           <Campo rotulo="E-mail" valor={fornecedor.email} />
-          <Campo rotulo="Telefone" valor={fornecedor.telefone ?? "—"} />
-        </div>
+          <Campo rotulo="Telefone" valor={fornecedor.telefone ? <span className="numero">{fornecedor.telefone}</span> : "—"} />
+        </dl>
       </Secao>
 
       <FormularioTrocarSenha action={trocarSenhaFornecedor} />
@@ -53,11 +52,15 @@ export default async function PerfilFornecedorPage() {
   );
 }
 
-function Campo({ rotulo, valor }: { rotulo: string; valor: string }) {
+function Campo({ rotulo, valor }: { rotulo: string; valor: React.ReactNode }) {
   return (
-    <div>
-      <p className="eyebrow">{rotulo}</p>
-      <p style={{ color: "var(--cor-texto)" }}>{valor}</p>
+    <div className="border-b pb-4" style={{ borderColor: "var(--cor-borda)" }}>
+      <dt className="text-[12.5px] font-semibold" style={{ color: "var(--cor-texto-3)" }}>
+        {rotulo}
+      </dt>
+      <dd className="mt-1 text-[14.5px] font-semibold" style={{ color: "var(--cor-texto)" }}>
+        {valor}
+      </dd>
     </div>
   );
 }

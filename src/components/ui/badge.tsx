@@ -9,7 +9,11 @@
 export type Tom = "neutro" | "atencao" | "alerta" | "critico" | "marca";
 
 const ESTILO_POR_TOM: Record<Tom, React.CSSProperties> = {
-  neutro: { color: "var(--cor-texto-2)", borderColor: "var(--cor-borda-forte)" },
+  neutro: {
+    color: "var(--cor-texto-2)",
+    borderColor: "var(--cor-borda)",
+    background: "var(--cor-superficie-2)",
+  },
   atencao: {
     color: "var(--cor-atencao)",
     borderColor: "var(--cor-atencao)",
@@ -27,7 +31,7 @@ const ESTILO_POR_TOM: Record<Tom, React.CSSProperties> = {
   },
   marca: {
     color: "var(--cor-marca-clara)",
-    borderColor: "var(--cor-marca)",
+    borderColor: "var(--cor-marca-borda)",
     background: "var(--cor-marca-fundo)",
   },
 };
@@ -41,7 +45,7 @@ export function Badge({
 }) {
   return (
     <span
-      className="eyebrow inline-flex items-center rounded-full border px-2.5 py-0.5"
+      className="inline-flex items-center whitespace-nowrap rounded-full border px-2.5 py-0.5 text-[11.5px] font-semibold"
       style={ESTILO_POR_TOM[tom]}
     >
       {children}

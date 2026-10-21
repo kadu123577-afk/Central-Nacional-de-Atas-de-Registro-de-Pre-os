@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { logoutAdmin, rejeitarAta } from "../../../actions";
 import { NAV_ADMIN } from "../../../nav";
 import { AppShell } from "@/components/ui/app-shell";
+import { Aviso } from "@/components/ui/aviso";
+import { CabecalhoPagina } from "@/components/ui/cabecalho-pagina";
 import { Secao } from "@/components/ui/secao";
 import { Badge } from "@/components/ui/badge";
 import { ITENS_CONFORMIDADE, alertasAutomaticos, type RespostasConformidade } from "@/lib/conformidade";
@@ -67,7 +69,7 @@ export default async function AnaliseAtaPage({ params }: { params: Promise<{ ata
 
   return (
     <AppShell
-      area="Administração"
+      area="Administrativo"
       itens={NAV_ADMIN}
       rodape={
         <form action={logoutAdmin}>
@@ -77,89 +79,80 @@ export default async function AnaliseAtaPage({ params }: { params: Promise<{ ata
         </form>
       }
     >
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="marca text-2xl" style={{ color: "var(--cor-texto)" }}>
-            Análise da ata {ata.numero}
-          </h1>
-          <p className="mt-1 text-sm" style={{ color: "var(--cor-texto-2)" }}>
-            {ata.fornecedor.razaoSocial} · {ata.orgaoGerenciador.nome} ({ata.orgaoGerenciador.uf})
-          </p>
-          <p className="mt-1 text-sm" style={{ color: "var(--cor-texto-2)" }}>
-            {ata.objeto}
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Badge tom={ata.status === "APROVADA" ? "marca" : "neutro"}>{ROTULO_STATUS[ata.status]}</Badge>
-          <Link href="/admin" className="botao-atas link">
-            ← Painel
-          </Link>
-        </div>
-      </div>
+      <CabecalhoPagina
+        rotulo="Operação"
+        titulo="Análise da ata"
+        destaque={ata.numero}
+        descricao={
+          <>
+            <span className="block">
+              {ata.fornecedor.razaoSocial} · {ata.orgaoGerenciador.nome}{" "}
+              <span className="selo-uf align-middle">{ata.orgaoGerenciador.uf}</span>
+            </span>
+            <span className="mt-1 block">{ata.objeto}</span>
+          </>
+        }
+        voltar={{ href: "/admin", rotulo: "Painel" }}
+        acoes={<Badge tom={ata.status === "APROVADA" ? "marca" : "neutro"}>{ROTULO_STATUS[ata.status]}</Badge>}
+      />
 
-      <div className="kb-kpis">
-        <div className="kb-kpi">
-          <p className="eyebrow">1 · Conformidade</p>
-          <p
-            className="kb-kpi-valor numero"
-            style={{
-              color:
-                confirmados === totalItens ? "var(--cor-marca-clara)" : confirmados > 0 ? "var(--cor-atencao)" : undefined,
-            }}
+      <section className="painel p-6">
+        <ol className="passos">
+          <Etapa
+            marcador={1}
+            titulo="Conformidade"
+            concluida={confirmados === totalItens}
+            valor={`${confirmados}/${totalItens}`}
+            corValor={
+              confirmados === totalItens ? "var(--cor-marca-clara)" : confirmados > 0 ? "var(--cor-atencao)" : undefined
+            }
+            nota={confirmados === totalItens ? "checklist completo" : `${totalItens - confirmados} item(ns) a confirmar`}
           >
-            {confirmados}/{totalItens}
-          </p>
-          <p className="kb-kpi-nota">
-            {confirmados === totalItens ? "checklist completo" : `${totalItens - confirmados} item(ns) a confirmar`}
-          </p>
-          <div className="kb-progresso">
-            <div style={{ width: `${pctConformidade}%` }} />
-          </div>
-        </div>
-        <div className="kb-kpi">
-          <p className="eyebrow">2 · Contrato</p>
-          <p className="kb-kpi-valor numero" style={{ color: ata.contrato ? "var(--cor-marca-clara)" : "var(--cor-alerta)" }}>
-            {ata.contrato ? percentualDeFracao(Number(ata.contrato.percentualComissao)) : "Pendente"}
-          </p>
-          <p className="kb-kpi-nota">
-            {ata.contrato ? "comissão pactuada com o fornecedor" : "sem contrato o vendedor não vê a ata"}
-          </p>
-        </div>
-        <div className="kb-kpi">
-          <p className="eyebrow">3 · Aprovação</p>
-          <p
-            className="kb-kpi-valor"
-            style={{ color: ata.status === "APROVADA" ? "var(--cor-marca-clara)" : ata.status === "REJEITADA" ? "var(--cor-critico)" : undefined }}
-          >
-            {ROTULO_STATUS[ata.status]}
-          </p>
-          <p className="kb-kpi-nota">
-            {ata.status === "APROVADA" ? "liberada no catálogo público" : "só aparece no catálogo depois de aprovada"}
-          </p>
-        </div>
-        <div className="kb-kpi">
-          <p className="eyebrow">Visível ao vendedor</p>
-          <p className="kb-kpi-valor" style={{ color: visivelAoVendedor ? "var(--cor-marca-clara)" : "var(--cor-atencao)" }}>
-            {visivelAoVendedor ? "Sim" : "Não"}
-          </p>
-          <p className="kb-kpi-nota">
-            {visivelAoVendedor ? "no pool de atas disponíveis" : "precisa estar aprovada e com contrato"}
-          </p>
-        </div>
-      </div>
+            <div className="barra-saldo mx-auto mt-3 max-w-[140px]">
+              <div style={{ width: `${pctConformidade}%` }} />
+            </div>
+          </Etapa>
+          <Etapa
+            marcador={2}
+            titulo="Contrato"
+            concluida={Boolean(ata.contrato)}
+            valor={ata.contrato ? percentualDeFracao(Number(ata.contrato.percentualComissao)) : "Pendente"}
+            corValor={ata.contrato ? "var(--cor-marca-clara)" : "var(--cor-alerta)"}
+            nota={ata.contrato ? "comissão pactuada com o fornecedor" : "sem contrato o vendedor não vê a ata"}
+          />
+          <Etapa
+            marcador={3}
+            titulo="Aprovação"
+            concluida={ata.status === "APROVADA"}
+            valor={ROTULO_STATUS[ata.status]}
+            corValor={
+              ata.status === "APROVADA"
+                ? "var(--cor-marca-clara)"
+                : ata.status === "REJEITADA"
+                  ? "var(--cor-critico)"
+                  : undefined
+            }
+            nota={ata.status === "APROVADA" ? "liberada no catálogo público" : "só aparece no catálogo depois de aprovada"}
+          />
+          <Etapa
+            marcador={<IconeOlho />}
+            titulo="Visível ao vendedor"
+            concluida={visivelAoVendedor}
+            valor={visivelAoVendedor ? "Sim" : "Não"}
+            corValor={visivelAoVendedor ? "var(--cor-marca-clara)" : "var(--cor-atencao)"}
+            nota={visivelAoVendedor ? "no pool de atas disponíveis" : "precisa estar aprovada e com contrato"}
+          />
+        </ol>
+      </section>
 
       {alertas.length > 0 && (
-        <div
-          className="rounded-[var(--raio)] border px-4 py-3 text-sm"
-          style={{ borderColor: "var(--cor-atencao)", color: "var(--cor-texto)" }}
-        >
-          <p className="mb-1 font-medium">Alertas</p>
-          <ul className="list-disc pl-5">
+        <Aviso tom="atencao" titulo="Alertas">
+          <ul className="mt-1 list-disc pl-5">
             {alertas.map((a) => (
               <li key={a}>{a}</li>
             ))}
           </ul>
-        </div>
+        </Aviso>
       )}
 
       <Secao
@@ -171,23 +164,34 @@ export default async function AnaliseAtaPage({ params }: { params: Promise<{ ata
         }
       >
         <p className="text-sm" style={{ color: "var(--cor-texto-2)" }}>
-          {ata.contrato
-            ? `Comissão pactuada: ${String(Number((Number(ata.contrato.percentualComissao) * 100).toFixed(2))).replace(".", ",")}%`
-            : "Nenhum contrato cadastrado."}
+          {ata.contrato ? (
+            <>
+              Comissão pactuada:{" "}
+              <strong className="numero text-[15px]" style={{ color: "var(--cor-texto)" }}>
+                {String(Number((Number(ata.contrato.percentualComissao) * 100).toFixed(2))).replace(".", ",")}%
+              </strong>
+            </>
+          ) : (
+            "Nenhum contrato cadastrado."
+          )}
         </p>
       </Secao>
 
-      <Secao titulo="Checklist de conformidade">
+      <Secao titulo="Checklist de conformidade" destaque>
         {ata.documentos.length > 0 && (
-          <p className="mb-3 text-xs" style={{ color: "var(--cor-texto-3)" }}>
-            Documentos:{" "}
+          <p
+            className="mb-5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs"
+            style={{ color: "var(--cor-texto-3)" }}
+          >
+            <span>Documentos:</span>
             {ata.documentos.map((d) => (
               <a
                 key={d.id}
                 href={`/api/documentos/${d.id}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mr-3 underline"
+                className="font-semibold underline underline-offset-2"
+                style={{ color: "var(--cor-marca-clara)" }}
               >
                 {d.nomeArquivo}
               </a>
@@ -196,7 +200,7 @@ export default async function AnaliseAtaPage({ params }: { params: Promise<{ ata
         )}
         <FormularioAnalise ataId={ata.id} respostasAtuais={respostasAtuais} parecerAtual={c?.parecer ?? ""} />
         {ata.status !== "REJEITADA" && (
-          <form action={rejeitarAta} className="mt-4">
+          <form action={rejeitarAta} className="mt-6 border-t pt-5" style={{ borderColor: "var(--cor-borda)" }}>
             <input type="hidden" name="ataId" value={ata.id} />
             <button type="submit" className="botao-atas critico">
               Rejeitar ata
@@ -205,5 +209,57 @@ export default async function AnaliseAtaPage({ params }: { params: Promise<{ ata
         )}
       </Secao>
     </AppShell>
+  );
+}
+
+/** Uma etapa da análise no passo-a-passo do site (círculo verde quando concluída). */
+function Etapa({
+  marcador,
+  titulo,
+  concluida,
+  valor,
+  corValor,
+  nota,
+  children,
+}: {
+  marcador: React.ReactNode;
+  titulo: string;
+  concluida: boolean;
+  valor: React.ReactNode;
+  corValor?: string;
+  nota: string;
+  children?: React.ReactNode;
+}) {
+  return (
+    <li className="passo" data-ativo={concluida}>
+      <span className="passo-numero">{marcador}</span>
+      <p className="marca text-[15px]" style={{ color: "var(--cor-texto)" }}>
+        {titulo}
+      </p>
+      <p
+        className="numero mt-2 text-[22px] font-extrabold leading-tight"
+        style={{ color: corValor ?? "var(--cor-texto)", letterSpacing: "-0.03em" }}
+      >
+        {valor}
+      </p>
+      <p className="mx-auto mt-1 max-w-[200px] text-[12.5px] leading-relaxed" style={{ color: "var(--cor-texto-3)" }}>
+        {nota}
+      </p>
+      {children}
+    </li>
+  );
+}
+
+function IconeOlho() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+      <path
+        d="M1.8 9S4.4 3.8 9 3.8 16.2 9 16.2 9 13.6 14.2 9 14.2 1.8 9 1.8 9Z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      <circle cx="9" cy="9" r="2.3" stroke="currentColor" strokeWidth="1.6" />
+    </svg>
   );
 }

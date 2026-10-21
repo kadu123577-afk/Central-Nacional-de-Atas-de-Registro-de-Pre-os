@@ -1,53 +1,82 @@
 /**
- * Tokens visuais da Central Nacional de Atas — identidade Tech 10.
- * Amostrado por pixel do material de marca da Tech 10 (fundo azul-petróleo
- * escuro, acento verde e lima oliva) — não é uma aproximação, é a cor real
- * do kit. Nenhum componente escreve hex direto — todos leem daqui.
+ * Tokens visuais da Central de Atas — identidade do site público feito pela
+ * Is' Art para a ARCA Capital (out/2026). Cores amostradas por pixel das telas
+ * entregues pela agência (dados-coletados/_recebidos/design-site): fundo
+ * claro, verde-petróleo como cor de ação, dourado como acento de rótulo e
+ * verde profundo nas áreas de marca (menu lateral, rodapé). Nenhum
+ * componente escreve hex direto — todos leem daqui.
  *
- * Todo par texto/fundo abaixo foi conferido com a fórmula de contraste
- * WCAG (mínimo 4.5:1 para texto; 3:1 para borda/ícone) — ver
- * /tmp/contraste.js usado durante o design. --cor-superficie-2 só é usada
- * hoje com --cor-texto-2 (6.35:1) e como borda/hover (regra de 3:1) — não
- * usar --cor-texto-3/--cor-alerta/--cor-critico como texto sobre ela sem
- * reconferir o contraste.
+ * Todo par texto/fundo abaixo foi conferido com a fórmula de contraste WCAG
+ * (mínimo 4.5:1 para texto; 3:1 para borda/ícone). --cor-texto-3 tem 4.95:1
+ * sobre --cor-superficie-2 — é o par mais justo; não clarear.
  */
 
 :root {
-  /* Superfícies — do mais escuro (fundo) ao mais claro (hover) */
-  --cor-fundo: #061c2b;
-  --cor-superficie: #0d2a35;
-  --cor-superficie-2: #123a44;
-  --cor-borda: #1b3c42;
-  --cor-borda-forte: #2a5c62;
+  /* Superfícies — fundo levemente esverdeado, cartões brancos por cima */
+  --cor-fundo: #f5f8f7;
+  --cor-superficie: #ffffff;
+  --cor-superficie-2: #f1f5f4;
+  --cor-borda: #e2e8e6;
+  --cor-borda-forte: #cad5d1;
+  --cor-linha-hover: #f4f8f7;
 
   /* Texto — três níveis de ênfase, nunca mais que isso */
-  --cor-texto: #eef6f1;
-  --cor-texto-2: #a8bfc0;
-  --cor-texto-3: #7d9a9c;
+  --cor-texto: #081712;
+  --cor-texto-2: #454948;
+  --cor-texto-3: #656b69;
 
-  /* Marca — verde Tech 10. Estrutural: título, botão principal, item de
-     navegação ativo. NUNCA usada pra indicar erro/risco. */
-  --cor-marca-clara: #9ac65a;
-  --cor-marca: #3eb655;
-  --cor-marca-escura: #266b40;
-  --cor-marca-fundo: rgba(62, 182, 85, 0.14);
+  /* Marca — verde-petróleo do site. Estrutural: botão principal, item
+     ativo, destaque de título. NUNCA usada pra indicar erro/risco.
+     --cor-marca-clara é o verde de TEXTO de destaque (sobre fundo claro),
+     o nome ficou da paleta antiga pra não quebrar os componentes. */
+  --cor-marca: #0e695a;
+  --cor-marca-escura: #0a5246;
+  --cor-marca-clara: #0c584b;
+  --cor-marca-fundo: #e9f2ef;
+  --cor-marca-borda: #b9d6ce;
+  /* Verde vivo das barras do logo sobre o verde profundo */
+  --cor-marca-viva: #2fae95;
+
+  /* Dourado — rótulos ("ATA EM DESTAQUE") e o filete do cartão em destaque */
+  --cor-ouro: #c4b187;
+  --cor-ouro-texto: #7d6247;
+  --cor-ouro-claro: #cdb27a;
+
+  /* Verde profundo — menu lateral, faixa de chamada e rodapé */
+  --cor-profundo: #0c2b23;
+  --cor-profundo-2: #18362e;
+  --cor-profundo-faixa: #05372e;
+  --cor-profundo-texto: #c9d6d1;
+  --cor-profundo-texto-2: #94a3a0;
+
+  /* Informativo — caixa azul "A adesão não é automática" */
+  --cor-info: #1e4a6e;
+  --cor-info-fundo: #e8f1f8;
+  --cor-info-borda: #cfe0ee;
 
   /* Severidade — a ÚNICA família de cor que significa "atenção" */
-  --cor-atencao: #e0a835;
-  --cor-atencao-fundo: rgba(224, 168, 53, 0.14);
-  --cor-alerta: #e0752e;
-  --cor-alerta-fundo: rgba(224, 117, 46, 0.14);
-  --cor-critico: #f4655a;
-  --cor-critico-fundo: rgba(244, 101, 90, 0.14);
+  --cor-atencao: #8a5a00;
+  --cor-atencao-fundo: #fbf1d9;
+  --cor-alerta: #b0470c;
+  --cor-alerta-fundo: #fceadc;
+  --cor-critico: #b42318;
+  --cor-critico-fundo: #fdecea;
 
-  --raio: 6px;
+  --raio: 8px;
+  --raio-grande: 14px;
   --grade: 4px;
 
-  --fonte-marca: var(--font-poppins), ui-sans-serif, sans-serif;
-  --fonte-interface: var(--font-plex-sans), ui-sans-serif, sans-serif;
-  --fonte-numero: var(--font-plex-mono), ui-monospace, monospace;
+  --sombra-cartao: 0 1px 2px rgba(8, 23, 18, 0.04), 0 10px 28px -16px rgba(8, 23, 18, 0.16);
+  --sombra-botao: 0 6px 14px -8px rgba(14, 105, 90, 0.7);
+  --sombra-flutuante: 0 18px 48px -16px rgba(8, 23, 18, 0.28);
+
+  /* Plus Jakarta Sans em tudo (títulos em 800 com tracking negativo, como no
+     site); mono só pra código de ata, UF e identificadores. */
+  --fonte-marca: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --fonte-interface: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --fonte-numero: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --fonte-codigo: var(--font-plex-mono), ui-monospace, monospace;
 }
 
-/* A paleta inteira é dark-first — é a identidade real da marca, não uma
-   adaptação de tema. Impressão (@media print) redefine os tokens pra
-   preto/branco/cinza em globals.css, separadamente. */
+/* Impressão (@media print) redefine os tokens pra preto/branco/cinza em
+   globals.css, separadamente. */

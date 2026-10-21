@@ -3,11 +3,12 @@ import { redirect } from "next/navigation";
 import { vendedorIdLogado } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { AppShell } from "@/components/ui/app-shell";
+import { CabecalhoPagina } from "@/components/ui/cabecalho-pagina";
 import { Secao } from "@/components/ui/secao";
 import { Cifra } from "@/components/ui/valores";
 import { VazioComAcao } from "@/components/ui/vazio-com-acao";
 import { FunilVendedor, KpisVendedor, TarefasHoje } from "@/components/vendedor/painel-resumo";
-import { rotuloDaCategoria } from "@/lib/categorias";
+import { corDaCategoria, rotuloDaCategoria } from "@/lib/categorias";
 import { expirarOportunidadesVencidas } from "@/lib/negociacao-expiracao";
 import { carregarPainelVendedor } from "@/lib/painel-vendedor-db";
 import { logoutVendedor } from "../actions";
@@ -46,18 +47,24 @@ export default async function DashboardVendedorPage() {
         </form>
       }
     >
-      <h1 className="marca text-2xl" style={{ color: "var(--cor-texto)" }}>
-        Olá, {primeiroNome}
-      </h1>
+      <CabecalhoPagina
+        rotulo="Dashboard"
+        titulo="Olá,"
+        destaque={primeiroNome}
+        descricao="Indicadores, o que fazer hoje, funil por valor e desempenho por ata."
+      />
 
       <KpisVendedor kpis={painel.kpis} />
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <TarefasHoje tarefas={painel.tarefas} />
         <FunilVendedor funil={painel.funil} />
       </div>
 
-      <Secao titulo="Desempenho por ata">
+      <Secao
+        titulo="Desempenho por ata"
+        descricao="Valor já fechado é o valor real aderido; o valor em aberto é estimativa pelo histórico de consumo."
+      >
         {painel.atas.length === 0 ? (
           <VazioComAcao
             titulo="Nenhuma ata em negociação ainda"
@@ -65,39 +72,54 @@ export default async function DashboardVendedorPage() {
           />
         ) : (
           <div className="overflow-x-auto">
-            <table className="tabela-atas">
+            <table className="tabela-atas min-w-[720px]">
               <thead>
                 <tr>
                   <th>Ata</th>
-                  <th>Categoria</th>
-                  <th>Aderiram</th>
-                  <th>Valor já fechado</th>
-                  <th>Valor estimado em aberto</th>
+                  <th className="w-[190px]">Categoria</th>
+                  <th className="w-[170px]">Aderiram</th>
+                  <th className="w-[150px]">Valor já fechado</th>
+                  <th className="w-[170px]">Valor estimado em aberto</th>
                 </tr>
               </thead>
               <tbody>
                 {painel.atas.map((a) => (
                   <tr key={a.ataId}>
                     <td>
-                      <Link href={`/vendedor/atas/${a.ataId}`} className="underline">
-                        Ata {a.ataNumero}
+                      <Link href={`/vendedor/atas/${a.ataId}`} className="titulo-linha block hover:text-[var(--cor-marca-clara)]">
+                        Ata <span className="codigo">{a.ataNumero}</span>
                       </Link>
+                      <span className="mt-0.5 block text-xs" style={{ color: "var(--cor-texto-3)" }}>
+                        {a.fornecedor}
+                      </span>
                     </td>
-                    <td>{a.categoria ? rotuloDaCategoria(a.categoria) : "Sem categoria"}</td>
                     <td>
-                      <div className="flex items-center gap-2">
-                        <div className="kb-progresso" style={{ marginTop: 0, width: 80 }}>
-                          <div style={{ width: a.total > 0 ? `${(a.aderidas / a.total) * 100}%` : "0%" }} />
-                        </div>
-                        <span className="whitespace-nowrap text-xs" style={{ color: "var(--cor-texto-2)" }}>
-                          {a.aderidas}/{a.total}
+                      {a.categoria ? (
+                        <span className="inline-flex items-start gap-2 text-[12.5px]">
+                          <span
+                            className="mt-1.5 inline-block size-2 shrink-0 rounded-full"
+                            style={{ background: corDaCategoria(a.categoria) }}
+                          />
+                          {rotuloDaCategoria(a.categoria)}
                         </span>
+                      ) : (
+                        <span className="text-[12.5px]" style={{ color: "var(--cor-texto-3)" }}>
+                          Sem categoria
+                        </span>
+                      )}
+                    </td>
+                    <td>
+                      <span className="numero block text-xs font-bold" style={{ color: "var(--cor-texto)" }}>
+                        {a.aderidas}/{a.total}
+                      </span>
+                      <div className="barra-saldo mt-1.5">
+                        <div style={{ width: a.total > 0 ? `${(a.aderidas / a.total) * 100}%` : "0%" }} />
                       </div>
                     </td>
-                    <td>
+                    <td className="whitespace-nowrap font-bold" style={{ color: "var(--cor-texto)" }}>
                       <Cifra valor={a.valorFechado} />
                     </td>
-                    <td>
+                    <td className="whitespace-nowrap">
                       <Cifra valor={a.valorEmAberto} />
                     </td>
                   </tr>

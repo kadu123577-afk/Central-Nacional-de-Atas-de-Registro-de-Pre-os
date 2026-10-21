@@ -24,7 +24,7 @@ export function CartaoIndicador({
     <div className="painel p-4">
       <p className="eyebrow">{rotulo}</p>
       <p
-        className="numero mt-1 text-2xl font-semibold"
+        className="numero mt-1.5 text-[26px] font-extrabold leading-tight tracking-[-0.03em]"
         style={{ color: COR_POR_TOM[tom] }}
       >
         {valor}

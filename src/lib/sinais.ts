@@ -80,5 +80,21 @@ export function sinaisRelevantes(sinais: SinalView[], categoriaAta: string | nul
   return sinais
     .filter((s) => (!s.expiraEm || new Date(s.expiraEm).getTime() >= agora.getTime()))
     .filter((s) => !s.categoria || s.categoria === categoriaAta)
-    .sort((a, b) => peso(b.tipo) - peso(a.tipo) || b.dataSinal.localeCompare(a.dataSinal));
+    .sort(
+      (a, b) =>
+        peso(b.tipo) - peso(a.tipo) ||
+        b.dataSinal.localeCompare(a.dataSinal) ||
+        (b.valorEstimado ?? 0) - (a.valorEstimado ?? 0),
+    );
+}
+
+const TIPOS_DE_CONTEXTO: readonly string[] = ["orcamento", "contrato_vencendo", "pca"];
+
+/**
+ * Sinal de contexto geral do município (orçamento, contrato ou PCA sem
+ * categoria — gerados por script): aparece na lista de sinais, mas não vira
+ * a linha "por que agora" de uma ata de outro assunto.
+ */
+export function sinalGenerico(s: SinalView): boolean {
+  return !s.categoria && TIPOS_DE_CONTEXTO.includes(s.tipo);
 }

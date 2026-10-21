@@ -164,6 +164,7 @@ model Ata {
   contrato             ContratoIntermediacao?
   conformidade         ConformidadeAta?
   pedidosNegociacao    PedidoNegociacao[]
+  vinculosContrato     VinculoContrato[]
 
   @@unique([numero, orgaoGerenciadorId])
   @@map("atas")
@@ -230,6 +231,7 @@ model OportunidadeVenda {
   entidadeAlvo EntidadeAlvo @relation(fields: [entidadeAlvoId], references: [id])
   vendedor     Vendedor     @relation(fields: [vendedorId], references: [id])
   liquidacoes  Liquidacao[]
+  vinculosContrato VinculoContrato[]
 
   @@unique([ataId, entidadeAlvoId])
   @@map("oportunidades_venda")
@@ -258,6 +260,9 @@ model Liquidacao {
   notaFiscalComissao String?
   dataCobranca       DateTime?
   dataRecebimento    DateTime?
+  // Projeto RNA (honorários): a comissão só vence depois que o ente público
+  // liquidou E pagou o fornecedor. Sem esta data a cobrança fica "a cobrar".
+  dataPagamentoEnte  DateTime?
 
   oportunidade OportunidadeVenda @relation(fields: [oportunidadeId], references: [id])
 
@@ -431,6 +436,7 @@ model EntidadeAlvo {
   oportunidades     OportunidadeVenda[]
   pedidosNegociacao PedidoNegociacao[]
   sinais            SinalMunicipio[]
+  contratosPublicos ContratoPublico[]
 
   @@map("entidades_alvo")
 }
@@ -621,6 +627,11 @@ model SinalMunicipio {
   expiraEm       DateTime?
   criadoEm       DateTime  @default(now())
   isSeed         Boolean   @default(false)
+  // Sinais gerados por script a partir de dados públicos (2026-10-12):
+  // "pncp-contrato:<nº de controle>", "pncp-pca:<id do PCA>:<grupo>",
+  // "siconfi-dca:<ibge>:<ano>:<função>". Permite regerar sem duplicar e
+  // apagar o que deixou de valer. Nulo = sinal manual ou importado.
+  chaveExterna   String?   @unique
 
   entidadeAlvo EntidadeAlvo @relation(fields: [entidadeAlvoId], references: [id])
 
@@ -689,4 +700,87 @@ model DemandaSemAta {
   @@index([status, criadoEm])
   @@index([ataId])
   @@map("demandas_sem_ata")
+}
+
+// Acompanhamento automático (2026-10-12, Projeto RNA §2 e honorários em
+// cascata): contratos públicos publicados no PNCP que interessam à rede —
+// do fornecedor parceiro ou feitos a partir de uma ata nossa. Alimentado por
+// scripts/inteligencia/acompanhar-contratos.ts (dados coletados + consulta
+// diária ao PNCP). Valores como o PNCP publica (sem conversão).
+model ContratoPublico {
+  id                   String    @id @default(cuid())
+  numeroControlePncp   String    @unique
+  orgaoCnpj            String
+  orgaoNome            String
+  entidadeAlvoId       String?
+  fornecedorCnpj       String?
+  fornecedorNome       String?
+  numeroControleAta    String?
+  numeroControleCompra String?
+  frutoAdesao          Boolean?
+  tipo                 String?
+  objeto               String
+  valorInicial         Decimal?  @db.Decimal(16, 2)
+  valorGlobal          Decimal?  @db.Decimal(16, 2)
+  valorAcumulado       Decimal?  @db.Decimal(16, 2)
+  dataAssinatura       DateTime?
+  vigenciaInicio       DateTime?
+  vigenciaFim          DateTime?
+  atualizadoNoPncpEm   DateTime?
+  termosConsultadosEm  DateTime?
+  criadoEm             DateTime  @default(now())
+  atualizadoEm         DateTime  @updatedAt
+
+  entidadeAlvo EntidadeAlvo?          @relation(fields: [entidadeAlvoId], references: [id])
+  termos       TermoContratoPublico[]
+  vinculo      VinculoContrato?
+
+  @@index([fornecedorCnpj])
+  @@index([entidadeAlvoId])
+  @@map("contratos_publicos")
+}
+
+// Termos do contrato no PNCP (aditivo, apostilamento, rescisão). Aditivo de
+// valor ou prazo de contrato vinculado gera comissão em cascata: fica
+// "a_acompanhar" até o gestor lançar a liquidação (ou marcar sem comissão).
+model TermoContratoPublico {
+  id              String    @id @default(cuid())
+  contratoId      String
+  chave           String    @unique
+  tipo            String
+  descricao       String?
+  valorAcrescido  Decimal?  @db.Decimal(16, 2)
+  novaVigenciaFim DateTime?
+  dataAssinatura  DateTime?
+  cobrancaStatus  String    @default("a_acompanhar")
+  criadoEm        DateTime  @default(now())
+
+  contrato ContratoPublico @relation(fields: [contratoId], references: [id])
+
+  @@map("termos_contrato_publico")
+}
+
+// Ligação de um contrato público com o funil: nivel certo (cita a ata da
+// rede), forte (fornecedor parceiro + município em negociação) ou desvio
+// (ata/adesão do parceiro com município-alvo fora do funil). O gestor
+// confirma ou descarta; o script nunca muda uma decisão já tomada.
+model VinculoContrato {
+  id             String    @id @default(cuid())
+  contratoId     String    @unique
+  oportunidadeId String?
+  ataId          String?
+  nivel          String
+  status         String    @default("sugerido")
+  motivo         String
+  decididoPorId  String?
+  decididoEm     DateTime?
+  criadoEm       DateTime  @default(now())
+  atualizadoEm   DateTime  @updatedAt
+
+  contrato     ContratoPublico    @relation(fields: [contratoId], references: [id])
+  oportunidade OportunidadeVenda? @relation(fields: [oportunidadeId], references: [id])
+  ata          Ata?               @relation(fields: [ataId], references: [id])
+
+  @@index([status])
+  @@map("vinculos_contrato")
 }

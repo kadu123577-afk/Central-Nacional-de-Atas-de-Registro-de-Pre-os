@@ -4,6 +4,7 @@ import { vendedorIdLogado } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { AppShell } from "@/components/ui/app-shell";
 import { Badge } from "@/components/ui/badge";
+import { CabecalhoPagina } from "@/components/ui/cabecalho-pagina";
 import { Secao } from "@/components/ui/secao";
 import { VazioComAcao } from "@/components/ui/vazio-com-acao";
 import { ContatoCard } from "@/components/kanban/contato-card";
@@ -59,44 +60,45 @@ export default async function MunicipioVendedorPage({ params }: { params: Promis
         </form>
       }
     >
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="marca text-2xl" style={{ color: "var(--cor-texto)" }}>
+      <CabecalhoPagina
+        rotulo="Dossiê do município"
+        voltar={{ href: "/vendedor/municipios", rotulo: "Municípios" }}
+        titulo={
+          <>
             {municipio.nome}
-            {municipio.uf ? ` / ${municipio.uf}` : ""}
-          </h1>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
+            {municipio.uf && <span className="selo-uf ml-3 align-middle">{municipio.uf}</span>}
+          </>
+        }
+        descricao={
+          <span className="mt-1 flex flex-wrap items-center gap-2">
             <Badge tom={semCanal ? "atencao" : "marca"}>{semCanal ? "Sem decisor com contato" : "Decisor com contato"}</Badge>
             <Badge tom="neutro">{municipio.historicoConsumo.length} categoria(s) no raio-X</Badge>
             {sinaisVigentes.length > 0 && <Badge tom="atencao">{sinaisVigentes.length} sinal(is) de compra</Badge>}
             {municipio.oportunidades.map((o) => (
-              <Link key={o.ataId} href={`/vendedor/atas/${o.ataId}`} className="underline text-xs" style={{ color: "var(--cor-marca-clara)" }}>
+              <Link key={o.ataId} href={`/vendedor/atas/${o.ataId}`} className="botao-atas link">
                 Em negociação — ata {o.ata.numero} →
               </Link>
             ))}
-          </div>
-        </div>
-        <Link href="/vendedor/municipios" className="botao-atas link">
-          ← Municípios
-        </Link>
-      </div>
+          </span>
+        }
+      />
 
-      <div className="kb-kpis">
-        <div className="kb-kpi">
-          <p className="eyebrow">CNPJ</p>
-          <p className="kb-kpi-valor numero" style={{ fontSize: 16 }}>
+      <dl className="painel grid grid-cols-1 gap-x-10 gap-y-5 p-6 sm:grid-cols-[minmax(0,240px)_1fr]">
+        <div>
+          <dt className="eyebrow">CNPJ</dt>
+          <dd className="codigo mt-1.5 text-[15px] font-semibold" style={{ color: "var(--cor-texto)" }}>
             {municipio.cnpj ?? "não encontrado"}
-          </p>
+          </dd>
         </div>
-        <div className="kb-kpi">
-          <p className="eyebrow">Endereço</p>
-          <p className="kb-kpi-valor" style={{ fontSize: 14 }}>
+        <div>
+          <dt className="eyebrow">Endereço</dt>
+          <dd className="mt-1.5 text-[14px] leading-relaxed" style={{ color: "var(--cor-texto)" }}>
             {municipio.endereco ?? "não encontrado"}
-          </p>
+          </dd>
         </div>
-      </div>
+      </dl>
 
-      <Secao titulo={`Quem falar ${contatos.length > 0 ? `(${contatos.length})` : ""}`}>
+      <Secao titulo={`Quem falar ${contatos.length > 0 ? `(${contatos.length})` : ""}`} destaque>
         {contatos.length === 0 ? (
           <VazioComAcao
             titulo="Nenhum contato levantado ainda"
@@ -113,39 +115,58 @@ export default async function MunicipioVendedorPage({ params }: { params: Promis
 
       <Secao titulo={`Sinais de compra ${sinaisVigentes.length > 0 ? `(${sinaisVigentes.length})` : ""}`}>
         {sinaisVigentes.length === 0 ? (
-          <div className="kb-coluna-vazia">
-            Nenhum sinal de compra registrado. PCA, licitações abertas, contratos a vencer e troca de gestão aparecem
-            aqui quando forem levantados.
-          </div>
+          <VazioComAcao
+            titulo="Nenhum sinal de compra registrado"
+            descricao="PCA, licitações abertas, contratos a vencer e troca de gestão aparecem aqui quando forem levantados."
+          />
         ) : (
-          <div>
+          <ul className="lista-linhas">
             {sinaisVigentes.map((sn) => {
               const tom = tipoSinalValido(sn.tipo) ? TOM_TIPO_SINAL[sn.tipo] : "neutro";
               const cor =
                 tom === "critico" ? "var(--cor-critico)" : tom === "atencao" ? "var(--cor-atencao)" : "var(--cor-borda-forte)";
               return (
-                <div key={sn.id} className="kb-sinal">
-                  <i style={{ background: cor }} />
-                  <div>
-                    <b>{sn.titulo}</b>
-                    <span>
+                <li key={sn.id} className="flex items-start gap-3">
+                  <span className="mt-1.5 inline-block size-2 shrink-0 rounded-full" style={{ background: cor }} />
+                  <div className="min-w-0">
+                    <p className="text-[13.5px] font-bold" style={{ color: "var(--cor-texto)", letterSpacing: "-0.01em" }}>
+                      {sn.titulo}
+                    </p>
+                    <p className="mt-0.5 text-xs" style={{ color: "var(--cor-texto-3)" }}>
                       {tipoSinalValido(sn.tipo) ? ROTULO_TIPO_SINAL[sn.tipo] : sn.tipo}
-                      {sn.valorEstimado ? ` · ${moedaCurta(Number(sn.valorEstimado))}` : ""} ·{" "}
+                      {sn.valorEstimado ? (
+                        <>
+                          {" · "}
+                          <span className="numero">{moedaCurta(Number(sn.valorEstimado))}</span>
+                        </>
+                      ) : (
+                        ""
+                      )}{" "}
+                      ·{" "}
                       {sn.fonteUrl ? (
-                        <a href={sn.fonteUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "underline" }}>
+                        <a
+                          href={sn.fonteUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-semibold underline underline-offset-2 hover:text-[var(--cor-marca-clara)]"
+                        >
                           {sn.fonte}
                         </a>
                       ) : (
                         sn.fonte
                       )}{" "}
                       · {haQuantoTempo(sn.dataSinal.toISOString())}
-                    </span>
-                    {sn.detalhe && <span>{sn.detalhe}</span>}
+                    </p>
+                    {sn.detalhe && (
+                      <p className="mt-1 text-[13px] leading-relaxed" style={{ color: "var(--cor-texto-2)" }}>
+                        {sn.detalhe}
+                      </p>
+                    )}
                   </div>
-                </div>
+                </li>
               );
             })}
-          </div>
+          </ul>
         )}
       </Secao>
 
@@ -158,20 +179,33 @@ export default async function MunicipioVendedorPage({ params }: { params: Promis
             descricao="Pode ser que o raio-X não tenha rodado ainda, ou não tenha achado contratação em nenhuma categoria conhecida."
           />
         ) : (
-          <div>
-            {municipio.historicoConsumo.map((h) => (
-              <div key={h.categoria} className="kb-sinal">
-                <i style={{ background: "var(--cor-borda-forte)" }} />
-                <div>
-                  <b>{ROTULO_CATEGORIA_CONSUMO[h.categoria] ?? h.categoria}</b>
-                  <span>
-                    Última contratação {dataCurtaUtc(h.ultimaContratacao.toISOString())} ·{" "}
-                    {moedaCurta(Number(h.valorUltimaContratacao))} · {h.quantidadeContratosNaJanela} contrato(s) nos
-                    últimos 3 anos
-                  </span>
-                </div>
-              </div>
-            ))}
+          <div className="overflow-x-auto">
+            <table className="tabela-atas min-w-[620px]">
+              <thead>
+                <tr>
+                  <th>Categoria</th>
+                  <th className="w-[150px]">Última contratação</th>
+                  <th className="w-[130px]">Valor</th>
+                  <th className="w-[190px]">Contratos nos últimos 3 anos</th>
+                </tr>
+              </thead>
+              <tbody>
+                {municipio.historicoConsumo.map((h) => (
+                  <tr key={h.categoria}>
+                    <td>
+                      <span className="titulo-linha">{ROTULO_CATEGORIA_CONSUMO[h.categoria] ?? h.categoria}</span>
+                    </td>
+                    <td className="numero whitespace-nowrap" style={{ color: "var(--cor-texto)" }}>
+                      {dataCurtaUtc(h.ultimaContratacao.toISOString())}
+                    </td>
+                    <td className="numero whitespace-nowrap font-semibold" style={{ color: "var(--cor-texto)" }}>
+                      {moedaCurta(Number(h.valorUltimaContratacao))}
+                    </td>
+                    <td className="numero">{h.quantidadeContratosNaJanela} contrato(s)</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </Secao>

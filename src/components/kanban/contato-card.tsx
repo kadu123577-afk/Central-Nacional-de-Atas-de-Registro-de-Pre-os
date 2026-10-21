@@ -44,7 +44,7 @@ export function ContatoCard({ p }: { p: ContatoView }) {
             {p.telefone && (
               <a href={wa ?? tel ?? undefined} target={wa ? "_blank" : undefined} rel="noopener noreferrer">
                 <Icone nome={wa ? "chat" : "tel"} />
-                {p.telefone}
+                <span className="numero">{p.telefone}</span>
               </a>
             )}
             {p.email && (
@@ -79,7 +79,13 @@ export function ContatoCard({ p }: { p: ContatoView }) {
               <>
                 fonte:{" "}
                 {p.fonteUrl ? (
-                  <a href={p.fonteUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "underline" }}>
+                  <a
+                    href={p.fonteUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-semibold underline underline-offset-2"
+                    style={{ color: "var(--cor-marca-clara)" }}
+                  >
                     {p.fonte}
                   </a>
                 ) : (

@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { marcarFaturamentoComoPago, marcarFaturamentoComoPendente } from "../actions";
+import { Aviso } from "@/components/ui/aviso";
 import { Badge } from "@/components/ui/badge";
 import { tomFaturamento } from "@/lib/severidade";
 
@@ -43,18 +44,23 @@ export function StatusFaturamento({
 
   return (
     <>
-      <td>
+      <td className="whitespace-nowrap">
         <Badge tom={tomFaturamento(pago)}>{pago ? "Recebido" : "A receber"}</Badge>
       </td>
       <td>
-        <div className="flex flex-col items-start gap-1">
-          <button type="button" onClick={alternar} disabled={pendente} className="botao-atas link">
+        <div className="flex flex-col items-end gap-1 text-right">
+          <button
+            type="button"
+            onClick={alternar}
+            disabled={pendente}
+            className="botao-atas link whitespace-nowrap"
+          >
             {pendente ? "Salvando..." : pago ? "Marcar como pendente" : "Marcar como recebido"}
           </button>
           {erro && (
-            <span className="text-xs" style={{ color: "var(--cor-critico)" }}>
+            <Aviso tom="critico" className="max-w-[260px] text-left">
               {erro}
-            </span>
+            </Aviso>
           )}
         </div>
       </td>

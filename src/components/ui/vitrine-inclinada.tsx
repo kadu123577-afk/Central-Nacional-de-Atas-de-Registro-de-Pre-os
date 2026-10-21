@@ -10,7 +10,7 @@ export function VitrineInclinada({ children }: { children: React.ReactNode }) {
         borderColor: "var(--cor-borda)",
         background: "var(--cor-superficie)",
         transform: "perspective(900px) rotateX(3deg) rotateY(-4deg)",
-        boxShadow: "0 24px 48px -24px rgba(0,0,0,0.55)",
+        boxShadow: "var(--sombra-flutuante)",
       }}
     >
       <div

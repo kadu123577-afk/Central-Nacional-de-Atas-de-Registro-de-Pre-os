@@ -1,5 +1,12 @@
+import Link from "next/link";
 import { Logo } from "./logo";
+import { Aviso } from "./aviso";
 
+/**
+ * Tela de login no padrão do site: faixa verde profunda com a marca à
+ * esquerda (como a seção "Não achou a ata?") e o cartão branco do
+ * formulário à direita.
+ */
 export function FormularioLogin({
   titulo,
   subtitulo,
@@ -19,65 +26,73 @@ export function FormularioLogin({
   campoCodigo?: boolean;
 }) {
   return (
-    <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 px-6">
-      <div>
-        <Logo altura={26} />
-        <h1 className="marca mt-4 text-xl" style={{ color: "var(--cor-texto)" }}>
-          {titulo}
-        </h1>
-        <p className="mt-1 text-sm" style={{ color: "var(--cor-texto-2)" }}>
-          {subtitulo}
-        </p>
-      </div>
-
-      <form action={formAction} className="painel flex flex-col gap-4 p-5">
-        <label className="block text-sm">
-          <span className="mb-1 block font-medium" style={{ color: "var(--cor-texto-2)" }}>
-            E-mail
-          </span>
-          <input name="email" type="email" required className="campo-atas" />
-        </label>
-        <label className="block text-sm">
-          <span className="mb-1 block font-medium" style={{ color: "var(--cor-texto-2)" }}>
-            Senha
-          </span>
-          <input name="senha" type="password" required className="campo-atas" />
-        </label>
-        {campoCodigo && (
-          <label className="block text-sm">
-            <span className="mb-1 block font-medium" style={{ color: "var(--cor-texto-2)" }}>
-              Código do autenticador (se o 2FA estiver ativado)
-            </span>
-            <input
-              name="codigo"
-              type="text"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              maxLength={7}
-              className="campo-atas"
-            />
-          </label>
-        )}
-
-        {erro && (
-          <p
-            className="rounded-[var(--raio)] border px-4 py-3 text-sm"
-            style={{
-              borderColor: "var(--cor-critico)",
-              background: "var(--cor-critico-fundo)",
-              color: "var(--cor-critico)",
-            }}
-          >
-            {erro}
+    <main
+      className="flex min-h-screen items-center"
+      style={{ background: "linear-gradient(135deg, var(--cor-profundo-faixa) 0%, var(--cor-profundo) 100%)" }}
+    >
+      <div className="mx-auto grid w-full max-w-[1040px] gap-10 px-6 py-14 lg:grid-cols-[1fr_420px] lg:items-center">
+        <div>
+          <Link href="/" aria-label="Central de Atas — início">
+            <Logo tom="claro" altura={38} />
+          </Link>
+          <p className="eyebrow mt-10" style={{ color: "var(--cor-ouro-claro)" }}>
+            Acesso restrito
           </p>
-        )}
+          <h1
+            className="mt-3 max-w-md font-extrabold"
+            style={{ fontSize: 38, lineHeight: 1.06, letterSpacing: "-0.04em", color: "var(--cor-superficie)" }}
+          >
+            {titulo}
+          </h1>
+          <p className="mt-4 max-w-md text-[15px] leading-relaxed" style={{ color: "var(--cor-profundo-texto)" }}>
+            {subtitulo}
+          </p>
+        </div>
 
-        <button type="submit" disabled={pendente} className="botao-atas w-full">
-          {pendente ? "Entrando..." : "Entrar"}
-        </button>
-      </form>
+        <div>
+          <form action={formAction} className="painel flex flex-col gap-4 p-7" style={{ borderRadius: 18 }}>
+            <p className="marca text-lg" style={{ color: "var(--cor-texto)" }}>
+              Entrar
+            </p>
+            <label className="block">
+              <span className="rotulo-campo">E-mail</span>
+              <input name="email" type="email" required autoComplete="email" className="campo-atas" />
+            </label>
+            <label className="block">
+              <span className="rotulo-campo">Senha</span>
+              <input name="senha" type="password" required autoComplete="current-password" className="campo-atas" />
+            </label>
+            {campoCodigo && (
+              <label className="block">
+                <span className="rotulo-campo">
+                  Código do autenticador <small>(se o 2FA estiver ativado)</small>
+                </span>
+                <input
+                  name="codigo"
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  maxLength={7}
+                  className="campo-atas"
+                />
+              </label>
+            )}
 
-      {rodape}
+            {erro && <Aviso tom="critico">{erro}</Aviso>}
+
+            <button type="submit" disabled={pendente} className="botao-atas mt-1 w-full">
+              {pendente ? "Entrando..." : "Entrar"}
+            </button>
+            {/* O rodapé (ex.: "Ainda não tem conta?") fica dentro do cartão
+                branco: as páginas passam texto escuro. */}
+            {rodape && (
+              <div className="border-t pt-4" style={{ borderColor: "var(--cor-borda)" }}>
+                {rodape}
+              </div>
+            )}
+          </form>
+        </div>
+      </div>
     </main>
   );
 }

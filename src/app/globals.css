@@ -1,17 +1,18 @@
 @import "tailwindcss";
 @import "../estilos/tokens.css";
 @import "../estilos/kanban.css";
+@import "../estilos/site.css";
 
 @theme inline {
   --color-fundo: var(--cor-fundo);
   --color-superficie: var(--cor-superficie);
   --color-texto: var(--cor-texto);
   --font-sans: var(--fonte-interface);
-  --font-mono: var(--fonte-numero);
+  --font-mono: var(--fonte-codigo);
 }
 
 html {
-  color-scheme: dark;
+  color-scheme: light;
   scroll-behavior: smooth;
 }
 
@@ -19,188 +20,275 @@ body {
   background: var(--cor-fundo);
   color: var(--cor-texto);
   font-family: var(--fonte-interface);
+  -webkit-font-smoothing: antialiased;
 }
 
 ::selection {
-  background: var(--cor-marca);
-  color: var(--cor-fundo);
+  background: var(--cor-marca-fundo);
+  color: var(--cor-marca-escura);
 }
 
-/* ---- tipografia de papel fixo ---- */
-
-/* Título (página, card, item) — peso semi-bold e tamanho maior fazem a
-   hierarquia, não caixa alta: texto em caixa alta lê como um bloco só,
-   não importa o tamanho da fonte, e achatava título/label/botão no mesmo
-   nível visual (achado da revisão de telas de 2026-09-04, prompt 4). */
-.marca {
-  font-family: var(--fonte-marca);
-  font-weight: 600;
-  text-wrap: balance;
+:focus-visible {
+  outline: 2px solid var(--cor-marca);
+  outline-offset: 2px;
 }
 
-/* Uso reservado à marca de verdade (logotipo/wordmark) — aqui sim caixa
-   alta e letter-spacing fazem sentido, é identidade, não título de tela. */
-.marca-wordmark {
-  font-family: var(--fonte-marca);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  text-wrap: balance;
-}
+/* Classes de componente dentro de @layer components: assim um utilitário
+   do Tailwind no mesmo elemento (text-right, px-3, text-[11px]…) vence a
+   classe, como esperado — fora de camada a classe ganhava sempre. */
+@layer components {
+  /* ---- tipografia de papel fixo ---- */
 
-.eyebrow {
-  font-family: var(--fonte-marca);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  font-size: 11px;
-  color: var(--cor-texto-2);
-}
-
-.numero {
-  font-family: var(--fonte-numero);
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: "tnum" 1;
-}
-
-/* ---- painel (card base) ---- */
-
-.painel {
-  background: var(--cor-superficie);
-  border: 1px solid var(--cor-borda);
-  border-radius: var(--raio);
-}
-
-/* ---- tabela ---- */
-
-.tabela-atas {
-  width: 100%;
-  text-align: left;
-  font-size: 13.5px;
-  border-collapse: collapse;
-}
-.tabela-atas thead th {
-  font-family: var(--fonte-marca);
-  font-size: 10.5px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--cor-texto-3);
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--cor-borda);
-  text-align: left;
-}
-.tabela-atas tbody td {
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--cor-borda);
-  color: var(--cor-texto-2);
-}
-.tabela-atas tbody tr:nth-child(even) {
-  background: var(--cor-superficie-2);
-}
-.tabela-atas tbody tr:last-child td {
-  border-bottom: none;
-}
-
-/* ---- campo e botão ---- */
-
-.campo-atas {
-  width: 100%;
-  background: var(--cor-superficie);
-  border: 1px solid var(--cor-borda-forte);
-  border-radius: var(--raio);
-  padding: 9px 12px;
-  font-size: 14px;
-  color: var(--cor-texto);
-  font-family: var(--fonte-interface);
-}
-.campo-atas::placeholder {
-  color: var(--cor-texto-3);
-}
-.campo-atas:focus {
-  outline: none;
-  border-color: var(--cor-marca);
-}
-
-.botao-atas {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  font-family: var(--fonte-marca);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-size: 12px;
-  padding: 10px 20px;
-  border-radius: var(--raio);
-  border: 1px solid var(--cor-marca);
-  background: var(--cor-marca);
-  color: var(--cor-fundo);
-  transition: background-color 150ms ease-out, opacity 150ms ease-out;
-  cursor: pointer;
-}
-.botao-atas:hover:not(:disabled) {
-  background: var(--cor-marca-escura);
-  border-color: var(--cor-marca-escura);
-}
-.botao-atas:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-.botao-atas.secundario {
-  background: transparent;
-  color: var(--cor-texto-2);
-  border-color: var(--cor-borda-forte);
-  text-transform: none;
-  letter-spacing: normal;
-}
-.botao-atas.secundario:hover:not(:disabled) {
-  background: var(--cor-superficie-2);
-  border-color: var(--cor-texto-3);
-}
-.botao-atas.critico {
-  background: transparent;
-  color: var(--cor-critico);
-  border-color: var(--cor-critico);
-}
-.botao-atas.critico:hover:not(:disabled) {
-  background: var(--cor-critico-fundo);
-}
-.botao-atas.link {
-  background: transparent;
-  border-color: transparent;
-  color: var(--cor-texto-2);
-  text-transform: none;
-  letter-spacing: normal;
-  font-family: var(--fonte-interface);
-  font-weight: 500;
-  padding: 4px 0;
-  text-decoration: underline;
-}
-.botao-atas.link:hover:not(:disabled) {
-  color: var(--cor-texto);
-  background: transparent;
-}
-
-/* ---- titulo ciclico ---- */
-
-@keyframes titulo-ciclico-entra {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
+  /* Título (página, card, item) — como no site: Plus Jakarta Sans pesada e
+     com tracking negativo; a hierarquia vem do peso e do tamanho, nunca de
+     caixa alta. O tamanho fica com o utilitário (text-sm, text-2xl…). */
+  .marca {
+    font-family: var(--fonte-marca);
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    text-wrap: balance;
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+  /* Título de página: o "Atas publicadas recentemente" do site. */
+  h1.marca {
+    font-weight: 800;
+    font-size: 30px;
+    line-height: 1.15;
+    letter-spacing: -0.035em;
   }
-}
-.titulo-ciclico-palavra {
-  animation: titulo-ciclico-entra 0.35s ease-out;
-}
-@media (prefers-reduced-motion: reduce) {
+  /* Palavra de destaque no título, em verde ("com saldo para o seu órgão"). */
+  .marca-destaque {
+    color: var(--cor-marca-clara);
+  }
+
+  /* Uso reservado ao nome da plataforma no timbre de impressão. */
+  .marca-wordmark {
+    font-family: var(--fonte-marca);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+
+  /* Rótulo dourado em caixa alta — o "ATA EM DESTAQUE" / "NÃO ACHOU A ATA?". */
+  .eyebrow {
+    font-family: var(--fonte-marca);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 11px;
+    color: var(--cor-ouro-texto);
+  }
+
+  .numero {
+    font-family: var(--fonte-numero);
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+  }
+
+  /* "Nº 121", UF, CNPJ — o mono do site. */
+  .codigo {
+    font-family: var(--fonte-codigo);
+    font-size: 0.92em;
+    letter-spacing: 0;
+  }
+
+  /* ---- painel (card base) ---- */
+
+  .painel {
+    background: var(--cor-superficie);
+    border: 1px solid var(--cor-borda);
+    border-radius: var(--raio-grande);
+    box-shadow: var(--sombra-cartao);
+  }
+
+  /* Cartão em destaque: filete dourado no topo, como o "Ata em destaque". */
+  .painel-destaque {
+    position: relative;
+    overflow: hidden;
+  }
+  .painel-destaque::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 20px;
+    right: 20px;
+    height: 3px;
+    border-radius: 0 0 3px 3px;
+    background: var(--cor-ouro);
+  }
+
+  /* Caixa azul informativa ("A adesão não é automática"). */
+  .caixa-info {
+    display: flex;
+    gap: 10px;
+    background: var(--cor-info-fundo);
+    border: 1px solid var(--cor-info-borda);
+    border-radius: 12px;
+    padding: 12px 16px;
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--cor-info);
+  }
+
+  /* ---- tabela ---- */
+
+  .tabela-atas {
+    width: 100%;
+    text-align: left;
+    font-size: 13.5px;
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+  .tabela-atas thead th {
+    font-family: var(--fonte-marca);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--cor-texto-2);
+    background: var(--cor-superficie-2);
+    padding: 11px 14px;
+    border-bottom: 1px solid var(--cor-borda);
+    text-align: left;
+    white-space: nowrap;
+  }
+  .tabela-atas thead th:first-child {
+    border-top-left-radius: calc(var(--raio-grande) - 1px);
+  }
+  .tabela-atas thead th:last-child {
+    border-top-right-radius: calc(var(--raio-grande) - 1px);
+  }
+  .tabela-atas tbody td {
+    padding: 13px 14px;
+    border-bottom: 1px solid var(--cor-borda);
+    color: var(--cor-texto-2);
+    vertical-align: middle;
+  }
+  .tabela-atas tbody tr {
+    transition: background-color 120ms ease-out;
+  }
+  .tabela-atas tbody tr:hover td {
+    background: var(--cor-linha-hover);
+  }
+  .tabela-atas tbody tr:last-child td {
+    border-bottom: none;
+  }
+  /* Linha com o objeto em negrito e o órgão embaixo, como no site
+     (vale em tabela, em .lista-linhas e em qualquer lista de registros). */
+  .titulo-linha {
+    font-weight: 700;
+    color: var(--cor-texto);
+    letter-spacing: -0.01em;
+  }
+
+  /* ---- campo e botão ---- */
+
+  .campo-atas {
+    width: 100%;
+    background: var(--cor-superficie);
+    border: 1px solid var(--cor-borda-forte);
+    border-radius: var(--raio);
+    padding: 9px 12px;
+    font-size: 14px;
+    color: var(--cor-texto);
+    font-family: var(--fonte-interface);
+    transition: border-color 120ms ease-out, box-shadow 120ms ease-out;
+  }
+  .campo-atas::placeholder {
+    color: var(--cor-texto-3);
+  }
+  .campo-atas:focus {
+    outline: none;
+    border-color: var(--cor-marca);
+    box-shadow: 0 0 0 3px var(--cor-marca-fundo);
+  }
+
+  .botao-atas {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-family: var(--fonte-marca);
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: -0.005em;
+    padding: 10px 20px;
+    border-radius: var(--raio);
+    border: 1px solid var(--cor-marca);
+    background: var(--cor-marca);
+    color: #ffffff;
+    box-shadow: var(--sombra-botao);
+    transition: background-color 150ms ease-out, box-shadow 150ms ease-out, opacity 150ms ease-out;
+    cursor: pointer;
+  }
+  .botao-atas:hover:not(:disabled) {
+    background: var(--cor-marca-escura);
+    border-color: var(--cor-marca-escura);
+  }
+  .botao-atas:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  /* Ação dentro de linha de tabela (Desativar, Remover…). */
+  .botao-atas.pequeno {
+    padding: 5px 12px;
+    font-size: 12.5px;
+    box-shadow: none;
+  }
+  .botao-atas.secundario {
+    background: var(--cor-superficie);
+    color: var(--cor-texto);
+    border-color: var(--cor-borda-forte);
+    box-shadow: none;
+    font-weight: 600;
+  }
+  .botao-atas.secundario:hover:not(:disabled) {
+    background: var(--cor-superficie-2);
+    border-color: var(--cor-texto-3);
+  }
+  .botao-atas.critico {
+    background: var(--cor-superficie);
+    color: var(--cor-critico);
+    border-color: var(--cor-critico);
+    box-shadow: none;
+  }
+  .botao-atas.critico:hover:not(:disabled) {
+    background: var(--cor-critico-fundo);
+  }
+  /* Link de ação verde em negrito ("Ver todas as 24 atas →"). */
+  .botao-atas.link {
+    background: transparent;
+    border-color: transparent;
+    box-shadow: none;
+    color: var(--cor-marca-clara);
+    font-weight: 700;
+    font-size: 13.5px;
+    padding: 4px 0;
+    text-decoration: none;
+  }
+  .botao-atas.link:hover:not(:disabled) {
+    color: var(--cor-marca-escura);
+    background: transparent;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  /* ---- titulo ciclico ---- */
+
+  @keyframes titulo-ciclico-entra {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
   .titulo-ciclico-palavra {
-    animation: none;
+    animation: titulo-ciclico-entra 0.35s ease-out;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .titulo-ciclico-palavra {
+      animation: none;
+    }
   }
 }
 
@@ -236,12 +324,14 @@ body {
     --cor-marca: #000000;
     --cor-marca-clara: #000000;
     --cor-marca-escura: #000000;
+    --cor-ouro-texto: #333333;
     --cor-atencao: #000000;
     --cor-atencao-fundo: #e5e5e5;
     --cor-alerta: #000000;
     --cor-alerta-fundo: #e5e5e5;
     --cor-critico: #000000;
     --cor-critico-fundo: #e5e5e5;
+    --sombra-cartao: none;
   }
 
   body {

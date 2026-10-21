@@ -4,6 +4,8 @@ import { adminIdLogado } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logoutAdmin } from "../actions";
 import { AppShell } from "@/components/ui/app-shell";
+import { CabecalhoPagina } from "@/components/ui/cabecalho-pagina";
+import { FaixaNumeros } from "@/components/ui/faixa-numeros";
 import { Secao } from "@/components/ui/secao";
 import { Cifra } from "@/components/ui/valores";
 import { VazioComAcao } from "@/components/ui/vazio-com-acao";
@@ -133,58 +135,44 @@ export default async function RecebiveisVendedoresPage({
         </form>
       }
     >
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="marca text-2xl" style={{ color: "var(--cor-texto)" }}>
-            Recebíveis — vendedores
-          </h1>
-          <p className="mt-1 text-sm" style={{ color: "var(--cor-texto-2)" }}>
+      <CabecalhoPagina
+        rotulo="Financeiro"
+        titulo="Recebíveis —"
+        destaque="vendedores"
+        descricao={
+          <>
             Adesões fechadas pelo time de vendas (Kanban), por município. O valor a receber é
             sempre sobre o que foi liquidado (nota fiscal), nunca sobre o valor aderido — o
             ente pode usar menos do que aderiu.
-          </p>
-        </div>
-        <Link href="/admin" className="botao-atas link">
-          ← Painel
-        </Link>
-      </div>
+          </>
+        }
+        voltar={{ href: "/admin", rotulo: "Painel" }}
+      />
 
-      <div className="kb-kpis">
-        <div className="kb-kpi">
-          <p className="eyebrow">Total aderido</p>
-          <p className="kb-kpi-valor numero">{moedaCurta(totalAderido)}</p>
-          <p className="kb-kpi-nota">{linhas.length} município(s)</p>
-        </div>
-        <div className="kb-kpi">
-          <p className="eyebrow">Total liquidado</p>
-          <p className="kb-kpi-valor numero">{moedaCurta(totalLiquidado)}</p>
-          <p className="kb-kpi-nota">{pctLiquidado}% do valor aderido</p>
-        </div>
-        <div className="kb-kpi">
-          <p className="eyebrow">Comissão devida</p>
-          <p className="kb-kpi-valor numero">{moedaCurta(totalComissaoDevida)}</p>
-          <p className="kb-kpi-nota">sobre o liquidado</p>
-        </div>
-        <div className="kb-kpi">
-          <p className="eyebrow">Comissão recebida</p>
-          <p className="kb-kpi-valor numero" style={{ color: "var(--cor-marca-clara)" }}>
-            {moedaCurta(totalRecebido)}
-          </p>
-          <p className="kb-kpi-nota">já paga pelo fornecedor</p>
-        </div>
-        <div className="kb-kpi">
-          <p className="eyebrow">Falta receber</p>
-          <p className="kb-kpi-valor numero" style={{ color: totalFaltaReceber > 0 ? "var(--cor-atencao)" : undefined }}>
-            {moedaCurta(totalFaltaReceber)}
-          </p>
-          <p className="kb-kpi-nota">{totalNotasACobrar} nota(s) ainda a cobrar</p>
-        </div>
-      </div>
+      <FaixaNumeros
+        itens={[
+          { valor: moedaCurta(totalAderido), rotulo: "Total aderido", nota: `${linhas.length} município(s)` },
+          { valor: moedaCurta(totalLiquidado), rotulo: "Total liquidado", nota: `${pctLiquidado}% do valor aderido` },
+          { valor: moedaCurta(totalComissaoDevida), rotulo: "Comissão devida", nota: "sobre o liquidado" },
+          {
+            valor: moedaCurta(totalRecebido),
+            rotulo: "Comissão recebida",
+            tom: "marca",
+            nota: "já paga pelo fornecedor",
+          },
+          {
+            valor: moedaCurta(totalFaltaReceber),
+            rotulo: "Falta receber",
+            tom: totalFaltaReceber > 0 ? "atencao" : "neutro",
+            nota: `${totalNotasACobrar} nota(s) ainda a cobrar`,
+          },
+        ]}
+      />
 
       {resumoVendedores.length > 0 && (
         <Secao titulo="Por vendedor">
-          <div className="overflow-x-auto">
-            <table className="tabela-atas">
+          <div className="overflow-x-auto rounded-[var(--raio-grande)] border" style={{ borderColor: "var(--cor-borda)" }}>
+            <table className="tabela-atas min-w-[720px]">
               <thead>
                 <tr>
                   <th>Vendedor</th>
@@ -198,18 +186,20 @@ export default async function RecebiveisVendedoresPage({
               <tbody>
                 {resumoVendedores.map((v) => (
                   <tr key={v.nome}>
-                    <td>{v.nome}</td>
-                    <td className="numero">{v.atasAderidas}</td>
                     <td>
+                      <span className="titulo-linha">{v.nome}</span>
+                    </td>
+                    <td className="numero">{v.atasAderidas}</td>
+                    <td className="whitespace-nowrap">
                       <Cifra valor={v.valorAderido} />
                     </td>
-                    <td>
+                    <td className="whitespace-nowrap">
                       <Cifra valor={v.valorAReceber} />
                     </td>
-                    <td>
+                    <td className="whitespace-nowrap">
                       <Cifra valor={v.valorRecebido} />
                     </td>
-                    <td>
+                    <td className="whitespace-nowrap font-bold" style={{ color: "var(--cor-texto)" }}>
                       <Cifra valor={v.valorAReceber - v.valorRecebido} />
                     </td>
                   </tr>
@@ -221,7 +211,7 @@ export default async function RecebiveisVendedoresPage({
       )}
 
       <Secao titulo={`Adesões (${exibidas.length})`}>
-        <div className="kb-barra mb-4">
+        <div className="kb-barra mb-5">
           {(Object.keys(ROTULO_FILTRO) as FiltroLinhas[]).map((chave) => (
             <Link
               key={chave}
@@ -244,7 +234,7 @@ export default async function RecebiveisVendedoresPage({
             }
           />
         ) : (
-          <ul className="flex flex-col gap-3">
+          <ul className="lista-linhas">
             {exibidas.map(({ oportunidade: o, valorAderido }) => (
               <LinhaRecebivel
                 key={o.id}
