@@ -27,18 +27,32 @@ async function exigirAdmin(): Promise<string> {
 }
 
 function campo(formData: FormData, nome: string): string {
-  return String(formData.get(nome) ?? "").trim();
+  const valor = formData.get(nome);
+  // Arquivo anexado a um campo de texto (requisição montada à mão) não é texto.
+  return typeof valor === "string" ? valor.trim() : "";
+}
+
+/** Os ids vêm de campo oculto, ou seja, do navegador: só passa o que tem cara de id (cuid). */
+function idComFormaValida(id: string): boolean {
+  return /^[A-Za-z0-9_-]{1,64}$/.test(id);
+}
+
+/** Texto livre que vai para a trilha de auditoria: sem quebra de linha nem caractere de controle. */
+function textoLivre(texto: string, limite: number): string {
+  return texto.replace(/[\u0000-\u001f\u007f]+/g, " ").replace(/\s+/g, " ").trim().slice(0, limite);
 }
 
 async function decidirVinculo(
   formData: FormData,
   novoStatus: Extract<StatusVinculo, "confirmado" | "descartado">,
   acao: string,
-  motivo?: string,
 ): Promise<void> {
+  // Primeiro a sessão: nada do formulário é lido antes de saber quem chama.
   const adminId = await exigirAdmin();
   const vinculoId = campo(formData, "vinculoId");
-  if (!vinculoId) return;
+  if (!idComFormaValida(vinculoId)) return;
+  // O motivo é opcional e só existe no descarte.
+  const motivo = novoStatus === "descartado" ? textoLivre(campo(formData, "motivo"), LIMITE_MOTIVO) : "";
 
   const vinculo = await prisma.vinculoContrato.findUnique({
     where: { id: vinculoId },
@@ -68,8 +82,7 @@ export async function confirmarVinculoContrato(formData: FormData): Promise<void
 
 /** O motivo é opcional e não tem coluna própria: fica só na trilha de auditoria. */
 export async function descartarVinculoContrato(formData: FormData): Promise<void> {
-  const motivo = campo(formData, "motivo").slice(0, LIMITE_MOTIVO);
-  await decidirVinculo(formData, "descartado", "admin.descartarVinculoContrato", motivo || undefined);
+  await decidirVinculo(formData, "descartado", "admin.descartarVinculoContrato");
 }
 
 async function decidirTermo(
@@ -79,7 +92,7 @@ async function decidirTermo(
 ): Promise<void> {
   const adminId = await exigirAdmin();
   const termoId = campo(formData, "termoId");
-  if (!termoId) return;
+  if (!idComFormaValida(termoId)) return;
 
   const termo = await prisma.termoContratoPublico.findUnique({
     where: { id: termoId },

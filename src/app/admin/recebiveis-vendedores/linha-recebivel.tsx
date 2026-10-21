@@ -111,23 +111,22 @@ export function LinhaRecebivel({
         type="button"
         onClick={() => setAberto((a) => !a)}
         aria-expanded={aberto}
-        className="flex w-full flex-wrap items-center justify-between gap-4 text-left"
+        className="flex w-full flex-wrap items-center justify-between gap-x-4 gap-y-3 rounded-[var(--raio)] text-left"
       >
-        <div className="min-w-0">
-          <p className="flex flex-wrap items-center gap-2">
-            <span className="text-[14.5px] font-bold tracking-[-0.01em]" style={{ color: "var(--cor-texto)" }}>
-              {nomeMunicipio}
-            </span>
+        {/* Dentro de <button> só cabe conteúdo em linha: spans, não div/p. */}
+        <span className="block min-w-0">
+          <span className="flex flex-wrap items-center gap-2">
+            <span className="titulo-linha text-[14.5px]">{nomeMunicipio}</span>
             {uf && <span className="selo-uf">{uf}</span>}
             <span className="codigo text-xs" style={{ color: "var(--cor-texto-3)" }}>
               Ata Nº {ataNumero}
             </span>
-          </p>
-          <p className="mt-0.5 text-xs" style={{ color: "var(--cor-texto-3)" }}>
+          </span>
+          <span className="mt-0.5 block text-xs" style={{ color: "var(--cor-texto-3)" }}>
             {fornecedorRazaoSocial} · vendedor: {vendedorNome} · comissão {percentualDeFracao(percentual)}
-          </p>
-        </div>
-        <div className="flex shrink-0 items-center gap-6 text-right">
+          </span>
+        </span>
+        <span className="flex flex-wrap items-center gap-x-6 gap-y-2 text-right">
           <ValorDaLinha rotulo="Aderido" valor={moedaCurta(aderido)} />
           <ValorDaLinha rotulo="Liquidado" valor={moedaCurta(somaLiquidado)} />
           <ValorDaLinha
@@ -136,7 +135,7 @@ export function LinhaRecebivel({
             cor={resumo.faltaReceber > 0 ? "var(--cor-atencao)" : "var(--cor-marca-clara)"}
           />
           <span
-            className="grid size-7 place-items-center rounded-full border text-sm font-bold"
+            className="grid size-7 shrink-0 place-items-center rounded-full border text-sm font-bold"
             style={{
               borderColor: aberto ? "var(--cor-marca-borda)" : "var(--cor-borda)",
               background: aberto ? "var(--cor-marca-fundo)" : "var(--cor-superficie)",
@@ -146,10 +145,10 @@ export function LinhaRecebivel({
           >
             {aberto ? "−" : "+"}
           </span>
-        </div>
+        </span>
       </button>
 
-      <div className="barra-saldo mt-3" aria-label={`${pctLiquidado}% do valor aderido já liquidado`}>
+      <div className="barra-saldo mt-3" aria-hidden="true">
         <div style={{ width: `${pctLiquidado}%` }} />
       </div>
       <div className="mt-2 flex flex-wrap items-center gap-2 text-xs" style={{ color: "var(--cor-texto-3)" }}>
@@ -162,8 +161,16 @@ export function LinhaRecebivel({
             {situacoes.aguardando_pagamento_ente > 0 && (
               <Badge tom="atencao">{situacoes.aguardando_pagamento_ente} aguardando pagamento do ente</Badge>
             )}
-            {situacoes.cobrada > 0 && <Badge tom="neutro">{situacoes.cobrada} cobrada(s)</Badge>}
-            {situacoes.recebida > 0 && <Badge tom="marca">{situacoes.recebida} recebida(s)</Badge>}
+            {situacoes.cobrada > 0 && (
+              <Badge tom="neutro">
+                {situacoes.cobrada} {situacoes.cobrada === 1 ? "cobrada" : "cobradas"}
+              </Badge>
+            )}
+            {situacoes.recebida > 0 && (
+              <Badge tom="marca">
+                {situacoes.recebida} {situacoes.recebida === 1 ? "recebida" : "recebidas"}
+              </Badge>
+            )}
           </>
         )}
       </div>
@@ -174,30 +181,25 @@ export function LinhaRecebivel({
           style={{ borderColor: "var(--cor-borda)", background: "var(--cor-superficie-2)" }}
         >
           <div>
-            <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-              <p className="eyebrow">Liquidações lançadas ({liquidacoes.length})</p>
-              <p className="text-xs" style={{ color: "var(--cor-texto-3)" }}>
-                {percentualDeFracao(percentual)} de comissão · devida{" "}
-                <b style={{ color: "var(--cor-texto)" }}>
-                  <Cifra valor={resumo.devida} />
-                </b>{" "}
-                · a cobrar{" "}
-                <b style={{ color: "var(--cor-texto)" }}>
-                  <Cifra valor={resumo.aCobrar ?? 0} />
-                </b>{" "}
-                · aguardando o ente{" "}
-                <b style={{ color: "var(--cor-texto)" }}>
-                  <Cifra valor={resumo.aguardandoPagamentoEnte ?? 0} />
-                </b>{" "}
-                · recebida{" "}
-                <b style={{ color: "var(--cor-texto)" }}>
-                  <Cifra valor={resumo.recebida} />
-                </b>
-              </p>
+            <p className="eyebrow">Liquidações lançadas ({liquidacoes.length})</p>
+            <p className="mt-1.5 text-xs leading-relaxed" style={{ color: "var(--cor-texto-3)" }}>
+              Liquidação é o momento em que o ente reconhece a nota fiscal do fornecedor; o pagamento vem
+              depois. A comissão de {percentualDeFracao(percentual)} sobre cada nota segue este caminho: o ente
+              liquida, o ente paga o fornecedor, a comissão é cobrada do fornecedor e, por fim, recebida.
+            </p>
+            <div className="mb-4 mt-3 flex flex-wrap gap-x-8 gap-y-3">
+              <ValorDaLinha rotulo="Comissão devida" valor={<Cifra valor={resumo.devida} />} />
+              <ValorDaLinha rotulo="A cobrar" valor={<Cifra valor={resumo.aCobrar ?? 0} />} />
+              <ValorDaLinha
+                rotulo="Aguardando pagamento do ente"
+                valor={<Cifra valor={resumo.aguardandoPagamentoEnte ?? 0} />}
+              />
+              <ValorDaLinha rotulo="Recebida" valor={<Cifra valor={resumo.recebida} />} />
             </div>
             {liquidacoes.length === 0 ? (
               <p className="text-[13px]" style={{ color: "var(--cor-texto-3)" }}>
-                Nenhuma nota fiscal liquidada ainda pra este município.
+                Nenhuma nota fiscal liquidada ainda para este município. Lance a primeira liquidação no
+                formulário abaixo.
               </p>
             ) : (
               <ul className="lista-linhas">
@@ -208,65 +210,64 @@ export function LinhaRecebivel({
             )}
           </div>
 
-          <form
-            action={formAction}
-            className="flex flex-col gap-3 border-t pt-5 sm:flex-row sm:flex-wrap sm:items-end"
-            style={{ borderColor: "var(--cor-borda)" }}
-          >
-            <label className="block flex-1 sm:min-w-[11rem]">
-              <span className="rotulo-campo">Tipo</span>
-              <select name="tipo" defaultValue="original" className="campo-atas">
-                {TIPOS_LIQUIDACAO.map((t) => (
-                  <option key={t} value={t}>
-                    {ROTULO_TIPO_LIQUIDACAO[t]}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="block flex-1 sm:min-w-[11rem]">
-              <span className="rotulo-campo">Valor liquidado (R$)</span>
-              <input name="valorLiquidado" type="number" step="0.01" min="0" required className="campo-atas" />
-            </label>
-            <label className="block flex-1 sm:min-w-[11rem]">
-              <span className="rotulo-campo">Nº da nota fiscal</span>
-              <input name="numeroNotaFiscal" className="campo-atas" />
-            </label>
-            <label className="block flex-1 sm:min-w-[11rem]">
-              <span className="rotulo-campo">Data da liquidação</span>
-              <input name="dataLiquidacao" type="date" required className="campo-atas" />
-            </label>
-            <label className="block flex-1 sm:min-w-[13rem]">
-              <span className="rotulo-campo">
-                Data em que o ente pagou o fornecedor <small>(opcional)</small>
-              </span>
-              <input name="dataPagamentoEnte" type="date" className="campo-atas" />
-            </label>
-            <button type="submit" disabled={pendente} className="botao-atas">
-              {pendente ? "Salvando..." : "Lançar"}
-            </button>
-          </form>
-          <p className="-mt-2 text-xs" style={{ color: "var(--cor-texto-3)" }}>
-            Sem a data do pagamento do ente, a liquidação fica em “Aguardando pagamento do ente” e a comissão
-            só pode ser cobrada depois que a data for informada.
-          </p>
-          {estado.erro && <Aviso tom="critico">{estado.erro}</Aviso>}
+          <div className="flex flex-col gap-3 border-t pt-5" style={{ borderColor: "var(--cor-borda)" }}>
+            <p className="eyebrow">Lançar nova liquidação</p>
+            <form action={formAction} className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+              <label className="block flex-1 sm:min-w-[11rem]">
+                <span className="rotulo-campo">Tipo</span>
+                <select name="tipo" defaultValue="original" className="campo-atas">
+                  {TIPOS_LIQUIDACAO.map((t) => (
+                    <option key={t} value={t}>
+                      {ROTULO_TIPO_LIQUIDACAO[t]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block flex-1 sm:min-w-[11rem]">
+                <span className="rotulo-campo">Valor liquidado (R$)</span>
+                <input name="valorLiquidado" type="number" step="0.01" min="0" required className="campo-atas" />
+              </label>
+              <label className="block flex-1 sm:min-w-[11rem]">
+                <span className="rotulo-campo">Nº da nota fiscal</span>
+                <input name="numeroNotaFiscal" className="campo-atas" />
+              </label>
+              <label className="block flex-1 sm:min-w-[11rem]">
+                <span className="rotulo-campo">Data da liquidação</span>
+                <input name="dataLiquidacao" type="date" required className="campo-atas" />
+              </label>
+              <label className="block flex-1 sm:min-w-[13rem]">
+                <span className="rotulo-campo">
+                  Data em que o ente pagou o fornecedor <small>(opcional)</small>
+                </span>
+                <input name="dataPagamentoEnte" type="date" className="campo-atas" />
+              </label>
+              <button type="submit" disabled={pendente} className="botao-atas">
+                {pendente ? "Salvando..." : "Lançar liquidação"}
+              </button>
+            </form>
+            {estado.erro && <Aviso tom="critico">{estado.erro}</Aviso>}
+            <p className="text-xs" style={{ color: "var(--cor-texto-3)" }}>
+              Sem a data do pagamento do ente, a liquidação fica em “Aguardando pagamento do ente” e a comissão
+              só pode ser cobrada depois que a data for informada.
+            </p>
+          </div>
         </div>
       )}
     </li>
   );
 }
 
-/** Um dos três valores à direita da linha: rótulo pequeno em cima, valor em negrito embaixo. */
-function ValorDaLinha({ rotulo, valor, cor }: { rotulo: string; valor: string; cor?: string }) {
+/** Um valor com rótulo pequeno em cima e número em negrito embaixo (spans: também vive dentro de <button>). */
+function ValorDaLinha({ rotulo, valor, cor }: { rotulo: string; valor: React.ReactNode; cor?: string }) {
   return (
-    <div>
-      <p className="text-[11.5px]" style={{ color: "var(--cor-texto-3)" }}>
+    <span className="block">
+      <span className="block text-[11.5px]" style={{ color: "var(--cor-texto-3)" }}>
         {rotulo}
-      </p>
-      <p className="numero text-[14px] font-bold" style={{ color: cor ?? "var(--cor-texto)" }}>
+      </span>
+      <span className="numero block text-[14px] font-bold" style={{ color: cor ?? "var(--cor-texto)" }}>
         {valor}
-      </p>
-    </div>
+      </span>
+    </span>
   );
 }
 
@@ -283,7 +284,7 @@ function LinhaLiquidacao({ liquidacao: l, percentual }: { liquidacao: Liquidacao
     ];
 
   return (
-    <li className="flex flex-wrap items-center justify-between gap-3 text-xs" style={{ color: "var(--cor-texto-3)" }}>
+    <li className="flex flex-col gap-3 text-xs" style={{ color: "var(--cor-texto-3)" }}>
       <div className="min-w-0">
         <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <b className="text-[13.5px]" style={{ color: "var(--cor-texto)" }}>
@@ -304,42 +305,40 @@ function LinhaLiquidacao({ liquidacao: l, percentual }: { liquidacao: Liquidacao
           </b>
         </p>
       </div>
-      <form action={formAction} className="flex flex-wrap items-center gap-2">
-        <select
-          name="statusCobranca"
-          defaultValue={status}
-          aria-label="Situação da cobrança"
-          className="campo-atas"
-          style={{ width: "auto" }}
-        >
-          {STATUS_COBRANCA.map((s) => (
-            <option key={s} value={s}>
-              {s === "pendente" ? rotuloPendente : ROTULO_STATUS_COBRANCA[s]}
-            </option>
-          ))}
-        </select>
-        <input
-          name="notaFiscalComissao"
-          defaultValue={l.notaFiscalComissao ?? ""}
-          placeholder="NF da comissão"
-          aria-label="NF da comissão"
-          className="campo-atas"
-          style={{ width: "10rem" }}
-        />
-        <button type="submit" disabled={pendente} className="botao-atas secundario">
-          {pendente ? "..." : "Atualizar cobrança"}
-        </button>
-        {estado.erro && (
-          <Aviso tom="critico" className="basis-full">
-            {estado.erro}
-          </Aviso>
-        )}
-      </form>
+
+      {/* Primeiro o pagamento do ente (é ele que libera a cobrança), depois a cobrança. */}
       <PagamentoDoEnte
         liquidacaoId={l.id}
         dataPagamentoEnte={l.dataPagamentoEnte}
         bloqueiaCobranca={situacao === "aguardando_pagamento_ente"}
       />
+
+      <form action={formAction} className="flex flex-wrap items-end gap-2">
+        <label className="block">
+          <span className="rotulo-campo">Situação da cobrança</span>
+          <select name="statusCobranca" defaultValue={status} className="campo-atas w-auto">
+            {STATUS_COBRANCA.map((s) => (
+              <option key={s} value={s}>
+                {s === "pendente" ? rotuloPendente : ROTULO_STATUS_COBRANCA[s]}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="block">
+          <span className="rotulo-campo">
+            NF da comissão <small>(emitida ao fornecedor)</small>
+          </span>
+          <input
+            name="notaFiscalComissao"
+            defaultValue={l.notaFiscalComissao ?? ""}
+            className="campo-atas w-52"
+          />
+        </label>
+        <button type="submit" disabled={pendente} className="botao-atas secundario">
+          {pendente ? "Salvando..." : "Atualizar cobrança"}
+        </button>
+      </form>
+      {estado.erro && <Aviso tom="critico">{estado.erro}</Aviso>}
     </li>
   );
 }
@@ -371,20 +370,20 @@ function PagamentoDoEnte({
           type="date"
           required
           defaultValue={dataPagamentoEnte ? dataPagamentoEnte.slice(0, 10) : ""}
-          className="campo-atas"
-          style={{ width: "auto" }}
+          className="campo-atas w-auto"
         />
       </label>
       <button type="submit" disabled={pendente} className="botao-atas secundario">
-        {pendente ? "..." : dataPagamentoEnte ? "Corrigir data" : "Informar data"}
+        {pendente ? "Salvando..." : dataPagamentoEnte ? "Corrigir data" : "Informar data"}
       </button>
     </form>
   );
 
   return (
-    <div className="basis-full">
+    <div>
       {dataPagamentoEnte ? (
-        <details>
+        // Abre sozinho se a correção foi recusada, para o erro aparecer junto do campo.
+        <details open={estado.erro ? true : undefined}>
           <summary className="cursor-pointer">
             Ente pagou o fornecedor em <span className="numero">{dataCurtaUtc(dataPagamentoEnte)}</span> ·{" "}
             <span className="font-semibold" style={{ color: "var(--cor-marca-clara)" }}>
@@ -394,8 +393,8 @@ function PagamentoDoEnte({
           <div className="mt-2">{formulario}</div>
         </details>
       ) : (
-        <div className="flex flex-col gap-1">
-          <p>
+        <div className="flex flex-col gap-2">
+          <p style={{ color: "var(--cor-texto-2)" }}>
             {bloqueiaCobranca
               ? "Data do pagamento do ente ao fornecedor não informada: a comissão só pode ser cobrada depois dela."
               : "Data do pagamento do ente ao fornecedor não informada (cobrança anterior a esta regra)."}

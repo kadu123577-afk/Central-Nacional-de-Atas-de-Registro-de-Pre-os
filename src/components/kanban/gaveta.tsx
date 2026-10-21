@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useEffect, useState } from "react";
 import { Aviso } from "@/components/ui/aviso";
 import { Badge } from "@/components/ui/badge";
@@ -123,6 +124,17 @@ export function Gaveta({
                 onClick={() => setAba(a.id)}
               >
                 {a.rotulo}
+                {/* O contrato mora na aba Contexto: o ponto avisa quem veio do selo do card. */}
+                {a.id === "contexto" && c.contratoDetectado && (
+                  <>
+                    <span
+                      aria-hidden="true"
+                      className="ml-1.5 inline-block h-1.5 w-1.5 rounded-full align-middle"
+                      style={{ background: c.contratoDetectado.confirmado ? "var(--cor-marca)" : "var(--cor-atencao)" }}
+                    />
+                    <span className="sr-only"> (há contrato público ligado a esta negociação)</span>
+                  </>
+                )}
               </button>
             ))}
           </div>
@@ -177,7 +189,7 @@ export function Gaveta({
 
           {aba === "contexto" && (
             <>
-              <BlocoContrato cartao={c} />
+              <BlocoContrato cartao={c} somenteLeitura={somenteLeitura} />
               <p className="kb-secao">Por que agora</p>
               {c.porQueAgora ? (
                 <div className="kb-sinal">
@@ -299,34 +311,39 @@ export function Gaveta({
  * ou descarta o vínculo é o gestor (/admin/contratos-detectados), então aqui
  * não há botão de decisão.
  */
-function BlocoContrato({ cartao: c }: { cartao: CartaoView }) {
+function BlocoContrato({ cartao: c, somenteLeitura }: { cartao: CartaoView; somenteLeitura: boolean }) {
   const k = c.contratoDetectado;
   if (!k) return null;
   const selo = seloDoContrato(k);
+  // No Pipeline do gestor (somente leitura) quem lê é justamente quem decide:
+  // em vez de "o gestor vai confirmar", diz onde fazer isso.
+  const decideAqui = somenteLeitura && !k.confirmado;
 
   return (
     <>
       <p className="kb-secao">Contrato público (PNCP)</p>
       <div className="kb-pessoa" data-papel={k.confirmado ? "principal" : "apoio"}>
-        <div className="kb-pessoa-info">
+        {/* O texto vem do PNCP e pode trazer palavra longa sem espaço: quebra em vez de estourar a gaveta. */}
+        <div className="kb-pessoa-info" style={{ overflowWrap: "anywhere" }}>
           <div className="kb-pessoa-nome">
-            <b>{k.objeto}</b>
-            <span title={selo.dica}>
+            <b className="min-w-0">{k.objeto}</b>
+            <span title={selo.dica} className="flex-none">
               <Badge tom={selo.tom}>{selo.rotulo}</Badge>
             </span>
           </div>
-          <p className="kb-cargo">
-            <span className="numero">
-              {k.valorGlobal != null ? `Valor global ${moedaCurta(k.valorGlobal)}` : "Valor global não informado"}
-            </span>
-            {" · "}
-            <span className="numero">{descreverVigencia(k.vigenciaInicio, k.vigenciaFim)}</span>
+          <p className="kb-cargo numero mt-1">
+            {k.valorGlobal != null ? `Valor do contrato ${moedaCurta(k.valorGlobal)}` : "Valor do contrato não informado"}
           </p>
-          {k.fornecedorNome && <p className="kb-sub">Fornecedor: {k.fornecedorNome}</p>}
-          <p className="kb-sub">{k.rotuloNivel}</p>
-          {!k.confirmado && (
-            <p className="kb-sub">O gestor ainda vai confirmar se este contrato é desta negociação.</p>
-          )}
+          <p className="kb-cargo numero">{descreverVigencia(k.vigenciaInicio, k.vigenciaFim)}</p>
+          {k.fornecedorNome && <p className="kb-cargo">Fornecedor: {k.fornecedorNome}</p>}
+          <p className="kb-sub">Como foi encontrado: {k.rotuloNivel}</p>
+          <p className="kb-sub">
+            {k.confirmado
+              ? "O gestor confirmou que este contrato é desta negociação."
+              : decideAqui
+                ? "Falta a sua decisão: confirme ou descarte este contrato em Contratos detectados."
+                : "O gestor ainda vai confirmar se este contrato é desta negociação."}
+          </p>
           {c.outrosContratos > 0 && (
             <p className="kb-sub">
               {c.outrosContratos === 1
@@ -334,25 +351,31 @@ function BlocoContrato({ cartao: c }: { cartao: CartaoView }) {
                 : `Há mais ${c.outrosContratos} contratos ligados a esta negociação.`}
             </p>
           )}
-          <p className="kb-fonte">
-            <span>
-              {k.urlPncp ? (
-                <a
-                  href={k.urlPncp}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="font-semibold underline underline-offset-2"
-                  style={{ color: "var(--cor-marca-clara)" }}
-                >
-                  Ver contrato no PNCP
-                </a>
-              ) : (
-                <>
-                  Contrato <span className="codigo">{k.numeroControlePncp}</span>
-                </>
+          {k.urlPncp ? (
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-4">
+              <a href={k.urlPncp} target="_blank" rel="noopener noreferrer" className="botao-atas link">
+                Ver contrato no PNCP →<span className="sr-only"> (abre em nova aba)</span>
+              </a>
+              {decideAqui && (
+                <Link href="/admin/contratos-detectados" className="botao-atas link">
+                  Decidir em Contratos detectados →
+                </Link>
               )}
-            </span>
-          </p>
+            </div>
+          ) : (
+            <>
+              <p className="kb-sub">
+                Número de controle no PNCP: <span className="codigo">{k.numeroControlePncp}</span>
+              </p>
+              {decideAqui && (
+                <div className="mt-1.5">
+                  <Link href="/admin/contratos-detectados" className="botao-atas link">
+                    Decidir em Contratos detectados →
+                  </Link>
+                </div>
+              )}
+            </>
+          )}
         </div>
       </div>
     </>

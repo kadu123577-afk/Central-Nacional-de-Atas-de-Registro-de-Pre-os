@@ -27,6 +27,11 @@ const ROTULO_FILTRO: Record<FiltroLinhas, string> = {
   recebidas: "Quitadas",
 };
 
+/** "1 nota" / "3 notas" — o texto da tela não deve dizer "1 nota(s)". */
+function quantidade(n: number, singular: string, plural: string): string {
+  return `${n} ${n === 1 ? singular : plural}`;
+}
+
 /**
  * Controle de recebíveis do canal de vendedores (2026-10-01, pedido
  * explícito): "quantas atas foram aderidas e qual o valor que foi
@@ -150,7 +155,10 @@ export default async function RecebiveisVendedoresPage({
     atual.valorAguardando += l.valorAguardando;
     porVendedor.set(v.id, atual);
   }
-  const resumoVendedores = [...porVendedor.values()].sort((a, b) => b.valorAReceber - a.valorAReceber);
+  // O id do vendedor é a chave da linha: dois vendedores podem ter o mesmo nome.
+  const resumoVendedores = [...porVendedor.entries()]
+    .map(([id, v]) => ({ id, ...v }))
+    .sort((a, b) => b.valorAReceber - a.valorAReceber);
 
   return (
     <AppShell
@@ -172,19 +180,28 @@ export default async function RecebiveisVendedoresPage({
         descricao={
           <>
             Adesões fechadas pelo time de vendas (Kanban), por município. O valor a receber é
-            sempre sobre o que foi liquidado (nota fiscal), nunca sobre o valor aderido — o
-            ente pode usar menos do que aderiu. A comissão só pode ser cobrada depois que o ente
-            pagar o fornecedor.
+            sempre sobre o que foi liquidado (nota fiscal que o ente, o município ou órgão
+            comprador, já reconheceu), nunca sobre o valor aderido — o ente pode usar menos do
+            que aderiu. A comissão só pode ser cobrada depois que o ente pagar o fornecedor.
           </>
         }
-        voltar={{ href: "/admin", rotulo: "Painel" }}
+        voltar={{ href: "/admin", rotulo: "Voltar ao painel" }}
       />
 
+      {/* Duas faixas de três: seis células numa faixa só quebram em 5 + 1 na tela de 1280. */}
       <FaixaNumeros
         itens={[
-          { valor: moedaCurta(totalAderido), rotulo: "Total aderido", nota: `${linhas.length} município(s)` },
+          {
+            valor: moedaCurta(totalAderido),
+            rotulo: "Total aderido",
+            nota: quantidade(linhas.length, "município", "municípios"),
+          },
           { valor: moedaCurta(totalLiquidado), rotulo: "Total liquidado", nota: `${pctLiquidado}% do valor aderido` },
           { valor: moedaCurta(totalComissaoDevida), rotulo: "Comissão devida", nota: "sobre o liquidado" },
+        ]}
+      />
+      <FaixaNumeros
+        itens={[
           {
             valor: moedaCurta(totalRecebido),
             rotulo: "Comissão recebida",
@@ -197,29 +214,36 @@ export default async function RecebiveisVendedoresPage({
             tom: totalFaltaReceber > 0 ? "atencao" : "neutro",
             nota:
               totalNotasACobrar > 0
-                ? `${totalNotasACobrar} nota(s) a cobrar · ${moedaCurta(totalValorACobrar)}`
+                ? `${quantidade(totalNotasACobrar, "nota", "notas")} a cobrar · ${moedaCurta(totalValorACobrar)}`
                 : "nenhuma nota a cobrar agora",
           },
           {
             valor: moedaCurta(totalValorAguardando),
             rotulo: "Aguardando pagamento do ente",
             tom: totalNotasAguardando > 0 ? "atencao" : "neutro",
-            nota: `${totalNotasAguardando} nota(s) sem data de pagamento`,
+            nota:
+              totalNotasAguardando > 0
+                ? `comissão de ${quantidade(totalNotasAguardando, "nota", "notas")} sem data de pagamento`
+                : "nenhuma nota aguardando",
           },
         ]}
       />
 
       {totalNotasAguardando > 0 && (
         <Aviso tom="info" titulo="Comissão só vence depois que o ente paga o fornecedor.">
-          {totalNotasAguardando} nota(s) estão sem a data de pagamento do ente e aparecem como “Aguardando
-          pagamento do ente” — inclusive as lançadas antes desta regra. Abra a adesão, escolha a nota e
+          {totalNotasAguardando === 1 ? "1 nota está" : `${totalNotasAguardando} notas estão`} sem a data de
+          pagamento do ente e {totalNotasAguardando === 1 ? "aparece" : "aparecem"} como “Aguardando pagamento
+          do ente” — inclusive as lançadas antes desta regra. Abra a adesão na lista abaixo, escolha a nota e
           informe a data em que o ente pagou o fornecedor para liberar a cobrança.
         </Aviso>
       )}
 
       {resumoVendedores.length > 0 && (
-        <Secao titulo="Por vendedor">
-          <div className="overflow-x-auto rounded-[var(--raio-grande)] border" style={{ borderColor: "var(--cor-borda)" }}>
+        <Secao
+          titulo="Por vendedor"
+          descricao="Quanto cada vendedor fechou e quanto da comissão já entrou. A comissão é calculada sobre as notas fiscais liquidadas."
+        >
+          <div className="moldura-tabela">
             <table className="tabela-atas min-w-[860px]">
               <thead>
                 <tr>
@@ -227,14 +251,14 @@ export default async function RecebiveisVendedoresPage({
                   <th>Municípios aderidos</th>
                   <th>Valor aderido</th>
                   <th>Comissão devida</th>
-                  <th>Recebida</th>
+                  <th>Comissão recebida</th>
                   <th>Falta receber</th>
                   <th>Aguardando o ente</th>
                 </tr>
               </thead>
               <tbody>
                 {resumoVendedores.map((v) => (
-                  <tr key={v.nome}>
+                  <tr key={v.id}>
                     <td>
                       <span className="titulo-linha">{v.nome}</span>
                     </td>
@@ -262,8 +286,11 @@ export default async function RecebiveisVendedoresPage({
         </Secao>
       )}
 
-      <Secao titulo={`Adesões (${exibidas.length})`}>
-        <div className="kb-barra mb-5">
+      <Secao
+        titulo={`Adesões (${exibidas.length})`}
+        descricao="Clique em uma adesão para ver as notas fiscais liquidadas, informar a data em que o ente pagou o fornecedor, cobrar a comissão e lançar novas liquidações."
+      >
+        <div className="kb-barra mb-5" role="group" aria-label="Filtrar adesões por situação">
           {(Object.keys(ROTULO_FILTRO) as FiltroLinhas[]).map((chave) => (
             <Link
               key={chave}
@@ -281,8 +308,19 @@ export default async function RecebiveisVendedoresPage({
             titulo={linhas.length === 0 ? "Nenhuma adesão registrada ainda" : "Nenhuma adesão neste filtro"}
             descricao={
               linhas.length === 0
-                ? "Nasce quando um vendedor marca uma oportunidade como 'Aderiu' no Kanban."
-                : "Troque o filtro acima para ver as demais."
+                ? "Uma adesão aparece aqui quando um vendedor marca uma oportunidade como “Aderiu” no Kanban."
+                : "Nenhuma adesão está nesta situação agora. Troque o filtro acima para ver as demais."
+            }
+            acao={
+              linhas.length === 0 ? (
+                <Link href="/admin/pipeline" className="botao-atas secundario">
+                  Abrir o pipeline de vendas
+                </Link>
+              ) : (
+                <Link href="/admin/recebiveis-vendedores" className="botao-atas secundario">
+                  Ver todas as adesões
+                </Link>
+              )
             }
           />
         ) : (

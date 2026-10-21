@@ -4,7 +4,13 @@ import { rotuloDaCategoria } from "./categorias";
 import { resumirComissao } from "./recebiveis";
 import { limparNomeContato } from "./contatos-fonte";
 import { sinaisRelevantes, sinalGenerico, type SinalView } from "./sinais";
-import { NIVEIS_VINCULO, ROTULO_NIVEL_VINCULO, type NivelVinculo, type StatusVinculo } from "./acompanhamento";
+import {
+  NIVEIS_VINCULO,
+  ROTULO_NIVEL_VINCULO,
+  STATUS_VINCULO,
+  type NivelVinculo,
+  type StatusVinculo,
+} from "./acompanhamento";
 import { nomeFornecedorPublico, resumir, urlContratoPncp } from "./sinais-preditivos";
 import { dataCurtaUtc } from "./formato";
 
@@ -269,8 +275,28 @@ export interface EntradaContratoDetectado {
   dataAssinatura: Date | null;
 }
 
-const STATUS_DESCARTADO: StatusVinculo = "descartado";
 const TAMANHO_OBJETO_CONTRATO = 160;
+
+/**
+ * Status de vínculo que o card mostra: sugerido (aguardando o gestor) e
+ * confirmado. O descartado nunca aparece, e um status fora do vocabulário
+ * (dado estranho, ou um estado novo que ainda não foi pensado para o card)
+ * também não: na dúvida, o card fica sem selo em vez de mostrar o que não se sabe.
+ */
+export const STATUS_VINCULO_VISIVEIS: readonly StatusVinculo[] = STATUS_VINCULO.filter((s) => s !== "descartado");
+
+/**
+ * Filtro da consulta em lote dos vínculos (kanban-db.ts): só as oportunidades
+ * carregadas, só status e níveis que o leitor pode ver. Fica aqui, pura, para o
+ * teste garantir que o "desvio" nem sai do banco quando o leitor é o vendedor.
+ */
+export function filtroDeVinculosVisiveis(oportunidadeIds: string[], verDesvio: boolean) {
+  return {
+    oportunidadeId: { in: oportunidadeIds },
+    status: { in: [...STATUS_VINCULO_VISIVEIS] },
+    nivel: { in: niveisDeVinculoVisiveis(verDesvio) },
+  };
+}
 
 /**
  * Níveis de vínculo que o card pode mostrar. O vendedor só vê "certo" e
@@ -320,7 +346,10 @@ export function escolherContratoDetectado(
 ): { escolhido: EntradaContratoDetectado | null; outros: number } {
   const visiveis = niveisDeVinculoVisiveis(verDesvio) as string[];
   const candidatos = contratos.filter(
-    (c) => c.status !== STATUS_DESCARTADO && nivelValido(c.nivel) && visiveis.includes(c.nivel),
+    (c) =>
+      (STATUS_VINCULO_VISIVEIS as readonly string[]).includes(c.status) &&
+      nivelValido(c.nivel) &&
+      visiveis.includes(c.nivel),
   );
   if (candidatos.length === 0) return { escolhido: null, outros: 0 };
 
@@ -341,7 +370,7 @@ function montarContratoDetectado(c: EntradaContratoDetectado): ContratoDetectado
     nivel,
     rotuloNivel: ROTULO_NIVEL_VINCULO[nivel],
     confirmado: c.status === "confirmado",
-    objeto: resumir(c.objeto, TAMANHO_OBJETO_CONTRATO),
+    objeto: resumir(c.objeto, TAMANHO_OBJETO_CONTRATO) || "Objeto não informado",
     // O script grava a razão social como o PNCP publica; o MEI carrega o CPF
     // dele nela, e isso não vai para a tela de quem vende.
     fornecedorNome: nomeFornecedorPublico(c.fornecedorNome),

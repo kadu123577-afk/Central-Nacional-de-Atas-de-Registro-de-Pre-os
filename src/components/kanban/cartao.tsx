@@ -15,7 +15,6 @@ const TOM_URGENCIA: Record<string, Tom> = {
   sem_prazo: "neutro",
 };
 
-
 /** Atributo que pinta a borda do card: urgência nos estágios abertos. */
 export function chaveUrgenciaDoCartao(c: CartaoView): string {
   if (c.estagio === "aderiu") return "aderiu";
@@ -146,6 +145,8 @@ export function Cartao({
 /**
  * Contrato público do PNCP ligado a esta negociação (Projeto RNA, etapa 2).
  * Só informa: confirmar ou descartar é decisão do gestor, fora do Kanban.
+ * A explicação completa fica na gaveta (aba Contexto); aqui a dica aparece ao
+ * passar o mouse e, para leitor de tela e toque, como texto escondido.
  */
 function SeloContrato({ confirmado }: { confirmado: boolean }) {
   const selo = seloDoContrato({ confirmado });
@@ -153,6 +154,7 @@ function SeloContrato({ confirmado }: { confirmado: boolean }) {
     <div className="mt-2">
       <span title={selo.dica}>
         <Badge tom={selo.tom}>{selo.rotulo}</Badge>
+        <span className="sr-only">. {selo.dica}</span>
       </span>
     </div>
   );

@@ -14,6 +14,7 @@ import { VazioComAcao } from "@/components/ui/vazio-com-acao";
 import { NIVEIS_VINCULO, ROTULO_NIVEL_VINCULO } from "@/lib/acompanhamento";
 import {
   EXPLICACAO_NIVEL,
+  contagem,
   distribuirLimite,
   paraNumero,
   rotuloDoNivel,
@@ -211,7 +212,7 @@ export default async function ContratosDetectadosPage() {
         rotulo="Operação"
         titulo="Contratos"
         destaque="detectados"
-        descricao="Contratos públicos do PNCP que o sistema ligou ao funil. Confirme o vínculo para passar a acompanhar os aditivos, ou descarte o que não tem relação."
+        descricao="Contratos publicados no PNCP (Portal Nacional de Contratações Públicas) que o sistema ligou a uma ata ou negociação da rede. Cada ligação é um vínculo: confirme para acompanhar os aditivos do contrato, ou descarte se não tiver relação."
       />
 
       <FaixaNumeros
@@ -219,7 +220,7 @@ export default async function ContratosDetectadosPage() {
           {
             valor: totalSugeridos,
             rotulo: "Contratos a confirmar",
-            nota: desvios > 0 ? `${desvios} possível(is) desvio(s) do funil` : undefined,
+            nota: desvios > 0 ? `${contagem(desvios, "possível desvio", "possíveis desvios")} do funil` : undefined,
             tom: totalSugeridos > 0 ? "atencao" : undefined,
           },
           { valor: totalConfirmados, rotulo: "Confirmados", tom: totalConfirmados > 0 ? "marca" : undefined },
@@ -235,14 +236,24 @@ export default async function ContratosDetectadosPage() {
 
       {totalVinculos === 0 ? (
         <>
-          <Secao titulo="Nenhum contrato detectado ainda" destaque>
+          <Secao titulo="A confirmar" destaque>
             <VazioComAcao
               titulo="Ainda não há contratos ligados ao funil"
-              descricao="Esta página é alimentada pelo script scripts/inteligencia/acompanhar-contratos.ts, que lê a coleta de contratos do PNCP e sugere os vínculos. Só aparece vínculo quando existem atas e fornecedores reais na rede: sem eles, não há o que ligar. Quando o script rodar, os contratos aparecem aqui para você confirmar ou descartar."
+              descricao="Uma rotina automática lê os contratos publicados no PNCP e sugere ligações com as atas e negociações da rede. Enquanto não houver atas e fornecedores reais na rede, não há o que ligar. Quando houver, os contratos aparecem aqui para você confirmar ou descartar."
+              acao={
+                <div className="flex flex-col items-center gap-3">
+                  <Link href="/admin/negociacoes" className="botao-atas secundario">
+                    Ver negociações em andamento
+                  </Link>
+                  <p className="text-xs" style={{ color: "var(--cor-texto-3)" }}>
+                    Rotina: <span className="codigo break-all">scripts/inteligencia/acompanhar-contratos.ts</span>
+                  </p>
+                </div>
+              }
             />
           </Secao>
 
-          <Secao titulo="Como o sistema liga um contrato ao funil" descricao="Três níveis, do vínculo mais firme ao mais fraco. O script só sugere; quem decide é você.">
+          <Secao titulo="Como o sistema liga um contrato ao funil" descricao="Três níveis, do vínculo mais firme ao mais fraco. A rotina automática só sugere; quem decide é você.">
             <ul className="lista-linhas">
               {NIVEIS_VINCULO.map((nivel) => (
                 <li key={nivel} className="flex flex-col gap-1.5">
@@ -261,14 +272,15 @@ export default async function ContratosDetectadosPage() {
         <>
           <Secao
             titulo={`A confirmar (${totalSugeridos})`}
-            descricao="Decida um a um. Confirmar liga o contrato ao funil e passa a acompanhar os aditivos dele; descartar tira o contrato da fila. O script não altera uma decisão já tomada."
+            descricao="Decida um a um. Confirmar liga o contrato ao funil e passa a acompanhar os aditivos dele; descartar tira o contrato da fila. Depois de decidir, não dá para desfazer por aqui, e a rotina automática nunca altera uma decisão já tomada."
             destaque
           >
             <div className="flex flex-col gap-6">
               {totalSugeridos > mostradosSugeridos && (
                 <Aviso tom="atencao">
-                  Mostrando {mostradosSugeridos} de {totalSugeridos} contratos a confirmar, na ordem: citam a ata da
-                  rede, em negociação e possíveis desvios. Decida alguns para ver os demais.
+                  Mostrando {mostradosSugeridos} de {totalSugeridos} contratos a confirmar. A fila segue a ordem dos
+                  grupos abaixo: primeiro os que citam a ata da rede, depois os de fornecedor parceiro em negociação e,
+                  por último, os possíveis desvios. Decida alguns para ver os demais.
                 </Aviso>
               )}
 
@@ -283,17 +295,22 @@ export default async function ContratosDetectadosPage() {
                   return (
                     <div
                       key={grupo.nivel}
-                      className={desvio ? "rounded-[var(--raio-grande)] border p-4" : undefined}
+                      className="painel-interno p-5"
                       style={
                         desvio
-                          ? { borderColor: "var(--cor-atencao)", background: "var(--cor-atencao-fundo)" }
+                          ? {
+                              borderColor: "color-mix(in srgb, var(--cor-atencao) 35%, transparent)",
+                              background: "var(--cor-atencao-fundo)",
+                            }
                           : undefined
                       }
                     >
                       <div className="flex flex-wrap items-center gap-2">
-                        <Badge tom={tomDoNivel(grupo.nivel)}>{rotuloDoNivel(grupo.nivel)}</Badge>
+                        <h3 className="flex">
+                          <Badge tom={tomDoNivel(grupo.nivel)}>{rotuloDoNivel(grupo.nivel)}</Badge>
+                        </h3>
                         <span className="numero text-xs" style={{ color: "var(--cor-texto-3)" }}>
-                          {grupo.total} contrato(s)
+                          {contagem(grupo.total, "contrato", "contratos")}
                         </span>
                       </div>
                       <p className="mb-4 mt-2 text-[13px] leading-relaxed" style={{ color: "var(--cor-texto-2)" }}>
@@ -313,35 +330,36 @@ export default async function ContratosDetectadosPage() {
 
           <Secao
             titulo={`Aditivos a acompanhar (${totalAditivos})`}
-            descricao={
-              <>
-                Aditivos de valor ou de prazo de contratos com vínculo confirmado. A comissão em cascata sobre aditivo é
-                lançada como liquidação do tipo &ldquo;aditivo&rdquo; na tela de{" "}
-                <Link
-                  href="/admin/recebiveis-vendedores"
-                  className="font-semibold hover:underline"
-                  style={{ color: "var(--cor-marca-clara)" }}
-                >
-                  recebíveis
-                </Link>
-                . Depois de lançar lá, marque o aditivo aqui como lançado; se ele não gera comissão, marque sem comissão.
-              </>
-            }
+            descricao="Aditivos de valor ou de prazo de contratos com vínculo confirmado."
           >
             <div className="flex flex-col gap-4">
-              {totalAditivos > linhasAditivos.length && (
-                <Aviso tom="atencao">
-                  Mostrando os {linhasAditivos.length} aditivos mais recentes de {totalAditivos}. Trate alguns para ver
-                  os demais.
-                </Aviso>
-              )}
               {linhasAditivos.length === 0 ? (
-                <p className="text-sm" style={{ color: "var(--cor-texto-3)" }}>
-                  Nenhum aditivo a acompanhar. Eles aparecem quando um contrato com vínculo confirmado ganha aditivo de
-                  valor ou de prazo no PNCP.
-                </p>
+                <VazioComAcao
+                  titulo="Nenhum aditivo a acompanhar"
+                  descricao="Eles aparecem aqui quando um contrato com vínculo confirmado ganha aditivo de valor ou de prazo no PNCP."
+                />
               ) : (
-                <TabelaAditivos aditivos={linhasAditivos} />
+                <>
+                  <Aviso tom="info" titulo="Como tratar um aditivo.">
+                    A comissão em cascata sobre aditivo é lançada como liquidação do tipo &ldquo;aditivo&rdquo; na tela
+                    de{" "}
+                    <Link
+                      href="/admin/recebiveis-vendedores"
+                      className="font-semibold underline underline-offset-2"
+                    >
+                      recebíveis
+                    </Link>
+                    . Depois de lançar lá, marque o aditivo aqui como lançado; se ele não gera comissão, marque sem
+                    comissão.
+                  </Aviso>
+                  {totalAditivos > linhasAditivos.length && (
+                    <Aviso tom="atencao">
+                      Mostrando os {linhasAditivos.length} aditivos mais recentes de {totalAditivos}. Trate alguns para
+                      ver os demais.
+                    </Aviso>
+                  )}
+                  <TabelaAditivos aditivos={linhasAditivos} />
+                </>
               )}
             </div>
           </Secao>
@@ -351,9 +369,10 @@ export default async function ContratosDetectadosPage() {
             descricao={`As últimas ${LIMITE_DECIDIDOS} decisões, só para consulta.`}
           >
             {linhasDecididos.length === 0 ? (
-              <p className="text-sm" style={{ color: "var(--cor-texto-3)" }}>
-                Nenhuma decisão registrada ainda.
-              </p>
+              <VazioComAcao
+                titulo="Nenhuma decisão registrada ainda"
+                descricao="Quando você confirmar ou descartar um contrato, a decisão aparece aqui."
+              />
             ) : (
               <TabelaDecididos decididos={linhasDecididos} />
             )}

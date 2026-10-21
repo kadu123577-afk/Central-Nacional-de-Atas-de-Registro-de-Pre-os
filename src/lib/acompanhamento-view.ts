@@ -56,12 +56,19 @@ export function tomDoStatusVinculo(status: string): "marca" | "neutro" | "atenca
  * passar do total do grupo nem do limite geral.
  */
 export function distribuirLimite(totais: number[], limite: number): number[] {
-  let restante = Math.max(0, Math.floor(limite));
+  // Número inválido (NaN, Infinity) vale zero: nunca vira `take: NaN` na consulta.
+  const inteiro = (n: number) => (Number.isFinite(n) ? Math.max(0, Math.floor(n)) : 0);
+  let restante = inteiro(limite);
   return totais.map((total) => {
-    const pegar = Math.min(Math.max(0, Math.floor(total)), restante);
+    const pegar = Math.min(inteiro(total), restante);
     restante -= pegar;
     return pegar;
   });
+}
+
+/** "1 contrato" / "2 contratos": o número já vem escrito no texto devolvido. */
+export function contagem(n: number, singular: string, plural: string): string {
+  return `${n} ${n === 1 ? singular : plural}`;
 }
 
 const ROTULO_TIPO_TERMO: Record<string, string> = {
@@ -100,7 +107,10 @@ export function formatarCnpj(valor: string | null | undefined): string | null {
 /** Decimal do Prisma (ou string/number) → número; nulo ou inválido → null. */
 export function paraNumero(valor: { toString(): string } | number | null | undefined): number | null {
   if (valor === null || valor === undefined) return null;
-  const n = Number(valor.toString());
+  const texto = valor.toString().trim();
+  // Number("") é 0: texto vazio não pode virar "R$ 0,00".
+  if (!texto) return null;
+  const n = Number(texto);
   return Number.isFinite(n) ? n : null;
 }
 

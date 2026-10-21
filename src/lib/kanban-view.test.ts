@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   descreverVigencia,
   escolherContratoDetectado,
+  filtroDeVinculosVisiveis,
   haQuantoTempo,
   mesesDesde,
   montarCartao,
@@ -312,6 +313,22 @@ describe("contrato público detectado no card", () => {
     expect(c.outrosContratos).toBe(0);
   });
 
+  it("status fora do vocabulário (dado estranho) não aparece nem conta em 'outros'", () => {
+    const entrada = {
+      ...base,
+      contratos: [contrato({ status: "arquivado", numeroControlePncp: "x" }), contrato({ status: "confirmado" })],
+    };
+    const c = montarCartao(entrada, contexto, agora);
+    expect(c.contratoDetectado?.confirmado).toBe(true);
+    expect(c.outrosContratos).toBe(0);
+    expect(montarCartao({ ...base, contratos: [contrato({ status: "" })] }, contexto, agora).contratoDetectado).toBeNull();
+  });
+
+  it("objeto vazio não deixa o bloco em branco", () => {
+    const c = montarCartao({ ...base, contratos: [contrato({ objeto: "   " })] }, contexto, agora);
+    expect(c.contratoDetectado?.objeto).toBe("Objeto não informado");
+  });
+
   it("nível desconhecido (dado fora do padrão) não aparece", () => {
     expect(montarCartao({ ...base, contratos: [contrato({ nivel: "qualquer" })] }, contexto, agora).contratoDetectado).toBeNull();
   });
@@ -427,6 +444,22 @@ describe("niveisDeVinculoVisiveis", () => {
   it("vendedor: certo e forte; gestor: todos", () => {
     expect(niveisDeVinculoVisiveis(false)).toEqual(["certo", "forte"]);
     expect(niveisDeVinculoVisiveis(true)).toEqual(["certo", "forte", "desvio"]);
+  });
+});
+
+describe("filtroDeVinculosVisiveis (o que a consulta em lote pede ao banco)", () => {
+  it("vendedor: sem desvio e sem descartado, só nas oportunidades carregadas", () => {
+    expect(filtroDeVinculosVisiveis(["o1", "o2"], false)).toEqual({
+      oportunidadeId: { in: ["o1", "o2"] },
+      status: { in: ["sugerido", "confirmado"] },
+      nivel: { in: ["certo", "forte"] },
+    });
+  });
+
+  it("gestor: o desvio entra, o descartado continua de fora", () => {
+    const f = filtroDeVinculosVisiveis(["o1"], true);
+    expect(f.nivel.in).toEqual(["certo", "forte", "desvio"]);
+    expect(f.status.in).not.toContain("descartado");
   });
 });
 

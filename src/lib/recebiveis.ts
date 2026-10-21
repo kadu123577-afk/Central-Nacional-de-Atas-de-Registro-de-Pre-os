@@ -132,6 +132,32 @@ function hojeEmBrasilia(agora: Date): string {
 export type DataInterpretada = { ok: true; data: Date } | { ok: false; erro: string };
 
 /**
+ * Dia só-data (AAAA-MM-DD, como o campo de data do navegador envia) à
+ * meia-noite UTC. Nada de `new Date(texto)`: ele aceita "2026-02-30" (vira
+ * 02/03), "10/05/2026" e horas com fuso, e o dia gravado mudaria. Devolve null
+ * para formato diferente, data inexistente (30/02) e ano anterior a 2000.
+ */
+export function lerDiaAAAAMMDD(bruto: string): Date | null {
+  const partes = PADRAO_DIA.exec(bruto.trim());
+  if (!partes) return null;
+
+  const [, ano, mes, dia] = partes;
+  const data = new Date(Date.UTC(Number(ano), Number(mes) - 1, Number(dia)));
+  const existe =
+    data.getUTCFullYear() === Number(ano) && data.getUTCMonth() === Number(mes) - 1 && data.getUTCDate() === Number(dia);
+  return existe && Number(ano) >= 2000 ? data : null;
+}
+
+/**
+ * Lê a "data da liquidação" do formulário (mesmo tratamento da data de
+ * pagamento do ente: dia só-data, meia-noite UTC, sem aceitar data inexistente).
+ */
+export function interpretarDataLiquidacao(bruto: string): DataInterpretada {
+  const data = lerDiaAAAAMMDD(bruto);
+  return data ? { ok: true, data } : { ok: false, erro: "Data da liquidação inválida." };
+}
+
+/**
  * Lê a "data em que o ente pagou o fornecedor" digitada no formulário
  * (AAAA-MM-DD, do campo de data). Data só-dia vai para o banco à meia-noite
  * UTC — o mesmo tratamento de `dataLiquidacao` — para que o dia exibido não
@@ -140,14 +166,10 @@ export type DataInterpretada = { ok: true; data: Date } | { ok: false; erro: str
  */
 export function interpretarDataPagamentoEnte(bruto: string, agora: Date = new Date()): DataInterpretada {
   const texto = bruto.trim();
-  const partes = PADRAO_DIA.exec(texto);
-  if (!partes) return { ok: false, erro: "Informe a data em que o ente pagou o fornecedor." };
+  if (!PADRAO_DIA.test(texto)) return { ok: false, erro: "Informe a data em que o ente pagou o fornecedor." };
 
-  const [, ano, mes, dia] = partes;
-  const data = new Date(Date.UTC(Number(ano), Number(mes) - 1, Number(dia)));
-  const existe =
-    data.getUTCFullYear() === Number(ano) && data.getUTCMonth() === Number(mes) - 1 && data.getUTCDate() === Number(dia);
-  if (!existe || Number(ano) < 2000) return { ok: false, erro: "Data do pagamento do ente inválida." };
+  const data = lerDiaAAAAMMDD(texto);
+  if (!data) return { ok: false, erro: "Data do pagamento do ente inválida." };
   if (texto > hojeEmBrasilia(agora)) {
     return { ok: false, erro: "A data do pagamento do ente não pode ser futura." };
   }

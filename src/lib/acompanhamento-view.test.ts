@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   EXPLICACAO_NIVEL,
+  contagem,
   dataHoraBrasilia,
   dataSoDia,
   distribuirLimite,
@@ -72,6 +73,28 @@ describe("distribuirLimite", () => {
   it("ignora totais negativos", () => {
     expect(distribuirLimite([-4, 3], 10)).toEqual([0, 3]);
   });
+
+  it("número inválido vale zero (nunca vira take: NaN)", () => {
+    expect(distribuirLimite([5, 5], Number.NaN)).toEqual([0, 0]);
+    expect(distribuirLimite([5, 5], Number.POSITIVE_INFINITY)).toEqual([0, 0]);
+    expect(distribuirLimite([Number.NaN, 4], 10)).toEqual([0, 4]);
+  });
+
+  it("não passa de inteiros mesmo com limite ou total fracionado", () => {
+    expect(distribuirLimite([2.9, 5], 4.7)).toEqual([2, 2]);
+  });
+
+  it("lista vazia devolve lista vazia", () => {
+    expect(distribuirLimite([], 200)).toEqual([]);
+  });
+});
+
+describe("contagem", () => {
+  it("usa o singular só para 1", () => {
+    expect(contagem(1, "contrato", "contratos")).toBe("1 contrato");
+    expect(contagem(0, "contrato", "contratos")).toBe("0 contratos");
+    expect(contagem(2, "possível desvio", "possíveis desvios")).toBe("2 possíveis desvios");
+  });
 });
 
 describe("rotuloTipoTermo", () => {
@@ -128,6 +151,13 @@ describe("valores e datas", () => {
     expect(paraNumero(null)).toBeNull();
     expect(paraNumero(undefined)).toBeNull();
     expect(paraNumero("abc")).toBeNull();
+  });
+
+  it("texto vazio não vira zero", () => {
+    expect(paraNumero("")).toBeNull();
+    expect(paraNumero("   ")).toBeNull();
+    expect(paraNumero({ toString: () => "" })).toBeNull();
+    expect(paraNumero(0)).toBe(0);
   });
 
   it("formata moeda em reais e traço quando não há valor", () => {

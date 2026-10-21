@@ -186,6 +186,22 @@
     background: var(--cor-profundo);
     color: var(--cor-profundo-texto);
   }
+  /* Celular: o menu vira uma faixa no topo (itens em linha, rolagem lateral). */
+  @media (max-width: 767px) {
+    .app-menu {
+      position: static;
+      height: auto;
+      width: 100%;
+      flex-direction: column;
+      justify-content: flex-start;
+      gap: 8px;
+      padding: 12px 14px;
+      overflow-y: visible;
+    }
+    .app-menu-rodape {
+      padding-top: 8px;
+    }
+  }
   .app-menu-area {
     margin-top: 12px;
     font-size: 11px;

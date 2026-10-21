@@ -39,6 +39,7 @@ import { tipoSinalValido } from "@/lib/sinais";
 import { interpretarPercentualComissao } from "@/lib/comissao";
 import { calcularPrazo } from "@/lib/negociacao";
 import {
+  interpretarDataLiquidacao,
   interpretarDataPagamentoEnte,
   motivoParaRecusarCobranca,
   statusCobrancaValido,
@@ -981,6 +982,16 @@ export async function lancarLiquidacao(
   if (!valorBruto || !Number.isFinite(valorNumero) || valorNumero <= 0 || !dataLiquidacao) {
     return { erro: "Informe um valor liquidado válido e a data." };
   }
+  // A coluna é Decimal(14,2): abaixo de 1 centavo viraria R$ 0,00 e acima do
+  // teto estouraria o banco (erro 500 em vez de mensagem na tela).
+  if (valorNumero < 0.01 || valorNumero > 999_999_999_999.99) {
+    return { erro: "Valor liquidado fora do intervalo aceito (de R$ 0,01 a R$ 999.999.999.999,99)." };
+  }
+  // Só AAAA-MM-DD à meia-noite UTC: `new Date(texto)` aceitaria "2026-02-30"
+  // (viraria 02/03) e textos com hora/fuso, mudando o dia gravado.
+  const dataLiquidacaoLida = interpretarDataLiquidacao(dataLiquidacao);
+  if (!dataLiquidacaoLida.ok) return { erro: dataLiquidacaoLida.erro };
+  const dataLiquidacaoDia = dataLiquidacaoLida.data;
 
   // Opcional: sem a data, a liquidação entra como "aguardando pagamento do
   // ente" e a comissão só pode ser cobrada depois que o gestor a informar.
@@ -1002,7 +1013,7 @@ export async function lancarLiquidacao(
       valorLiquidado: String(valorNumero),
       tipo,
       numeroNotaFiscal: numeroNotaFiscal || null,
-      dataLiquidacao: new Date(dataLiquidacao),
+      dataLiquidacao: dataLiquidacaoDia,
       dataPagamentoEnte,
     },
   });

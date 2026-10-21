@@ -1,10 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/generated/prisma/client";
-import { montarCartao, niveisDeVinculoVisiveis, type CartaoView, type EntradaContratoDetectado } from "./kanban-view";
-import type { StatusVinculo } from "./acompanhamento";
+import { filtroDeVinculosVisiveis, montarCartao, type CartaoView, type EntradaContratoDetectado } from "./kanban-view";
 import type { SinalView } from "./sinais";
-
-const STATUS_DESCARTADO: StatusVinculo = "descartado";
 
 /**
  * Carrega os cards do Kanban com tudo que o card e a gaveta mostram (contatos,
@@ -71,13 +68,13 @@ export async function carregarCartoes(
       orderBy: { dataSinal: "desc" },
     }),
     // Contratos públicos ligados às oportunidades carregadas: um vínculo por
-    // contrato, filtrado por nível e status já no banco (nada de N+1).
+    // contrato, filtrado por nível e status já no banco (nada de N+1). O filtro
+    // vem de kanban-view.ts (puro e testado): o "desvio" nem sai do banco para o vendedor.
     prisma.vinculoContrato.findMany({
-      where: {
-        oportunidadeId: { in: oportunidades.map((o) => o.id) },
-        status: { not: STATUS_DESCARTADO },
-        nivel: { in: niveisDeVinculoVisiveis(verDesvio) },
-      },
+      where: filtroDeVinculosVisiveis(
+        oportunidades.map((o) => o.id),
+        verDesvio,
+      ),
       select: {
         oportunidadeId: true,
         nivel: true,

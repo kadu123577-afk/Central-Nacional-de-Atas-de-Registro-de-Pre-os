@@ -25,6 +25,7 @@ import {
   type ContratoParaAcompanhar,
   type RedeParaAcompanhar,
 } from "../../src/lib/acompanhamento";
+import { nomeFornecedorPublico } from "../../src/lib/sinais-preditivos";
 
 const prisma = new PrismaClient();
 const DADOS = process.env.COLETA_DIR ? path.resolve(process.env.COLETA_DIR) : path.resolve("dados-coletados");
@@ -167,7 +168,9 @@ async function main() {
         orgaoNome: c.orgaoEntidade?.razaoSocial ?? "",
         entidadeAlvoId: e.id,
         fornecedorCnpj: soDigitos(c.niFornecedor) || null,
-        fornecedorNome: c.tipoPessoa === "PF" ? "pessoa física" : (c.nomeRazaoSocialFornecedor ?? null),
+        // Sem dado pessoal: pessoa física não é identificada e o CPF que o MEI
+        // carrega na razão social é retirado (LGPD).
+        fornecedorNome: nomeFornecedorPublico(c.nomeRazaoSocialFornecedor, c.tipoPessoa),
         numeroControleAta: c.numeroControlePncpAta ?? null,
         numeroControleCompra: c.numeroControlePncpCompra ?? null,
         frutoAdesao: c.frutoAdesao ?? null,

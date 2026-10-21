@@ -4,7 +4,9 @@ import {
   ONDE_LIQUIDACAO_AGUARDANDO_PAGAMENTO_ENTE,
   ONDE_LIQUIDACAO_A_COBRAR,
   contarPorSituacao,
+  interpretarDataLiquidacao,
   interpretarDataPagamentoEnte,
+  lerDiaAAAAMMDD,
   motivoParaRecusarCobranca,
   resumirComissao,
   situacaoDaLiquidacao,
@@ -94,6 +96,22 @@ describe("resumirComissao", () => {
     const r = resumirComissao(liquidacoes, 0.0825);
     const cobrada = resumirComissao([liquidacoes[2]], 0.0825).devida;
     expect((r.aCobrar ?? 0) + (r.aguardandoPagamentoEnte ?? 0) + cobrada + r.recebida).toBeCloseTo(r.devida, 1);
+  });
+
+  it("'a cobrar' não conta liquidação cobrada/recebida e não depende da ordem das liquidações", () => {
+    const a = { valorLiquidado: 1000, statusCobranca: "pendente", dataPagamentoEnte: "2026-10-10" };
+    const b = { valorLiquidado: 500, statusCobranca: "pendente", dataPagamentoEnte: null };
+    const c = { valorLiquidado: 700, statusCobranca: "cobrada", dataPagamentoEnte: "2026-10-01" };
+    const direto = resumirComissao([a, b, c], 0.1);
+    const invertido = resumirComissao([c, b, a], 0.1);
+    expect(direto.aCobrar).toBe(100);
+    expect(direto.aguardandoPagamentoEnte).toBe(50);
+    expect(invertido).toEqual(direto);
+  });
+
+  it("percentual zero (oportunidade sem comissão definida) zera tudo sem quebrar", () => {
+    const r = resumirComissao([{ valorLiquidado: 1000, statusCobranca: "pendente", dataPagamentoEnte: null }], 0);
+    expect(r).toEqual({ devida: 0, recebida: 0, faltaReceber: 0, aCobrar: 0, aguardandoPagamentoEnte: 0 });
   });
 });
 
@@ -198,10 +216,61 @@ describe("interpretarDataPagamentoEnte", () => {
   });
 });
 
+describe("lerDiaAAAAMMDD e interpretarDataLiquidacao", () => {
+  it("lê o dia à meia-noite UTC e ignora espaços nas pontas", () => {
+    expect(lerDiaAAAAMMDD(" 2026-10-10 ")?.toISOString()).toBe("2026-10-10T00:00:00.000Z");
+    const r = interpretarDataLiquidacao("2026-10-10");
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.data.toISOString()).toBe("2026-10-10T00:00:00.000Z");
+  });
+
+  it("não aceita o que `new Date(texto)` aceitaria e mudaria o dia gravado", () => {
+    // new Date("2026-02-30") vira 02/03; os demais viram hora local, não meia-noite UTC.
+    for (const ruim of [
+      "2026-02-30",
+      "2026-13-01",
+      "2026-10-10T23:30:00-03:00",
+      "10/05/2026",
+      "Oct 5 2026",
+      "0001-01-01",
+      "",
+      "   ",
+    ]) {
+      expect(lerDiaAAAAMMDD(ruim)).toBeNull();
+      expect(interpretarDataLiquidacao(ruim)).toEqual({ ok: false, erro: "Data da liquidação inválida." });
+    }
+  });
+
+  it("aceita 29 de fevereiro só em ano bissexto", () => {
+    expect(lerDiaAAAAMMDD("2024-02-29")).not.toBeNull();
+    expect(lerDiaAAAAMMDD("2025-02-29")).toBeNull();
+  });
+});
+
 describe("filtros de banco", () => {
   it("'a cobrar' exige a data; 'aguardando' é a ausência dela", () => {
     expect(ONDE_LIQUIDACAO_A_COBRAR).toEqual({ statusCobranca: "pendente", dataPagamentoEnte: { not: null } });
     expect(ONDE_LIQUIDACAO_AGUARDANDO_PAGAMENTO_ENTE).toEqual({ statusCobranca: "pendente", dataPagamentoEnte: null });
+  });
+
+  it("dão a mesma resposta que situacaoDaLiquidacao para qualquer combinação (painel e telas não divergem)", () => {
+    // Avalia o filtro como o Prisma faria: igualdade simples ou { not: null }.
+    const casa = (
+      filtro: { statusCobranca: string; dataPagamentoEnte: null | { not: null } },
+      l: { statusCobranca: string; dataPagamentoEnte: Date | null },
+    ) =>
+      l.statusCobranca === filtro.statusCobranca &&
+      (filtro.dataPagamentoEnte === null ? l.dataPagamentoEnte === null : l.dataPagamentoEnte !== null);
+
+    for (const statusCobranca of ["pendente", "cobrada", "recebida"]) {
+      for (const dataPagamentoEnte of [null, new Date("2026-10-10T00:00:00Z")]) {
+        const l = { statusCobranca, dataPagamentoEnte };
+        expect(casa(ONDE_LIQUIDACAO_A_COBRAR, l)).toBe(situacaoDaLiquidacao(l) === "a_cobrar");
+        expect(casa(ONDE_LIQUIDACAO_AGUARDANDO_PAGAMENTO_ENTE, l)).toBe(
+          situacaoDaLiquidacao(l) === "aguardando_pagamento_ente",
+        );
+      }
+    }
   });
 });
 

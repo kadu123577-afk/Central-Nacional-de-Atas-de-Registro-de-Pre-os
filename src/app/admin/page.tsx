@@ -15,6 +15,7 @@ import { FunilVendedor } from "@/components/vendedor/painel-resumo";
 import { NAV_ADMIN } from "@/app/admin/nav";
 import { ITENS_CONFORMIDADE } from "@/lib/conformidade";
 import { moedaCurta, percentualDeFracao } from "@/lib/formato";
+import { ONDE_LIQUIDACAO_A_COBRAR } from "@/lib/recebiveis";
 import { expirarOportunidadesVencidas } from "@/lib/negociacao-expiracao";
 import { montarPainel, resumirPorVendedor } from "@/lib/painel-vendedor";
 import { carregarLinhasOportunidades } from "@/lib/painel-vendedor-db";
@@ -116,7 +117,7 @@ export default async function PainelAdminPage() {
       take: 4,
     }),
     prisma.ata.count({ where: { status: "APROVADA", contrato: { is: null } } }),
-    prisma.liquidacao.count({ where: { statusCobranca: "pendente" } }),
+    prisma.liquidacao.count({ where: ONDE_LIQUIDACAO_A_COBRAR }),
     carregarLinhasOportunidades({}),
     // Acompanhamento de contratos do PNCP (Projeto RNA, etapa 2): vínculos que
     // o script sugeriu e esperam o gestor confirmar ou descartar.
@@ -179,21 +180,21 @@ export default async function PainelAdminPage() {
     },
     {
       rotulo: "Comissões a cobrar",
-      descricao: "Notas fiscais já liquidadas pelo órgão, sem cobrança ao fornecedor.",
+      descricao: "Notas fiscais já liquidadas e pagas pelo órgão, sem cobrança ao fornecedor.",
       n: liquidacoesACobrar,
       href: "/admin/recebiveis-vendedores",
       tom: "atencao",
     },
     {
       rotulo: "Contratos detectados para confirmar",
-      descricao: "Contratos do PNCP que parecem vir das nossas atas ou negociações: confirme ou descarte.",
+      descricao: "O PNCP publicou contratos que parecem ter nascido das nossas atas ou negociações.",
       n: contratosDetectadosParaConfirmar,
       href: "/admin/contratos-detectados",
       tom: "atencao",
     },
     {
       rotulo: "Aditivos a acompanhar",
-      descricao: "Aditivo de valor ou prazo pode gerar comissão: lance nos recebíveis ou marque sem comissão.",
+      descricao: "Aditivo de valor ou prazo gera comissão em cascata: lance a liquidação ou marque sem comissão.",
       n: aditivosAAcompanhar,
       href: "/admin/contratos-detectados",
       tom: "atencao",
@@ -259,20 +260,22 @@ export default async function PainelAdminPage() {
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-4">
+              <div className="ml-auto flex items-center gap-4">
                 <span
-                  className="numero text-[22px] font-extrabold tracking-[-0.03em]"
+                  className="numero min-w-8 text-right text-[22px] font-extrabold tracking-[-0.03em]"
                   style={{ color: item.n === 0 ? "var(--cor-texto-3)" : "var(--cor-texto)" }}
                 >
                   {item.n}
                 </span>
-                {item.n > 0 ? (
-                  <Link href={item.href} className="botao-atas secundario" aria-label={`Abrir: ${item.rotulo}`}>
-                    Abrir
-                  </Link>
-                ) : (
-                  <Badge tom="neutro">Em dia</Badge>
-                )}
+                <div className="flex min-w-[4.75rem] justify-end">
+                  {item.n > 0 ? (
+                    <Link href={item.href} className="botao-atas secundario pequeno" aria-label={`Abrir: ${item.rotulo}`}>
+                      Abrir
+                    </Link>
+                  ) : (
+                    <Badge tom="neutro">Em dia</Badge>
+                  )}
+                </div>
               </div>
             </li>
           ))}

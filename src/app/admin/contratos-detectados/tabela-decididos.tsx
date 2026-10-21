@@ -27,11 +27,11 @@ export interface DadosVinculoDecidido {
 
 const COR_SECUNDARIA = { color: "var(--cor-texto-3)" } as const;
 
-/** Últimas decisões já tomadas, só leitura. */
+/** Últimas decisões já tomadas, só leitura; rola na horizontal dentro da moldura em tela estreita. */
 export function TabelaDecididos({ decididos }: { decididos: DadosVinculoDecidido[] }) {
   return (
-    <div className="overflow-x-auto">
-      <table className="tabela-atas">
+    <div className="moldura-tabela">
+      <table className="tabela-atas min-w-[780px]">
         <thead>
           <tr>
             <th>Município</th>
@@ -47,7 +47,7 @@ export function TabelaDecididos({ decididos }: { decididos: DadosVinculoDecidido
               <td className="align-top">
                 <NomeMunicipio municipio={d.municipio} />
               </td>
-              <td className="max-w-[22rem] align-top">
+              <td className="min-w-[14rem] max-w-[22rem] align-top">
                 <span className="titulo-linha block text-[13.5px] leading-snug">
                   {d.contrato.objeto ? resumir(d.contrato.objeto, 100) : "Objeto não informado"}
                 </span>

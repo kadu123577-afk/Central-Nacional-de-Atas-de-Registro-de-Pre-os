@@ -44,24 +44,25 @@ export function AppShell({
   const pathname = usePathname();
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen flex-col md:flex-row">
+      {/* Em telas estreitas o menu vira uma faixa no topo, com os itens em linha rolável. */}
       <aside className="app-menu sem-impressao">
-        <div>
-          <div className="px-2 pb-7 pt-1">
+        <div className="min-w-0">
+          <div className="px-2 pb-7 pt-1 max-md:pb-3">
             <Logo tom="claro" altura={30} compacto />
             <p className="app-menu-area">{area}</p>
           </div>
-          <nav className="flex flex-col gap-0.5">
+          <nav className="flex flex-col gap-0.5 max-md:flex-row max-md:overflow-x-auto max-md:pb-1" aria-label={`Menu de ${area}`}>
             {itens.map((item, i) => {
               const ativo = itemAtivo(item, pathname);
               const novoGrupo = item.grupo && item.grupo !== itens[i - 1]?.grupo;
               return (
-                <div key={item.href} className="flex flex-col gap-0.5">
-                  {novoGrupo && <p className="app-menu-grupo">{item.grupo}</p>}
+                <div key={item.href} className="flex flex-col gap-0.5 max-md:shrink-0">
+                  {novoGrupo && <p className="app-menu-grupo max-md:hidden">{item.grupo}</p>}
                   <Link
                     href={item.href}
                     aria-current={ativo ? "page" : undefined}
-                    className="app-menu-item"
+                    className="app-menu-item max-md:whitespace-nowrap"
                   >
                     {item.rotulo}
                   </Link>
@@ -73,7 +74,7 @@ export function AppShell({
         {rodape && <div className="app-menu-rodape">{rodape}</div>}
       </aside>
 
-      <main className="min-w-0 flex-1 px-8 py-9">
+      <main className="min-w-0 flex-1 px-4 py-6 md:px-8 md:py-9">
         <div className={`mx-auto flex ${larguraMaxima} flex-col gap-6`}>{children}</div>
       </main>
     </div>

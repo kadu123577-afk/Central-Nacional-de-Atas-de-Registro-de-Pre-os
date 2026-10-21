@@ -51,7 +51,7 @@ export default async function PipelineGestorPage({ searchParams }: { searchParam
 
   const [linhas, { cartoes, total }, vendedores, atas, ufs] = await Promise.all([
     carregarLinhasOportunidades(where),
-    carregarCartoes(where, { limite: LIMITE_CARDS }),
+    carregarCartoes(where, { limite: LIMITE_CARDS, verDesvio: true }),
     prisma.vendedor.findMany({ orderBy: { nome: "asc" }, select: { id: true, nome: true } }),
     prisma.ata.findMany({
       where: { oportunidades: { some: { expiradaEm: null } } },
