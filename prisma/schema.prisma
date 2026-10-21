@@ -232,9 +232,41 @@ model OportunidadeVenda {
   vendedor     Vendedor     @relation(fields: [vendedorId], references: [id])
   liquidacoes  Liquidacao[]
   vinculosContrato VinculoContrato[]
+  instrucao    InstrucaoAdesao?
 
   @@unique([ataId, entidadeAlvoId])
   @@map("oportunidades_venda")
+}
+
+// Instrução da adesão por oportunidade (município) — Projeto RNA, etapa 3
+// (2026-10-21). A plataforma intermedia adesões a atas de registro de
+// preços (Lei 14.133/2021, art. 86), mas quem decide é o órgão aderente, o
+// órgão gerenciador e o fornecedor: aqui só se organiza a informação e o
+// pedido. `itens` guarda o checklist do que o órgão aderente precisa reunir
+// (JSON esparso chave -> { feito, em, nota }; vocabulário e regras em
+// src/lib/instrucao-adesao.ts, sempre lido com normalizarMapa — mesmo
+// racional de Item.categoria, evolui sem migração). A declaração interna de
+// conformidade é a trava do estágio "aderiu": declaracaoEm preenchido =
+// declarada; declaracaoPorTipo é "admin" ou "vendedor" e declaracaoPorId o
+// id de quem declarou; declaracaoVersao guarda a versão do texto declarado;
+// declaracaoExcecao é a justificativa quando havia item obrigatório
+// pendente. Uma por oportunidade (criada na primeira vez que o checklist é
+// tocado).
+model InstrucaoAdesao {
+  id                String    @id @default(cuid())
+  oportunidadeId    String    @unique
+  itens             Json      @default("{}")
+  declaracaoEm      DateTime?
+  declaracaoPorTipo String?
+  declaracaoPorId   String?
+  declaracaoVersao  Int?
+  declaracaoExcecao String?
+  criadoEm          DateTime  @default(now())
+  atualizadoEm      DateTime  @updatedAt
+
+  oportunidade OportunidadeVenda @relation(fields: [oportunidadeId], references: [id])
+
+  @@map("instrucoes_adesao")
 }
 
 // Cada nota fiscal liquidada pelo ente dentro do valor aderido (2026-10-01)
