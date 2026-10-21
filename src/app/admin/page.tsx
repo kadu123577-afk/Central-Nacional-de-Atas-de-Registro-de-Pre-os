@@ -186,14 +186,14 @@ export default async function PainelAdminPage() {
     },
     {
       rotulo: "Contratos detectados para confirmar",
-      descricao: "O PNCP publicou contratos que parecem ter nascido das nossas atas ou negociações.",
+      descricao: "Contratos do PNCP que parecem vir das nossas atas ou negociações: confirme ou descarte.",
       n: contratosDetectadosParaConfirmar,
       href: "/admin/contratos-detectados",
       tom: "atencao",
     },
     {
       rotulo: "Aditivos a acompanhar",
-      descricao: "Aditivo de valor ou prazo gera comissão em cascata: lance a liquidação ou marque sem comissão.",
+      descricao: "Aditivo de valor ou prazo pode gerar comissão: lance nos recebíveis ou marque sem comissão.",
       n: aditivosAAcompanhar,
       href: "/admin/contratos-detectados",
       tom: "atencao",
@@ -234,6 +234,7 @@ export default async function PainelAdminPage() {
             <li key={item.rotulo} className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex min-w-0 items-start gap-3">
                 <i
+                  aria-hidden="true"
                   className="kb-ponto mt-1.5"
                   style={{
                     background:
@@ -266,7 +267,7 @@ export default async function PainelAdminPage() {
                   {item.n}
                 </span>
                 {item.n > 0 ? (
-                  <Link href={item.href} className="botao-atas secundario">
+                  <Link href={item.href} className="botao-atas secundario" aria-label={`Abrir: ${item.rotulo}`}>
                     Abrir
                   </Link>
                 ) : (

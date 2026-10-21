@@ -5,7 +5,7 @@ import { resumirComissao } from "./recebiveis";
 import { limparNomeContato } from "./contatos-fonte";
 import { sinaisRelevantes, sinalGenerico, type SinalView } from "./sinais";
 import { NIVEIS_VINCULO, ROTULO_NIVEL_VINCULO, type NivelVinculo, type StatusVinculo } from "./acompanhamento";
-import { resumir, urlContratoPncp } from "./sinais-preditivos";
+import { nomeFornecedorPublico, resumir, urlContratoPncp } from "./sinais-preditivos";
 import { dataCurtaUtc } from "./formato";
 
 /**
@@ -285,8 +285,27 @@ function nivelValido(valor: string): valor is NivelVinculo {
   return (NIVEIS_VINCULO as readonly string[]).includes(valor);
 }
 
-function dataEmMs(d: Date | null): number {
-  return d ? d.getTime() : Number.NEGATIVE_INFINITY;
+/** Mais recente primeiro; sem data vai para o fim (comparação explícita, sem subtrair infinitos). */
+function maisRecentePrimeiro(a: Date | null, b: Date | null): number {
+  const ta = a ? a.getTime() : null;
+  const tb = b ? b.getTime() : null;
+  if (ta === tb) return 0;
+  if (ta === null) return 1;
+  if (tb === null) return -1;
+  return tb - ta;
+}
+
+/**
+ * O PNCP já publicou contrato municipal com valor na casa do trilhão (erro de
+ * digitação do órgão). Acima disso, e também zero ou negativo, o valor não é
+ * mostrado: "não informado" é mais honesto que um número absurdo. Mesmo teto de
+ * sinais-preditivos.ts.
+ */
+const VALOR_MAXIMO_PLAUSIVEL_CONTRATO = 5_000_000_000;
+
+function valorGlobalPlausivel(valor: number | null): number | null {
+  if (valor === null || !Number.isFinite(valor)) return null;
+  return valor > 0 && valor <= VALOR_MAXIMO_PLAUSIVEL_CONTRATO ? valor : null;
 }
 
 /**
@@ -309,7 +328,7 @@ export function escolherContratoDetectado(
     (a, b) =>
       Number(b.status === "confirmado") - Number(a.status === "confirmado") ||
       NIVEIS_VINCULO.indexOf(a.nivel as NivelVinculo) - NIVEIS_VINCULO.indexOf(b.nivel as NivelVinculo) ||
-      dataEmMs(b.dataAssinatura) - dataEmMs(a.dataAssinatura) ||
+      maisRecentePrimeiro(a.dataAssinatura, b.dataAssinatura) ||
       a.numeroControlePncp.localeCompare(b.numeroControlePncp),
   );
   return { escolhido: ordenados[0], outros: ordenados.length - 1 };
@@ -323,8 +342,10 @@ function montarContratoDetectado(c: EntradaContratoDetectado): ContratoDetectado
     rotuloNivel: ROTULO_NIVEL_VINCULO[nivel],
     confirmado: c.status === "confirmado",
     objeto: resumir(c.objeto, TAMANHO_OBJETO_CONTRATO),
-    fornecedorNome: c.fornecedorNome,
-    valorGlobal: c.valorGlobal,
+    // O script grava a razão social como o PNCP publica; o MEI carrega o CPF
+    // dele nela, e isso não vai para a tela de quem vende.
+    fornecedorNome: nomeFornecedorPublico(c.fornecedorNome),
+    valorGlobal: valorGlobalPlausivel(c.valorGlobal),
     vigenciaInicio: c.vigenciaInicio ? c.vigenciaInicio.toISOString() : null,
     vigenciaFim: c.vigenciaFim ? c.vigenciaFim.toISOString() : null,
     urlPncp: urlContratoPncp(c.numeroControlePncp),

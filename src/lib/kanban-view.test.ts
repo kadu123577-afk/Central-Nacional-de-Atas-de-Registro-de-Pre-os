@@ -330,6 +330,29 @@ describe("contrato público detectado no card", () => {
     expect(c.contratoDetectado?.urlPncp).toBeNull();
   });
 
+  it("CPF que o MEI carrega na razão social não chega à tela", () => {
+    const c = montarCartao(
+      { ...base, contratos: [contrato({ fornecedorNome: "MATEUS SOUZA 120.376.246-11 ME" })] },
+      contexto,
+      agora,
+    );
+    expect(c.contratoDetectado?.fornecedorNome).toBe("Mateus souza me");
+    expect(c.contratoDetectado?.fornecedorNome).not.toMatch(/\d{3}/);
+    const semNome = montarCartao({ ...base, contratos: [contrato({ fornecedorNome: null })] }, contexto, agora);
+    expect(semNome.contratoDetectado?.fornecedorNome).toBeNull();
+  });
+
+  it("valor zerado, negativo ou absurdo (erro de digitação no PNCP) vira 'não informado'", () => {
+    const valorDe = (valorGlobal: number | null) =>
+      montarCartao({ ...base, contratos: [contrato({ valorGlobal })] }, contexto, agora).contratoDetectado?.valorGlobal;
+    expect(valorDe(0)).toBeNull();
+    expect(valorDe(-5)).toBeNull();
+    expect(valorDe(Number.NaN)).toBeNull();
+    expect(valorDe(3_000_000_000_000)).toBeNull();
+    expect(valorDe(5_000_000_000)).toBe(5_000_000_000);
+    expect(valorDe(820_000.5)).toBe(820_000.5);
+  });
+
   it("valor e vigência ausentes viram null", () => {
     const c = montarCartao(
       { ...base, contratos: [contrato({ valorGlobal: null, vigenciaInicio: null, vigenciaFim: null })] },
@@ -373,6 +396,24 @@ describe("escolherContratoDetectado", () => {
     const r = escolherContratoDetectado([forte, certoAntigo, certoNovo], false);
     expect(r.escolhido?.numeroControlePncp).toBe("novo");
     expect(r.outros).toBe(2);
+  });
+
+  it("sem data de assinatura vai depois de quem tem data, e empate cai no número de controle", () => {
+    const semData1 = mk({ numeroControlePncp: "b", dataAssinatura: null });
+    const semData2 = mk({ numeroControlePncp: "a", dataAssinatura: null });
+    const comData = mk({ numeroControlePncp: "z", dataAssinatura: new Date("2020-01-01T00:00:00Z") });
+    expect(escolherContratoDetectado([semData1, semData2, comData], false).escolhido?.numeroControlePncp).toBe("z");
+    expect(escolherContratoDetectado([semData1, semData2], false).escolhido?.numeroControlePncp).toBe("a");
+  });
+
+  it("gestor: o desvio entra na fila; vendedor: fica de fora e não é contado em 'outros'", () => {
+    const desvio = mk({ nivel: "desvio", numeroControlePncp: "d" });
+    const forte = mk({ nivel: "forte", numeroControlePncp: "f" });
+    expect(escolherContratoDetectado([desvio, forte], false)).toMatchObject({ outros: 0 });
+    expect(escolherContratoDetectado([desvio, forte], false).escolhido?.numeroControlePncp).toBe("f");
+    const gestor = escolherContratoDetectado([desvio, forte], true);
+    expect(gestor.escolhido?.numeroControlePncp).toBe("f");
+    expect(gestor.outros).toBe(1);
   });
 
   it("não altera a lista recebida", () => {
