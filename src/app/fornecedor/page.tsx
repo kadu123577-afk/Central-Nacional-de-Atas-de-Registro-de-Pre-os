@@ -78,7 +78,7 @@ export default async function PainelFornecedorPage() {
       {fornecedor.atas.length === 0 ? (
         <VazioComAcao
           titulo="Nenhuma ata ainda"
-          descricao="O cadastro de atas é feito pela Tech 10 — fale com o time comercial pra colocar sua primeira ata na plataforma."
+          descricao="O cadastro de atas é feito pela ARCA Capital — fale com o time comercial pra colocar sua primeira ata na plataforma."
         />
       ) : (
         <>

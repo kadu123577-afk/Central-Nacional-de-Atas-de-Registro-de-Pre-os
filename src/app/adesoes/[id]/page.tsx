@@ -50,7 +50,7 @@ export default async function DetalheAdesaoPage({
         {/* Timbre — só aparece na impressão/PDF */}
         <div className="timbre-impressao mb-6 border-b pb-4" style={{ borderColor: "var(--cor-borda)" }}>
           <p className="marca-wordmark text-lg">Central Nacional de Atas de Registro de Preços</p>
-          <p className="text-xs">Tech 10 Digital — comprovante de adesão nº {adesao.id}</p>
+          <p className="text-xs">ARCA Capital — comprovante de adesão nº {adesao.id}</p>
         </div>
 
         <CabecalhoPagina

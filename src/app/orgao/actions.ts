@@ -101,7 +101,7 @@ export async function loginOrgao(
   }
 
   if (!orgao.ativo) {
-    return { erro: "Esta conta foi desativada. Fale com a Tech 10 para reativar o acesso." };
+    return { erro: "Esta conta foi desativada. Fale com a ARCA Capital para reativar o acesso." };
   }
 
   await registrarSucessoLogin("orgao", email);

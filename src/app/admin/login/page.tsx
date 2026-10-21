@@ -12,7 +12,7 @@ export default function LoginAdminPage() {
   return (
     <FormularioLogin
       titulo="Painel administrativo"
-      subtitulo="Acesso restrito à equipe da Tech 10."
+      subtitulo="Acesso restrito à equipe da ARCA Capital."
       formAction={formAction}
       erro={estado.erro}
       pendente={pendente}

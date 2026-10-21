@@ -47,7 +47,7 @@ export default async function EntidadesAlvoPage({
       <CabecalhoPagina
         rotulo="Cadastros"
         titulo="Municípios e entidades"
-        descricao="Prefeituras, secretarias e ministérios que o time comercial da Tech 10 está prospectando — uso interno, nunca visível para fornecedor ou órgão. A venda é sempre humana; isso aqui é só o banco de dados que sustenta o contato."
+        descricao="Prefeituras, secretarias e ministérios que o time comercial da ARCA Capital está prospectando — uso interno, nunca visível para fornecedor ou órgão. A venda é sempre humana; isso aqui é só o banco de dados que sustenta o contato."
         voltar={{ href: "/admin", rotulo: "Painel" }}
       />
 

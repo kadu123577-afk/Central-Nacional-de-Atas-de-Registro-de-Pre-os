@@ -37,7 +37,7 @@ export default async function ParceirosPage() {
       <CabecalhoPagina
         rotulo="Cadastros"
         titulo="Parceiros"
-        descricao="Quem revende/comercializa atas junto com a Tech 10 — cada parceiro define suas categorias e UFs de interesse pra ver as atas compatíveis."
+        descricao="Quem revende/comercializa atas junto com a ARCA Capital — cada parceiro define suas categorias e UFs de interesse pra ver as atas compatíveis."
         voltar={{ href: "/admin", rotulo: "Painel" }}
       />
 

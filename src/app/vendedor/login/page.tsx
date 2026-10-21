@@ -12,7 +12,7 @@ export default function LoginVendedorPage() {
   return (
     <FormularioLogin
       titulo="Painel do vendedor"
-      subtitulo="Acesso restrito ao time comercial da Tech 10."
+      subtitulo="Acesso restrito ao time comercial da ARCA Capital."
       formAction={formAction}
       erro={estado.erro}
       pendente={pendente}
