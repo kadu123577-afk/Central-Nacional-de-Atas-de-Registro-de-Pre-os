@@ -73,6 +73,8 @@ export default async function PainelAdminPage() {
     totalAtasSemContrato,
     liquidacoesACobrar,
     linhasPipeline,
+    contratosDetectadosParaConfirmar,
+    aditivosAAcompanhar,
   ] = await Promise.all([
     prisma.ata.count({ where: { status: "APROVADA" } }),
     // Funil de conversão (mapa do núcleo de atas, 2026-09-05): quantas atas
@@ -116,6 +118,15 @@ export default async function PainelAdminPage() {
     prisma.ata.count({ where: { status: "APROVADA", contrato: { is: null } } }),
     prisma.liquidacao.count({ where: { statusCobranca: "pendente" } }),
     carregarLinhasOportunidades({}),
+    // Acompanhamento de contratos do PNCP (Projeto RNA, etapa 2): vínculos que
+    // o script sugeriu e esperam o gestor confirmar ou descartar.
+    prisma.vinculoContrato.count({ where: { status: "sugerido" } }),
+    // Aditivos (valor ou prazo) de contratos com vínculo já confirmado: geram
+    // comissão em cascata e ficam a acompanhar até o gestor lançar a
+    // liquidação ou marcar "sem comissão".
+    prisma.termoContratoPublico.count({
+      where: { cobrancaStatus: "a_acompanhar", contrato: { vinculo: { is: { status: "confirmado" } } } },
+    }),
   ]);
 
   const taxaConversao = totalAtas > 0 ? Math.round((atasComAdesao / totalAtas) * 100) : null;
@@ -171,6 +182,20 @@ export default async function PainelAdminPage() {
       descricao: "Notas fiscais já liquidadas pelo órgão, sem cobrança ao fornecedor.",
       n: liquidacoesACobrar,
       href: "/admin/recebiveis-vendedores",
+      tom: "atencao",
+    },
+    {
+      rotulo: "Contratos detectados para confirmar",
+      descricao: "O PNCP publicou contratos que parecem ter nascido das nossas atas ou negociações.",
+      n: contratosDetectadosParaConfirmar,
+      href: "/admin/contratos-detectados",
+      tom: "atencao",
+    },
+    {
+      rotulo: "Aditivos a acompanhar",
+      descricao: "Aditivo de valor ou prazo gera comissão em cascata: lance a liquidação ou marque sem comissão.",
+      n: aditivosAAcompanhar,
+      href: "/admin/contratos-detectados",
       tom: "atencao",
     },
     {

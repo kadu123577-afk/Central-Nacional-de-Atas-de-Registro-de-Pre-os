@@ -1,5 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { haQuantoTempo, mesesDesde, montarCartao, nivelFrescor, porQueAgoraDoRaioX, totalDaColuna } from "./kanban-view";
+import {
+  descreverVigencia,
+  escolherContratoDetectado,
+  haQuantoTempo,
+  mesesDesde,
+  montarCartao,
+  nivelFrescor,
+  niveisDeVinculoVisiveis,
+  porQueAgoraDoRaioX,
+  seloDoContrato,
+  totalDaColuna,
+  type EntradaContratoDetectado,
+} from "./kanban-view";
 import { CARGO_ADMINISTRACAO, CARGO_PREFEITO } from "./decisores";
 
 const agora = new Date("2026-10-04T12:00:00Z");
@@ -227,5 +239,163 @@ describe("montarCartao: contrato sem categoria não vira a linha", () => {
     );
     expect(c.porQueAgora).toBeNull();
     expect(c.sinais).toHaveLength(1);
+  });
+});
+
+describe("contrato público detectado no card", () => {
+  const contrato = (extra: Partial<EntradaContratoDetectado> = {}): EntradaContratoDetectado => ({
+    nivel: "forte",
+    status: "sugerido",
+    numeroControlePncp: "14147490000168-2-000216/2026",
+    objeto: "Aquisição de veículos para a Secretaria de Saúde",
+    fornecedorNome: "Fornecedor Parceiro Ltda",
+    valorGlobal: 820_000,
+    vigenciaInicio: new Date("2026-10-01T00:00:00Z"),
+    vigenciaFim: new Date("2027-09-30T00:00:00Z"),
+    dataAssinatura: new Date("2026-09-30T00:00:00Z"),
+    ...extra,
+  });
+  const contexto = { categoriaAta: "veiculos", percentualContrato: null };
+
+  it("sem contratos (ou campo ausente) o card não ganha selo", () => {
+    expect(montarCartao(base, contexto, agora).contratoDetectado).toBeNull();
+    expect(montarCartao({ ...base, contratos: [] }, contexto, agora).contratoDetectado).toBeNull();
+    expect(montarCartao({ ...base, contratos: [] }, contexto, agora).outrosContratos).toBe(0);
+  });
+
+  it("vínculo sugerido vira 'contrato a confirmar', com dados prontos pra tela", () => {
+    const c = montarCartao({ ...base, contratos: [contrato()] }, contexto, agora);
+    expect(c.contratoDetectado).toEqual({
+      numeroControlePncp: "14147490000168-2-000216/2026",
+      nivel: "forte",
+      rotuloNivel: "Fornecedor parceiro em negociação",
+      confirmado: false,
+      objeto: "Aquisição de veículos para a Secretaria de Saúde",
+      fornecedorNome: "Fornecedor Parceiro Ltda",
+      valorGlobal: 820_000,
+      vigenciaInicio: "2026-10-01T00:00:00.000Z",
+      vigenciaFim: "2027-09-30T00:00:00.000Z",
+      urlPncp: "https://pncp.gov.br/app/contratos/14147490000168/2026/216",
+    });
+    expect(seloDoContrato(c.contratoDetectado!)).toMatchObject({ tom: "atencao", rotulo: "Contrato a confirmar" });
+  });
+
+  it("vínculo confirmado vira 'contrato detectado' em tom de marca", () => {
+    const c = montarCartao({ ...base, contratos: [contrato({ nivel: "certo", status: "confirmado" })] }, contexto, agora);
+    expect(c.contratoDetectado?.confirmado).toBe(true);
+    expect(c.contratoDetectado?.rotuloNivel).toBe("Cita a ata da rede");
+    expect(seloDoContrato(c.contratoDetectado!)).toMatchObject({ tom: "marca", rotulo: "Contrato detectado" });
+  });
+
+  it("vínculo descartado pelo gestor não aparece", () => {
+    const c = montarCartao({ ...base, contratos: [contrato({ status: "descartado" })] }, contexto, agora);
+    expect(c.contratoDetectado).toBeNull();
+    expect(c.outrosContratos).toBe(0);
+  });
+
+  it("vendedor nunca vê vínculo de desvio; o gestor vê", () => {
+    const entrada = { ...base, contratos: [contrato({ nivel: "desvio" })] };
+    expect(montarCartao(entrada, contexto, agora).contratoDetectado).toBeNull();
+    expect(montarCartao(entrada, { ...contexto, verDesvio: false }, agora).contratoDetectado).toBeNull();
+    const gestor = montarCartao(entrada, { ...contexto, verDesvio: true }, agora);
+    expect(gestor.contratoDetectado?.nivel).toBe("desvio");
+    expect(gestor.contratoDetectado?.rotuloNivel).toBe("Possível desvio do funil");
+  });
+
+  it("desvio escondido do vendedor não esconde o contrato certo da mesma oportunidade", () => {
+    const c = montarCartao(
+      { ...base, contratos: [contrato({ nivel: "desvio", numeroControlePncp: "x" }), contrato({ nivel: "certo" })] },
+      contexto,
+      agora,
+    );
+    expect(c.contratoDetectado?.nivel).toBe("certo");
+    expect(c.outrosContratos).toBe(0);
+  });
+
+  it("nível desconhecido (dado fora do padrão) não aparece", () => {
+    expect(montarCartao({ ...base, contratos: [contrato({ nivel: "qualquer" })] }, contexto, agora).contratoDetectado).toBeNull();
+  });
+
+  it("objeto longo e em caixa alta vem resumido e em frase", () => {
+    const longo = "AQUISICAO DE VEICULOS ".repeat(20).trim();
+    const c = montarCartao({ ...base, contratos: [contrato({ objeto: longo })] }, contexto, agora);
+    const objeto = c.contratoDetectado!.objeto;
+    expect(objeto.length).toBeLessThanOrEqual(160);
+    expect(objeto.endsWith("…")).toBe(true);
+    expect(objeto.startsWith("Aquisicao de veiculos")).toBe(true);
+  });
+
+  it("número de controle fora do padrão fica sem link, sem quebrar", () => {
+    const c = montarCartao({ ...base, contratos: [contrato({ numeroControlePncp: "sem-padrao" })] }, contexto, agora);
+    expect(c.contratoDetectado?.urlPncp).toBeNull();
+  });
+
+  it("valor e vigência ausentes viram null", () => {
+    const c = montarCartao(
+      { ...base, contratos: [contrato({ valorGlobal: null, vigenciaInicio: null, vigenciaFim: null })] },
+      contexto,
+      agora,
+    );
+    expect(c.contratoDetectado).toMatchObject({ valorGlobal: null, vigenciaInicio: null, vigenciaFim: null });
+  });
+});
+
+describe("escolherContratoDetectado", () => {
+  const mk = (extra: Partial<EntradaContratoDetectado>): EntradaContratoDetectado => ({
+    nivel: "forte",
+    status: "sugerido",
+    numeroControlePncp: "14147490000168-2-000001/2026",
+    objeto: "Objeto",
+    fornecedorNome: null,
+    valorGlobal: null,
+    vigenciaInicio: null,
+    vigenciaFim: null,
+    dataAssinatura: null,
+    ...extra,
+  });
+
+  it("sem candidatos devolve nada", () => {
+    expect(escolherContratoDetectado([], true)).toEqual({ escolhido: null, outros: 0 });
+  });
+
+  it("confirmado ganha de sugerido, mesmo de nível mais fraco", () => {
+    const sugeridoCerto = mk({ nivel: "certo", numeroControlePncp: "a" });
+    const confirmadoForte = mk({ nivel: "forte", status: "confirmado", numeroControlePncp: "b" });
+    const r = escolherContratoDetectado([sugeridoCerto, confirmadoForte], false);
+    expect(r.escolhido?.numeroControlePncp).toBe("b");
+    expect(r.outros).toBe(1);
+  });
+
+  it("entre iguais, nível certo antes de forte, e o assinado mais recente primeiro", () => {
+    const forte = mk({ nivel: "forte", numeroControlePncp: "forte" });
+    const certoAntigo = mk({ nivel: "certo", numeroControlePncp: "antigo", dataAssinatura: new Date("2026-01-10T00:00:00Z") });
+    const certoNovo = mk({ nivel: "certo", numeroControlePncp: "novo", dataAssinatura: new Date("2026-06-10T00:00:00Z") });
+    const r = escolherContratoDetectado([forte, certoAntigo, certoNovo], false);
+    expect(r.escolhido?.numeroControlePncp).toBe("novo");
+    expect(r.outros).toBe(2);
+  });
+
+  it("não altera a lista recebida", () => {
+    const lista = [mk({ numeroControlePncp: "b" }), mk({ numeroControlePncp: "a", status: "confirmado" })];
+    escolherContratoDetectado(lista, false);
+    expect(lista.map((c) => c.numeroControlePncp)).toEqual(["b", "a"]);
+  });
+});
+
+describe("niveisDeVinculoVisiveis", () => {
+  it("vendedor: certo e forte; gestor: todos", () => {
+    expect(niveisDeVinculoVisiveis(false)).toEqual(["certo", "forte"]);
+    expect(niveisDeVinculoVisiveis(true)).toEqual(["certo", "forte", "desvio"]);
+  });
+});
+
+describe("descreverVigencia", () => {
+  it("mostra o que se sabe da vigência", () => {
+    expect(descreverVigencia("2026-03-01T00:00:00.000Z", "2027-02-28T00:00:00.000Z")).toBe(
+      "Vigência de 01/03/2026 a 28/02/2027",
+    );
+    expect(descreverVigencia(null, "2027-02-28T00:00:00.000Z")).toBe("Vigência até 28/02/2027");
+    expect(descreverVigencia("2026-03-01T00:00:00.000Z", null)).toBe("Vigência desde 01/03/2026");
+    expect(descreverVigencia(null, null)).toBe("Vigência não informada");
   });
 });

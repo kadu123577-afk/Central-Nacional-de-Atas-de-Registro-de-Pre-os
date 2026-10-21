@@ -1,7 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/generated/prisma/client";
-import { montarCartao, type CartaoView } from "./kanban-view";
+import { montarCartao, niveisDeVinculoVisiveis, type CartaoView, type EntradaContratoDetectado } from "./kanban-view";
+import type { StatusVinculo } from "./acompanhamento";
 import type { SinalView } from "./sinais";
+
+const STATUS_DESCARTADO: StatusVinculo = "descartado";
 
 /**
  * Carrega os cards do Kanban com tudo que o card e a gaveta mostram (contatos,
@@ -9,11 +12,18 @@ import type { SinalView } from "./sinais";
  * ata, só os municípios dele) e pelo Pipeline do gestor (várias atas e
  * vendedores, com filtros e teto de cards). Consultas em lote: uma por tipo de
  * dado, nunca uma por card.
+ *
+ * Contrato público detectado (Projeto RNA, etapa 2): o vínculo não descartado
+ * entre a oportunidade e um contrato do PNCP vem numa única consulta em lote.
+ * O vendedor (padrão) só recebe vínculo de nível "certo" e "forte"; "desvio" é
+ * alerta interno do gestor, então só quem passa `verDesvio: true` (telas do
+ * admin) o recebe.
  */
 export async function carregarCartoes(
   where: Prisma.OportunidadeVendaWhereInput,
-  opcoes: { limite?: number } = {},
+  opcoes: { limite?: number; verDesvio?: boolean } = {},
 ): Promise<{ cartoes: CartaoView[]; total: number }> {
+  const verDesvio = opcoes.verDesvio === true;
   const [total, oportunidades] = await Promise.all([
     prisma.oportunidadeVenda.count({ where }),
     prisma.oportunidadeVenda.findMany({
@@ -42,7 +52,7 @@ export async function carregarCartoes(
   });
   const contatoIds = contatos.map((c) => c.id);
 
-  const [interacoes, historico, sinaisBanco] = await Promise.all([
+  const [interacoes, historico, sinaisBanco, vinculos] = await Promise.all([
     contatoIds.length
       ? prisma.interacaoPontoFocal.findMany({
           where: { pontoFocalId: { in: contatoIds } },
@@ -59,6 +69,31 @@ export async function carregarCartoes(
     prisma.sinalMunicipio.findMany({
       where: { entidadeAlvoId: { in: entidadeIds }, OR: [{ expiraEm: null }, { expiraEm: { gte: new Date() } }] },
       orderBy: { dataSinal: "desc" },
+    }),
+    // Contratos públicos ligados às oportunidades carregadas: um vínculo por
+    // contrato, filtrado por nível e status já no banco (nada de N+1).
+    prisma.vinculoContrato.findMany({
+      where: {
+        oportunidadeId: { in: oportunidades.map((o) => o.id) },
+        status: { not: STATUS_DESCARTADO },
+        nivel: { in: niveisDeVinculoVisiveis(verDesvio) },
+      },
+      select: {
+        oportunidadeId: true,
+        nivel: true,
+        status: true,
+        contrato: {
+          select: {
+            numeroControlePncp: true,
+            objeto: true,
+            fornecedorNome: true,
+            valorGlobal: true,
+            vigenciaInicio: true,
+            vigenciaFim: true,
+            dataAssinatura: true,
+          },
+        },
+      },
     }),
   ]);
 
@@ -80,6 +115,24 @@ export async function carregarCartoes(
       expiraEm: sn.expiraEm ? sn.expiraEm.toISOString() : null,
     });
     sinaisPorEntidade.set(sn.entidadeAlvoId, lista);
+  }
+
+  const contratosPorOportunidade = new Map<string, EntradaContratoDetectado[]>();
+  for (const v of vinculos) {
+    if (!v.oportunidadeId) continue;
+    const lista = contratosPorOportunidade.get(v.oportunidadeId) ?? [];
+    lista.push({
+      nivel: v.nivel,
+      status: v.status,
+      numeroControlePncp: v.contrato.numeroControlePncp,
+      objeto: v.contrato.objeto,
+      fornecedorNome: v.contrato.fornecedorNome,
+      valorGlobal: v.contrato.valorGlobal ? Number(v.contrato.valorGlobal) : null,
+      vigenciaInicio: v.contrato.vigenciaInicio,
+      vigenciaFim: v.contrato.vigenciaFim,
+      dataAssinatura: v.contrato.dataAssinatura,
+    });
+    contratosPorOportunidade.set(v.oportunidadeId, lista);
   }
 
   const cartoes = oportunidades.map((o) =>
@@ -143,10 +196,12 @@ export async function carregarCartoes(
           valorLiquidado: Number(l.valorLiquidado),
           statusCobranca: l.statusCobranca,
         })),
+        contratos: contratosPorOportunidade.get(o.id) ?? [],
       },
       {
         categoriaAta: o.ata.categoria,
         percentualContrato: o.ata.contrato ? Number(o.ata.contrato.percentualComissao) : null,
+        verDesvio,
       },
     ),
   );

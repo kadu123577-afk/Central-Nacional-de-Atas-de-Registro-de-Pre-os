@@ -4,6 +4,9 @@ import { rotuloDaCategoria } from "./categorias";
 import { resumirComissao } from "./recebiveis";
 import { limparNomeContato } from "./contatos-fonte";
 import { sinaisRelevantes, sinalGenerico, type SinalView } from "./sinais";
+import { NIVEIS_VINCULO, ROTULO_NIVEL_VINCULO, type NivelVinculo, type StatusVinculo } from "./acompanhamento";
+import { resumir, urlContratoPncp } from "./sinais-preditivos";
+import { dataCurtaUtc } from "./formato";
 
 /**
  * Modelos de visão do Kanban do vendedor (2026-10-04, fase 2 de design):
@@ -49,6 +52,28 @@ export interface InteracaoView {
   contatoCargo: string;
 }
 
+/**
+ * Contrato público do PNCP ligado a uma oportunidade (VinculoContrato), só pra
+ * leitura no card e na gaveta: a decisão de confirmar ou descartar é do gestor
+ * em /admin/contratos-detectados.
+ */
+export interface ContratoDetectadoView {
+  numeroControlePncp: string;
+  /** Vendedor só recebe "certo" e "forte"; "desvio" é alerta interno do gestor. */
+  nivel: NivelVinculo;
+  rotuloNivel: string;
+  /** false = ainda sugerido pelo sistema, aguardando o gestor. */
+  confirmado: boolean;
+  /** Objeto resumido (o PNCP publica textos enormes e em caixa alta). */
+  objeto: string;
+  fornecedorNome: string | null;
+  valorGlobal: number | null;
+  vigenciaInicio: string | null;
+  vigenciaFim: string | null;
+  /** Página pública do contrato no PNCP; null quando o número de controle não segue o padrão. */
+  urlPncp: string | null;
+}
+
 export interface CartaoView {
   id: string;
   /** Ata e vendedor dono do card — o Pipeline do gestor mistura vários. */
@@ -84,6 +109,10 @@ export interface CartaoView {
   /** Valor da última contratação da categoria — estimativa, não valor aderido. */
   valorEstimado: number | null;
   porQueAgora: string | null;
+  /** Contrato público ligado a esta oportunidade (o mais firme, se houver mais de um). */
+  contratoDetectado: ContratoDetectadoView | null;
+  /** Quantos outros contratos visíveis estão ligados à mesma oportunidade. */
+  outrosContratos: number;
 }
 
 const MS_DIA = 24 * 60 * 60 * 1000;
@@ -223,6 +252,110 @@ interface EntradaCartao {
     contatoCargo: string;
   }[];
   liquidacoes: { valorLiquidado: number; statusCobranca: string }[];
+  /** Vínculos com contratos públicos (opcional: sem acompanhamento, sem contratos). */
+  contratos?: EntradaContratoDetectado[];
+}
+
+/** Vínculo + contrato como vêm do banco (datas como Date, dinheiro já em number). */
+export interface EntradaContratoDetectado {
+  nivel: string;
+  status: string;
+  numeroControlePncp: string;
+  objeto: string;
+  fornecedorNome: string | null;
+  valorGlobal: number | null;
+  vigenciaInicio: Date | null;
+  vigenciaFim: Date | null;
+  dataAssinatura: Date | null;
+}
+
+const STATUS_DESCARTADO: StatusVinculo = "descartado";
+const TAMANHO_OBJETO_CONTRATO = 160;
+
+/**
+ * Níveis de vínculo que o card pode mostrar. O vendedor só vê "certo" e
+ * "forte"; "desvio" é um alerta interno do gestor (o município fechou com o
+ * fornecedor parceiro sem passar pelo funil) e nunca chega a quem vende.
+ */
+export function niveisDeVinculoVisiveis(verDesvio: boolean): NivelVinculo[] {
+  return NIVEIS_VINCULO.filter((n) => verDesvio || n !== "desvio");
+}
+
+function nivelValido(valor: string): valor is NivelVinculo {
+  return (NIVEIS_VINCULO as readonly string[]).includes(valor);
+}
+
+function dataEmMs(d: Date | null): number {
+  return d ? d.getTime() : Number.NEGATIVE_INFINITY;
+}
+
+/**
+ * Entre os vínculos da oportunidade, descarta o que o gestor descartou e o que
+ * este leitor não pode ver; o primeiro da fila é o mais firme: confirmado antes
+ * de sugerido, depois nível certo antes de forte, depois o assinado mais
+ * recentemente. Devolve também quantos outros ficaram de fora do card.
+ */
+export function escolherContratoDetectado(
+  contratos: EntradaContratoDetectado[],
+  verDesvio: boolean,
+): { escolhido: EntradaContratoDetectado | null; outros: number } {
+  const visiveis = niveisDeVinculoVisiveis(verDesvio) as string[];
+  const candidatos = contratos.filter(
+    (c) => c.status !== STATUS_DESCARTADO && nivelValido(c.nivel) && visiveis.includes(c.nivel),
+  );
+  if (candidatos.length === 0) return { escolhido: null, outros: 0 };
+
+  const ordenados = [...candidatos].sort(
+    (a, b) =>
+      Number(b.status === "confirmado") - Number(a.status === "confirmado") ||
+      NIVEIS_VINCULO.indexOf(a.nivel as NivelVinculo) - NIVEIS_VINCULO.indexOf(b.nivel as NivelVinculo) ||
+      dataEmMs(b.dataAssinatura) - dataEmMs(a.dataAssinatura) ||
+      a.numeroControlePncp.localeCompare(b.numeroControlePncp),
+  );
+  return { escolhido: ordenados[0], outros: ordenados.length - 1 };
+}
+
+function montarContratoDetectado(c: EntradaContratoDetectado): ContratoDetectadoView {
+  const nivel = c.nivel as NivelVinculo;
+  return {
+    numeroControlePncp: c.numeroControlePncp,
+    nivel,
+    rotuloNivel: ROTULO_NIVEL_VINCULO[nivel],
+    confirmado: c.status === "confirmado",
+    objeto: resumir(c.objeto, TAMANHO_OBJETO_CONTRATO),
+    fornecedorNome: c.fornecedorNome,
+    valorGlobal: c.valorGlobal,
+    vigenciaInicio: c.vigenciaInicio ? c.vigenciaInicio.toISOString() : null,
+    vigenciaFim: c.vigenciaFim ? c.vigenciaFim.toISOString() : null,
+    urlPncp: urlContratoPncp(c.numeroControlePncp),
+  };
+}
+
+/** Selo do card: confirmado pelo gestor ou ainda só sugerido pelo sistema. */
+export function seloDoContrato(contrato: Pick<ContratoDetectadoView, "confirmado">): {
+  tom: "marca" | "atencao";
+  rotulo: string;
+  dica: string;
+} {
+  return contrato.confirmado
+    ? {
+        tom: "marca",
+        rotulo: "Contrato detectado",
+        dica: "Contrato público do PNCP ligado a esta negociação e confirmado pelo gestor.",
+      }
+    : {
+        tom: "atencao",
+        rotulo: "Contrato a confirmar",
+        dica: "O sistema encontrou um contrato público possivelmente ligado a esta negociação. O gestor ainda vai confirmar.",
+      };
+}
+
+/** "vigência de 01/03/2026 a 28/02/2027", ou só o que se sabe; sem datas, avisa. */
+export function descreverVigencia(inicio: string | null, fim: string | null): string {
+  if (inicio && fim) return `Vigência de ${dataCurtaUtc(inicio)} a ${dataCurtaUtc(fim)}`;
+  if (fim) return `Vigência até ${dataCurtaUtc(fim)}`;
+  if (inicio) return `Vigência desde ${dataCurtaUtc(inicio)}`;
+  return "Vigência não informada";
 }
 
 /**
@@ -242,7 +375,12 @@ function porQueAgora(
 
 export function montarCartao(
   entrada: EntradaCartao,
-  contexto: { categoriaAta: string | null; percentualContrato: number | null },
+  contexto: {
+    categoriaAta: string | null;
+    percentualContrato: number | null;
+    /** Só o gestor enxerga vínculo de nível "desvio"; o vendedor nunca. */
+    verDesvio?: boolean;
+  },
   agora: Date = new Date(),
 ): CartaoView {
   const { contatos, principal, semCanal } = montarContatosView(entrada.contatos, contexto.categoriaAta);
@@ -260,6 +398,10 @@ export function montarCartao(
   const urgencia = calcularUrgencia(entrada.prazoEm, agora);
   const percentual = entrada.percentualComissao ?? 0;
   const resumo = resumirComissao(entrada.liquidacoes, percentual);
+  const { escolhido: contrato, outros: outrosContratos } = escolherContratoDetectado(
+    entrada.contratos ?? [],
+    contexto.verDesvio === true,
+  );
 
   return {
     id: entrada.id,
@@ -300,6 +442,8 @@ export function montarCartao(
     valorEstimado: daCategoria ? daCategoria.valor : null,
     sinais,
     porQueAgora: porQueAgora(sinais, contexto.categoriaAta, daCategoria, agora),
+    contratoDetectado: contrato ? montarContratoDetectado(contrato) : null,
+    outrosContratos,
   };
 }
 

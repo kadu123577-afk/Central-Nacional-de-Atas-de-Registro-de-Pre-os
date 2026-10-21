@@ -38,7 +38,12 @@ import { tipoVendedorValido } from "@/lib/vendedores";
 import { tipoSinalValido } from "@/lib/sinais";
 import { interpretarPercentualComissao } from "@/lib/comissao";
 import { calcularPrazo } from "@/lib/negociacao";
-import { statusCobrancaValido, tipoLiquidacaoValido } from "@/lib/recebiveis";
+import {
+  interpretarDataPagamentoEnte,
+  motivoParaRecusarCobranca,
+  statusCobrancaValido,
+  tipoLiquidacaoValido,
+} from "@/lib/recebiveis";
 import { expirarOportunidadesVencidas } from "@/lib/negociacao-expiracao";
 import { ITENS_CONFORMIDADE, itensPendentes, type RespostasConformidade } from "@/lib/conformidade";
 
@@ -963,11 +968,12 @@ export async function lancarLiquidacao(
   _estadoAnterior: EstadoLancarLiquidacao,
   formData: FormData,
 ): Promise<EstadoLancarLiquidacao> {
-  await exigirAdmin("admin.lancarLiquidacao");
+  const adminId = await exigirAdmin("admin.lancarLiquidacao");
 
   const valorBruto = String(formData.get("valorLiquidado") ?? "").trim();
   const numeroNotaFiscal = String(formData.get("numeroNotaFiscal") ?? "").trim();
   const dataLiquidacao = String(formData.get("dataLiquidacao") ?? "");
+  const dataPagamentoEnteBruta = String(formData.get("dataPagamentoEnte") ?? "").trim();
   const tipo = String(formData.get("tipo") ?? "original");
   const valorNumero = Number(valorBruto.replace(",", "."));
 
@@ -976,23 +982,85 @@ export async function lancarLiquidacao(
     return { erro: "Informe um valor liquidado válido e a data." };
   }
 
+  // Opcional: sem a data, a liquidação entra como "aguardando pagamento do
+  // ente" e a comissão só pode ser cobrada depois que o gestor a informar.
+  let dataPagamentoEnte: Date | null = null;
+  if (dataPagamentoEnteBruta) {
+    const lida = interpretarDataPagamentoEnte(dataPagamentoEnteBruta);
+    if (!lida.ok) return { erro: lida.erro };
+    dataPagamentoEnte = lida.data;
+  }
+
   const oportunidade = await prisma.oportunidadeVenda.findUnique({ where: { id: oportunidadeId } });
   if (!oportunidade || oportunidade.estagio !== "aderiu") {
     return { erro: "Esta oportunidade não está marcada como aderida." };
   }
 
-  await prisma.liquidacao.create({
+  const criada = await prisma.liquidacao.create({
     data: {
       oportunidadeId,
       valorLiquidado: String(valorNumero),
       tipo,
       numeroNotaFiscal: numeroNotaFiscal || null,
       dataLiquidacao: new Date(dataLiquidacao),
+      dataPagamentoEnte,
     },
+  });
+  await registrarAuditoria({
+    ator: `admin:${adminId}`,
+    acao: "admin.liquidacao_lancada",
+    alvo: `liquidacao:${criada.id}`,
+    detalhe: `Oportunidade ${oportunidadeId}, valor ${valorNumero.toFixed(2)}, tipo ${tipo}, pagamento do ente ${
+      dataPagamentoEnte ? dataPagamentoEnte.toISOString().slice(0, 10) : "não informado"
+    }.`,
   });
 
   revalidatePath("/admin/recebiveis-vendedores");
+  revalidatePath("/admin");
   return {};
+}
+
+export interface EstadoPagamentoEnteLiquidacao {
+  erro?: string;
+  ok?: boolean;
+}
+
+/**
+ * Data em que o ente público pagou o fornecedor (2026-10-21, honorários do
+ * Projeto RNA): é o que libera a cobrança da comissão. Serve para informar a
+ * data de uma liquidação lançada sem ela (inclusive as anteriores a esta
+ * regra) e para corrigir uma data digitada errada. Não há como apagar a data:
+ * uma comissão já liberada não volta a "aguardando" por engano.
+ */
+export async function informarPagamentoEnteLiquidacao(
+  liquidacaoId: string,
+  _estadoAnterior: EstadoPagamentoEnteLiquidacao,
+  formData: FormData,
+): Promise<EstadoPagamentoEnteLiquidacao> {
+  const adminId = await exigirAdmin("admin.informarPagamentoEnteLiquidacao");
+
+  const lida = interpretarDataPagamentoEnte(String(formData.get("dataPagamentoEnte") ?? ""));
+  if (!lida.ok) return { erro: lida.erro };
+
+  const liquidacao = await prisma.liquidacao.findUnique({ where: { id: liquidacaoId } });
+  if (!liquidacao) return { erro: "Liquidação não encontrada." };
+
+  await prisma.liquidacao.update({
+    where: { id: liquidacaoId },
+    data: { dataPagamentoEnte: lida.data },
+  });
+  await registrarAuditoria({
+    ator: `admin:${adminId}`,
+    acao: "admin.liquidacao_pagamento_ente_informado",
+    alvo: `liquidacao:${liquidacaoId}`,
+    detalhe: `Pagamento do ente: ${lida.data.toISOString().slice(0, 10)} (antes: ${
+      liquidacao.dataPagamentoEnte ? liquidacao.dataPagamentoEnte.toISOString().slice(0, 10) : "não informado"
+    }).`,
+  });
+
+  revalidatePath("/admin/recebiveis-vendedores");
+  revalidatePath("/admin");
+  return { ok: true };
 }
 
 export interface EstadoCobrancaLiquidacao {
@@ -1004,23 +1072,31 @@ export interface EstadoCobrancaLiquidacao {
  * ostensiva emite a nota fiscal de serviço ao fornecedor depois da
  * liquidação do empenho. Fluxo: A cobrar → Cobrada → Recebida; cobrada e
  * recebida exigem o número da nota fiscal da comissão.
+ *
+ * Honorários do Projeto RNA (2026-10-21): a comissão só vence depois que o
+ * ente liquidou E pagou o fornecedor. Sair de "a cobrar" para cobrada ou
+ * recebida é recusado enquanto a liquidação não tiver a data de pagamento
+ * do ente (`dataPagamentoEnte`).
  */
 export async function atualizarCobrancaLiquidacao(
   liquidacaoId: string,
   _estadoAnterior: EstadoCobrancaLiquidacao,
   formData: FormData,
 ): Promise<EstadoCobrancaLiquidacao> {
-  await exigirAdmin("admin.atualizarCobrancaLiquidacao");
+  const adminId = await exigirAdmin("admin.atualizarCobrancaLiquidacao");
 
   const statusCobranca = String(formData.get("statusCobranca") ?? "");
   const notaFiscalComissao = String(formData.get("notaFiscalComissao") ?? "").trim() || null;
   if (!statusCobrancaValido(statusCobranca)) return { erro: "Status de cobrança inválido." };
-  if (statusCobranca !== "pendente" && !notaFiscalComissao) {
-    return { erro: "Informe o número da nota fiscal da comissão para marcar como cobrada ou recebida." };
-  }
 
   const liquidacao = await prisma.liquidacao.findUnique({ where: { id: liquidacaoId } });
   if (!liquidacao) return { erro: "Liquidação não encontrada." };
+
+  const recusa = motivoParaRecusarCobranca(liquidacao, statusCobranca);
+  if (recusa) return { erro: recusa };
+  if (statusCobranca !== "pendente" && !notaFiscalComissao) {
+    return { erro: "Informe o número da nota fiscal da comissão para marcar como cobrada ou recebida." };
+  }
 
   const agora = new Date();
   await prisma.liquidacao.update({
@@ -1033,8 +1109,15 @@ export async function atualizarCobrancaLiquidacao(
       dataRecebimento: statusCobranca === "recebida" ? (liquidacao.dataRecebimento ?? agora) : null,
     },
   });
+  await registrarAuditoria({
+    ator: `admin:${adminId}`,
+    acao: "admin.liquidacao_cobranca_alterada",
+    alvo: `liquidacao:${liquidacaoId}`,
+    detalhe: `Cobrança: ${liquidacao.statusCobranca} → ${statusCobranca}.`,
+  });
 
   revalidatePath("/admin/recebiveis-vendedores");
+  revalidatePath("/admin");
   return {};
 }
 

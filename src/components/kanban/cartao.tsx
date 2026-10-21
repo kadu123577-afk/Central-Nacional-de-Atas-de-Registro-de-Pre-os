@@ -4,7 +4,7 @@ import { Badge, type Tom } from "@/components/ui/badge";
 import { Icone } from "@/components/ui/icones";
 import { linkEmail, linkTelefone, linkWhatsapp } from "@/lib/contato-links";
 import { dataCurtaUtc, iniciais, moedaCurta } from "@/lib/formato";
-import { haQuantoTempo, nivelFrescor, type CartaoView } from "@/lib/kanban-view";
+import { haQuantoTempo, nivelFrescor, seloDoContrato, type CartaoView } from "@/lib/kanban-view";
 
 const ESTAGIOS_ABERTOS = ["a_contatar", "em_negociacao"];
 
@@ -78,6 +78,8 @@ export function Cartao({
           {c.estagio === "recusado" && <Badge tom="critico">Recusou</Badge>}
         </div>
 
+        {c.contratoDetectado && <SeloContrato confirmado={c.contratoDetectado.confirmado} />}
+
         {c.estagio === "aderiu" ? (
           <ResumoAderido c={c} />
         ) : (
@@ -138,6 +140,21 @@ export function Cartao({
         )}
       </div>
     </li>
+  );
+}
+
+/**
+ * Contrato público do PNCP ligado a esta negociação (Projeto RNA, etapa 2).
+ * Só informa: confirmar ou descartar é decisão do gestor, fora do Kanban.
+ */
+function SeloContrato({ confirmado }: { confirmado: boolean }) {
+  const selo = seloDoContrato({ confirmado });
+  return (
+    <div className="mt-2">
+      <span title={selo.dica}>
+        <Badge tom={selo.tom}>{selo.rotulo}</Badge>
+      </span>
+    </div>
   );
 }
 

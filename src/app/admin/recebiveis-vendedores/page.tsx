@@ -4,23 +4,25 @@ import { adminIdLogado } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { logoutAdmin } from "../actions";
 import { AppShell } from "@/components/ui/app-shell";
+import { Aviso } from "@/components/ui/aviso";
 import { CabecalhoPagina } from "@/components/ui/cabecalho-pagina";
 import { FaixaNumeros } from "@/components/ui/faixa-numeros";
 import { Secao } from "@/components/ui/secao";
 import { Cifra } from "@/components/ui/valores";
 import { VazioComAcao } from "@/components/ui/vazio-com-acao";
 import { moedaCurta } from "@/lib/formato";
-import { resumirComissao } from "@/lib/recebiveis";
+import { contarPorSituacao, resumirComissao } from "@/lib/recebiveis";
 import { LinhaRecebivel } from "./linha-recebivel";
 import { NAV_ADMIN } from "@/app/admin/nav";
 
 export const dynamic = "force-dynamic";
 
-type FiltroLinhas = "todas" | "cobrar" | "sem_nota" | "recebidas";
+type FiltroLinhas = "todas" | "cobrar" | "aguardando_ente" | "sem_nota" | "recebidas";
 
 const ROTULO_FILTRO: Record<FiltroLinhas, string> = {
   todas: "Todas",
   cobrar: "Com comissão a cobrar",
+  aguardando_ente: "Aguardando pagamento do ente",
   sem_nota: "Aguardando 1ª nota",
   recebidas: "Quitadas",
 };
@@ -47,7 +49,8 @@ export default async function RecebiveisVendedoresPage({
   }
 
   const { f } = await searchParams;
-  const filtro: FiltroLinhas = f === "cobrar" || f === "sem_nota" || f === "recebidas" ? f : "todas";
+  const filtro: FiltroLinhas =
+    f === "cobrar" || f === "aguardando_ente" || f === "sem_nota" || f === "recebidas" ? f : "todas";
 
   const oportunidadesAderidas = await prisma.oportunidadeVenda.findMany({
     where: { estagio: "aderiu" },
@@ -64,16 +67,26 @@ export default async function RecebiveisVendedoresPage({
     const somaLiquidado = o.liquidacoes.reduce((soma, l) => soma + Number(l.valorLiquidado), 0);
     const percentual = o.percentualComissao ? Number(o.percentualComissao) : 0;
     const comissao = resumirComissao(
-      o.liquidacoes.map((l) => ({ valorLiquidado: Number(l.valorLiquidado), statusCobranca: l.statusCobranca })),
+      o.liquidacoes.map((l) => ({
+        valorLiquidado: Number(l.valorLiquidado),
+        statusCobranca: l.statusCobranca,
+        dataPagamentoEnte: l.dataPagamentoEnte,
+      })),
       percentual,
     );
+    // "A cobrar" só conta o que já está liberado (o ente pagou o fornecedor);
+    // o resto da comissão pendente aguarda o pagamento do ente.
+    const situacoes = contarPorSituacao(o.liquidacoes);
     return {
       oportunidade: o,
       valorAderido: o.valorAderido ? Number(o.valorAderido) : 0,
       somaLiquidado,
       valorAReceber: comissao.devida,
       valorRecebido: comissao.recebida,
-      aCobrar: o.liquidacoes.filter((l) => l.statusCobranca === "pendente").length,
+      valorACobrar: comissao.aCobrar ?? 0,
+      valorAguardando: comissao.aguardandoPagamentoEnte ?? 0,
+      aCobrar: situacoes.a_cobrar,
+      aguardando: situacoes.aguardando_pagamento_ente,
     };
   });
 
@@ -83,18 +96,26 @@ export default async function RecebiveisVendedoresPage({
   const totalRecebido = linhas.reduce((soma, l) => soma + l.valorRecebido, 0);
   const totalFaltaReceber = totalComissaoDevida - totalRecebido;
   const totalNotasACobrar = linhas.reduce((soma, l) => soma + l.aCobrar, 0);
+  const totalValorACobrar = linhas.reduce((soma, l) => soma + l.valorACobrar, 0);
+  const totalNotasAguardando = linhas.reduce((soma, l) => soma + l.aguardando, 0);
+  const totalValorAguardando = linhas.reduce((soma, l) => soma + l.valorAguardando, 0);
   const pctLiquidado = totalAderido > 0 ? Math.round((totalLiquidado / totalAderido) * 100) : 0;
 
   const quitada = (l: (typeof linhas)[number]) =>
-    l.oportunidade.liquidacoes.length > 0 && l.aCobrar === 0 && l.valorAReceber - l.valorRecebido < 0.005;
+    l.oportunidade.liquidacoes.length > 0 &&
+    l.aCobrar === 0 &&
+    l.aguardando === 0 &&
+    l.valorAReceber - l.valorRecebido < 0.005;
   const contagens: Record<FiltroLinhas, number> = {
     todas: linhas.length,
     cobrar: linhas.filter((l) => l.aCobrar > 0).length,
+    aguardando_ente: linhas.filter((l) => l.aguardando > 0).length,
     sem_nota: linhas.filter((l) => l.oportunidade.liquidacoes.length === 0).length,
     recebidas: linhas.filter(quitada).length,
   };
   const exibidas = linhas.filter((l) => {
     if (filtro === "cobrar") return l.aCobrar > 0;
+    if (filtro === "aguardando_ente") return l.aguardando > 0;
     if (filtro === "sem_nota") return l.oportunidade.liquidacoes.length === 0;
     if (filtro === "recebidas") return quitada(l);
     return true;
@@ -103,7 +124,14 @@ export default async function RecebiveisVendedoresPage({
   // Resumo por vendedor — "qual o vendedor que vendeu", agregado.
   const porVendedor = new Map<
     string,
-    { nome: string; atasAderidas: number; valorAderido: number; valorAReceber: number; valorRecebido: number }
+    {
+      nome: string;
+      atasAderidas: number;
+      valorAderido: number;
+      valorAReceber: number;
+      valorRecebido: number;
+      valorAguardando: number;
+    }
   >();
   for (const l of linhas) {
     const v = l.oportunidade.vendedor;
@@ -113,11 +141,13 @@ export default async function RecebiveisVendedoresPage({
       valorAderido: 0,
       valorAReceber: 0,
       valorRecebido: 0,
+      valorAguardando: 0,
     };
     atual.atasAderidas += 1;
     atual.valorAderido += l.valorAderido;
     atual.valorAReceber += l.valorAReceber;
     atual.valorRecebido += l.valorRecebido;
+    atual.valorAguardando += l.valorAguardando;
     porVendedor.set(v.id, atual);
   }
   const resumoVendedores = [...porVendedor.values()].sort((a, b) => b.valorAReceber - a.valorAReceber);
@@ -143,7 +173,8 @@ export default async function RecebiveisVendedoresPage({
           <>
             Adesões fechadas pelo time de vendas (Kanban), por município. O valor a receber é
             sempre sobre o que foi liquidado (nota fiscal), nunca sobre o valor aderido — o
-            ente pode usar menos do que aderiu.
+            ente pode usar menos do que aderiu. A comissão só pode ser cobrada depois que o ente
+            pagar o fornecedor.
           </>
         }
         voltar={{ href: "/admin", rotulo: "Painel" }}
@@ -164,15 +195,32 @@ export default async function RecebiveisVendedoresPage({
             valor: moedaCurta(totalFaltaReceber),
             rotulo: "Falta receber",
             tom: totalFaltaReceber > 0 ? "atencao" : "neutro",
-            nota: `${totalNotasACobrar} nota(s) ainda a cobrar`,
+            nota:
+              totalNotasACobrar > 0
+                ? `${totalNotasACobrar} nota(s) a cobrar · ${moedaCurta(totalValorACobrar)}`
+                : "nenhuma nota a cobrar agora",
+          },
+          {
+            valor: moedaCurta(totalValorAguardando),
+            rotulo: "Aguardando pagamento do ente",
+            tom: totalNotasAguardando > 0 ? "atencao" : "neutro",
+            nota: `${totalNotasAguardando} nota(s) sem data de pagamento`,
           },
         ]}
       />
 
+      {totalNotasAguardando > 0 && (
+        <Aviso tom="info" titulo="Comissão só vence depois que o ente paga o fornecedor.">
+          {totalNotasAguardando} nota(s) estão sem a data de pagamento do ente e aparecem como “Aguardando
+          pagamento do ente” — inclusive as lançadas antes desta regra. Abra a adesão, escolha a nota e
+          informe a data em que o ente pagou o fornecedor para liberar a cobrança.
+        </Aviso>
+      )}
+
       {resumoVendedores.length > 0 && (
         <Secao titulo="Por vendedor">
           <div className="overflow-x-auto rounded-[var(--raio-grande)] border" style={{ borderColor: "var(--cor-borda)" }}>
-            <table className="tabela-atas min-w-[720px]">
+            <table className="tabela-atas min-w-[860px]">
               <thead>
                 <tr>
                   <th>Vendedor</th>
@@ -181,6 +229,7 @@ export default async function RecebiveisVendedoresPage({
                   <th>Comissão devida</th>
                   <th>Recebida</th>
                   <th>Falta receber</th>
+                  <th>Aguardando o ente</th>
                 </tr>
               </thead>
               <tbody>
@@ -201,6 +250,9 @@ export default async function RecebiveisVendedoresPage({
                     </td>
                     <td className="whitespace-nowrap font-bold" style={{ color: "var(--cor-texto)" }}>
                       <Cifra valor={v.valorAReceber - v.valorRecebido} />
+                    </td>
+                    <td className="whitespace-nowrap">
+                      <Cifra valor={v.valorAguardando} />
                     </td>
                   </tr>
                 ))}
@@ -254,6 +306,7 @@ export default async function RecebiveisVendedoresPage({
                   tipo: l.tipo,
                   statusCobranca: l.statusCobranca,
                   notaFiscalComissao: l.notaFiscalComissao,
+                  dataPagamentoEnte: l.dataPagamentoEnte ? l.dataPagamentoEnte.toISOString() : null,
                 }))}
               />
             ))}

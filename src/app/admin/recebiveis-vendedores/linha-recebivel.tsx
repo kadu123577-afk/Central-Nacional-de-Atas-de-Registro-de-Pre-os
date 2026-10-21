@@ -2,23 +2,29 @@
 
 import { useActionState, useState } from "react";
 import { Aviso } from "@/components/ui/aviso";
-import { Badge } from "@/components/ui/badge";
+import { Badge, type Tom } from "@/components/ui/badge";
 import { Cifra } from "@/components/ui/valores";
-import { moedaCurta, percentualDeFracao } from "@/lib/formato";
+import { dataCurtaUtc, moedaCurta, percentualDeFracao } from "@/lib/formato";
 import {
+  ROTULO_SITUACAO_COBRANCA,
   ROTULO_STATUS_COBRANCA,
   ROTULO_TIPO_LIQUIDACAO,
   STATUS_COBRANCA,
   TIPOS_LIQUIDACAO,
+  contarPorSituacao,
   resumirComissao,
+  situacaoDaLiquidacao,
+  type SituacaoCobranca,
   type StatusCobranca,
   type TipoLiquidacao,
 } from "@/lib/recebiveis";
 import {
   atualizarCobrancaLiquidacao,
+  informarPagamentoEnteLiquidacao,
   lancarLiquidacao,
   type EstadoCobrancaLiquidacao,
   type EstadoLancarLiquidacao,
+  type EstadoPagamentoEnteLiquidacao,
 } from "../actions";
 
 interface Liquidacao {
@@ -29,6 +35,8 @@ interface Liquidacao {
   tipo: string;
   statusCobranca: string;
   notaFiscalComissao: string | null;
+  /** Data em que o ente pagou o fornecedor (ISO, meia-noite UTC); null = ainda não informada. */
+  dataPagamentoEnte: string | null;
 }
 
 interface Props {
@@ -45,6 +53,15 @@ interface Props {
 
 const estadoInicial: EstadoLancarLiquidacao = {};
 const estadoCobrancaInicial: EstadoCobrancaLiquidacao = {};
+const estadoPagamentoEnteInicial: EstadoPagamentoEnteLiquidacao = {};
+
+/** Mesma escala de tons do Badge: o que pede ação do gestor sai em "atenção". */
+const TOM_DA_SITUACAO: Record<SituacaoCobranca, Tom> = {
+  aguardando_pagamento_ente: "atencao",
+  a_cobrar: "atencao",
+  cobrada: "neutro",
+  recebida: "marca",
+};
 
 /** Linha de uma oportunidade aderida (fase 2 de design, 2026-10-05) — lançar
  * liquidação de NF é o que transforma "aderiu" em "temos a receber de
@@ -54,7 +71,11 @@ const estadoCobrancaInicial: EstadoCobrancaLiquidacao = {};
  * cl. 4) e é cobrada por liquidação: a cobrar → cobrada → recebida. A barra
  * mostra quanto do valor aderido já foi liquidado. Visual do site (out/2026):
  * linha de lista com título em negrito, selo de UF, barra de saldo e o
- * detalhe aberto numa caixa cinza-clara. */
+ * detalhe aberto numa caixa cinza-clara.
+ *
+ * Projeto RNA (2026-10-21): a comissão só vence depois que o ente liquidou E
+ * pagou o fornecedor. Liquidação sem a data de pagamento do ente fica
+ * "Aguardando pagamento do ente" e não vira "a cobrar" até o gestor informá-la. */
 export function LinhaRecebivel({
   oportunidadeId,
   nomeMunicipio,
@@ -74,11 +95,15 @@ export function LinhaRecebivel({
   const somaLiquidado = liquidacoes.reduce((soma, l) => soma + Number(l.valorLiquidado), 0);
   const percentual = Number(percentualComissao);
   const resumo = resumirComissao(
-    liquidacoes.map((l) => ({ valorLiquidado: Number(l.valorLiquidado), statusCobranca: l.statusCobranca })),
+    liquidacoes.map((l) => ({
+      valorLiquidado: Number(l.valorLiquidado),
+      statusCobranca: l.statusCobranca,
+      dataPagamentoEnte: l.dataPagamentoEnte,
+    })),
     percentual,
   );
   const pctLiquidado = aderido > 0 ? Math.min(100, Math.round((somaLiquidado / aderido) * 100)) : 0;
-  const contagem = (status: StatusCobranca) => liquidacoes.filter((l) => l.statusCobranca === status).length;
+  const situacoes = contarPorSituacao(liquidacoes);
 
   return (
     <li>
@@ -133,9 +158,12 @@ export function LinhaRecebivel({
           <Badge tom="atencao">Aguardando 1ª nota fiscal</Badge>
         ) : (
           <>
-            {contagem("pendente") > 0 && <Badge tom="atencao">{contagem("pendente")} a cobrar</Badge>}
-            {contagem("cobrada") > 0 && <Badge tom="neutro">{contagem("cobrada")} cobrada(s)</Badge>}
-            {contagem("recebida") > 0 && <Badge tom="marca">{contagem("recebida")} recebida(s)</Badge>}
+            {situacoes.a_cobrar > 0 && <Badge tom="atencao">{situacoes.a_cobrar} a cobrar</Badge>}
+            {situacoes.aguardando_pagamento_ente > 0 && (
+              <Badge tom="atencao">{situacoes.aguardando_pagamento_ente} aguardando pagamento do ente</Badge>
+            )}
+            {situacoes.cobrada > 0 && <Badge tom="neutro">{situacoes.cobrada} cobrada(s)</Badge>}
+            {situacoes.recebida > 0 && <Badge tom="marca">{situacoes.recebida} recebida(s)</Badge>}
           </>
         )}
       </div>
@@ -152,6 +180,14 @@ export function LinhaRecebivel({
                 {percentualDeFracao(percentual)} de comissão · devida{" "}
                 <b style={{ color: "var(--cor-texto)" }}>
                   <Cifra valor={resumo.devida} />
+                </b>{" "}
+                · a cobrar{" "}
+                <b style={{ color: "var(--cor-texto)" }}>
+                  <Cifra valor={resumo.aCobrar ?? 0} />
+                </b>{" "}
+                · aguardando o ente{" "}
+                <b style={{ color: "var(--cor-texto)" }}>
+                  <Cifra valor={resumo.aguardandoPagamentoEnte ?? 0} />
                 </b>{" "}
                 · recebida{" "}
                 <b style={{ color: "var(--cor-texto)" }}>
@@ -174,10 +210,10 @@ export function LinhaRecebivel({
 
           <form
             action={formAction}
-            className="flex flex-col gap-3 border-t pt-5 sm:flex-row sm:items-end"
+            className="flex flex-col gap-3 border-t pt-5 sm:flex-row sm:flex-wrap sm:items-end"
             style={{ borderColor: "var(--cor-borda)" }}
           >
-            <label className="block flex-1">
+            <label className="block flex-1 sm:min-w-[11rem]">
               <span className="rotulo-campo">Tipo</span>
               <select name="tipo" defaultValue="original" className="campo-atas">
                 {TIPOS_LIQUIDACAO.map((t) => (
@@ -187,22 +223,32 @@ export function LinhaRecebivel({
                 ))}
               </select>
             </label>
-            <label className="block flex-1">
+            <label className="block flex-1 sm:min-w-[11rem]">
               <span className="rotulo-campo">Valor liquidado (R$)</span>
               <input name="valorLiquidado" type="number" step="0.01" min="0" required className="campo-atas" />
             </label>
-            <label className="block flex-1">
+            <label className="block flex-1 sm:min-w-[11rem]">
               <span className="rotulo-campo">Nº da nota fiscal</span>
               <input name="numeroNotaFiscal" className="campo-atas" />
             </label>
-            <label className="block flex-1">
+            <label className="block flex-1 sm:min-w-[11rem]">
               <span className="rotulo-campo">Data da liquidação</span>
               <input name="dataLiquidacao" type="date" required className="campo-atas" />
+            </label>
+            <label className="block flex-1 sm:min-w-[13rem]">
+              <span className="rotulo-campo">
+                Data em que o ente pagou o fornecedor <small>(opcional)</small>
+              </span>
+              <input name="dataPagamentoEnte" type="date" className="campo-atas" />
             </label>
             <button type="submit" disabled={pendente} className="botao-atas">
               {pendente ? "Salvando..." : "Lançar"}
             </button>
           </form>
+          <p className="-mt-2 text-xs" style={{ color: "var(--cor-texto-3)" }}>
+            Sem a data do pagamento do ente, a liquidação fica em “Aguardando pagamento do ente” e a comissão
+            só pode ser cobrada depois que a data for informada.
+          </p>
           {estado.erro && <Aviso tom="critico">{estado.erro}</Aviso>}
         </div>
       )}
@@ -229,25 +275,30 @@ function LinhaLiquidacao({ liquidacao: l, percentual }: { liquidacao: Liquidacao
   const [estado, formAction, pendente] = useActionState(acaoComId, estadoCobrancaInicial);
   const tipo = l.tipo as TipoLiquidacao;
   const status = l.statusCobranca as StatusCobranca;
+  const situacao = situacaoDaLiquidacao(l);
+  // "Pendente" é o mesmo status gravado, mas só é "A cobrar" com o ente já tendo pago.
+  const rotuloPendente =
+    ROTULO_SITUACAO_COBRANCA[
+      situacaoDaLiquidacao({ statusCobranca: "pendente", dataPagamentoEnte: l.dataPagamentoEnte })
+    ];
 
   return (
     <li className="flex flex-wrap items-center justify-between gap-3 text-xs" style={{ color: "var(--cor-texto-3)" }}>
       <div className="min-w-0">
-        <p>
+        <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <b className="text-[13.5px]" style={{ color: "var(--cor-texto)" }}>
             <Cifra valor={l.valorLiquidado} />
           </b>
           {l.numeroNotaFiscal ? (
-            <span className="codigo ml-2" style={{ color: "var(--cor-texto-2)" }}>
+            <span className="codigo" style={{ color: "var(--cor-texto-2)" }}>
               NF {l.numeroNotaFiscal}
             </span>
           ) : null}
+          <Badge tom={TOM_DA_SITUACAO[situacao]}>{ROTULO_SITUACAO_COBRANCA[situacao]}</Badge>
         </p>
         <p className="mt-0.5">
-          <span className="numero">
-            {new Date(l.dataLiquidacao).toLocaleDateString("pt-BR", { timeZone: "UTC" })}
-          </span>{" "}
-          · {ROTULO_TIPO_LIQUIDACAO[tipo] ?? l.tipo} · comissão{" "}
+          <span className="numero">{dataCurtaUtc(l.dataLiquidacao)}</span> ·{" "}
+          {ROTULO_TIPO_LIQUIDACAO[tipo] ?? l.tipo} · comissão{" "}
           <b style={{ color: "var(--cor-texto-2)" }}>
             <Cifra valor={Number(l.valorLiquidado) * percentual} />
           </b>
@@ -263,7 +314,7 @@ function LinhaLiquidacao({ liquidacao: l, percentual }: { liquidacao: Liquidacao
         >
           {STATUS_COBRANCA.map((s) => (
             <option key={s} value={s}>
-              {ROTULO_STATUS_COBRANCA[s]}
+              {s === "pendente" ? rotuloPendente : ROTULO_STATUS_COBRANCA[s]}
             </option>
           ))}
         </select>
@@ -284,6 +335,84 @@ function LinhaLiquidacao({ liquidacao: l, percentual }: { liquidacao: Liquidacao
           </Aviso>
         )}
       </form>
+      <PagamentoDoEnte
+        liquidacaoId={l.id}
+        dataPagamentoEnte={l.dataPagamentoEnte}
+        bloqueiaCobranca={situacao === "aguardando_pagamento_ente"}
+      />
     </li>
+  );
+}
+
+/**
+ * Data em que o ente pagou o fornecedor. Sem ela, a comissão não pode ser
+ * cobrada: o formulário fica à vista. Com ela, mostra o dia e deixa a
+ * correção recolhida (liquidações antigas também entram por aqui).
+ */
+function PagamentoDoEnte({
+  liquidacaoId,
+  dataPagamentoEnte,
+  bloqueiaCobranca,
+}: {
+  liquidacaoId: string;
+  dataPagamentoEnte: string | null;
+  /** Ainda pendente e sem data: a cobrança está travada até a data ser informada. */
+  bloqueiaCobranca: boolean;
+}) {
+  const acaoComId = informarPagamentoEnteLiquidacao.bind(null, liquidacaoId);
+  const [estado, formAction, pendente] = useActionState(acaoComId, estadoPagamentoEnteInicial);
+
+  const formulario = (
+    <form action={formAction} className="flex flex-wrap items-end gap-2">
+      <label className="block">
+        <span className="rotulo-campo">Data em que o ente pagou o fornecedor</span>
+        <input
+          name="dataPagamentoEnte"
+          type="date"
+          required
+          defaultValue={dataPagamentoEnte ? dataPagamentoEnte.slice(0, 10) : ""}
+          className="campo-atas"
+          style={{ width: "auto" }}
+        />
+      </label>
+      <button type="submit" disabled={pendente} className="botao-atas secundario">
+        {pendente ? "..." : dataPagamentoEnte ? "Corrigir data" : "Informar data"}
+      </button>
+    </form>
+  );
+
+  return (
+    <div className="basis-full">
+      {dataPagamentoEnte ? (
+        <details>
+          <summary className="cursor-pointer">
+            Ente pagou o fornecedor em <span className="numero">{dataCurtaUtc(dataPagamentoEnte)}</span> ·{" "}
+            <span className="font-semibold" style={{ color: "var(--cor-marca-clara)" }}>
+              corrigir data
+            </span>
+          </summary>
+          <div className="mt-2">{formulario}</div>
+        </details>
+      ) : (
+        <div className="flex flex-col gap-1">
+          <p>
+            {bloqueiaCobranca
+              ? "Data do pagamento do ente ao fornecedor não informada: a comissão só pode ser cobrada depois dela."
+              : "Data do pagamento do ente ao fornecedor não informada (cobrança anterior a esta regra)."}
+          </p>
+          {formulario}
+        </div>
+      )}
+      {estado.erro && (
+        <Aviso tom="critico" className="mt-2">
+          {estado.erro}
+        </Aviso>
+      )}
+      {estado.ok && dataPagamentoEnte && (
+        <Aviso tom="sucesso" className="mt-2">
+          Data do pagamento do ente salva.
+        </Aviso>
+      )}
+    </div>
   );
 }

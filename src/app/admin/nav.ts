@@ -11,6 +11,7 @@ export const NAV_ADMIN: ItemNav[] = [
   { rotulo: "Pipeline", href: "/admin/pipeline", grupo: "Operação" },
   { rotulo: "Atas", href: "/atas", grupo: "Operação", ativoEm: ["/admin/atas"] },
   { rotulo: "Negociações", href: "/admin/negociacoes", grupo: "Operação" },
+  { rotulo: "Contratos detectados", href: "/admin/contratos-detectados", grupo: "Operação" },
   { rotulo: "Demandas do site", href: "/admin/demandas", grupo: "Operação" },
   { rotulo: "Recebíveis — vendedores", href: "/admin/recebiveis-vendedores", grupo: "Financeiro" },
   { rotulo: "Contas a receber", href: "/admin/faturamento", grupo: "Financeiro" },

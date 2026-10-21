@@ -8,7 +8,13 @@ import { abordagemSugerida } from "@/lib/abordagem";
 import { ROTULO_CATEGORIA_CONSUMO } from "@/lib/classificador-objeto";
 import { linkEmail, linkTelefone, linkWhatsapp } from "@/lib/contato-links";
 import { dataCurtaUtc, iniciais, moedaCurta, percentualDeFracao } from "@/lib/formato";
-import { haQuantoTempo, type CartaoView, type ContatoView } from "@/lib/kanban-view";
+import {
+  descreverVigencia,
+  haQuantoTempo,
+  seloDoContrato,
+  type CartaoView,
+  type ContatoView,
+} from "@/lib/kanban-view";
 import { ESTAGIOS_OPORTUNIDADE, ROTULO_ESTAGIO_OPORTUNIDADE } from "@/lib/oportunidades";
 import { RESULTADOS_INTERACAO } from "@/lib/pontos-focais";
 import {
@@ -171,6 +177,7 @@ export function Gaveta({
 
           {aba === "contexto" && (
             <>
+              <BlocoContrato cartao={c} />
               <p className="kb-secao">Por que agora</p>
               {c.porQueAgora ? (
                 <div className="kb-sinal">
@@ -283,6 +290,71 @@ export function Gaveta({
           </div>
         </div>
       </aside>
+    </>
+  );
+}
+
+/**
+ * Contrato público do PNCP ligado a esta negociação — só leitura. Quem confirma
+ * ou descarta o vínculo é o gestor (/admin/contratos-detectados), então aqui
+ * não há botão de decisão.
+ */
+function BlocoContrato({ cartao: c }: { cartao: CartaoView }) {
+  const k = c.contratoDetectado;
+  if (!k) return null;
+  const selo = seloDoContrato(k);
+
+  return (
+    <>
+      <p className="kb-secao">Contrato público (PNCP)</p>
+      <div className="kb-pessoa" data-papel={k.confirmado ? "principal" : "apoio"}>
+        <div className="kb-pessoa-info">
+          <div className="kb-pessoa-nome">
+            <b>{k.objeto}</b>
+            <span title={selo.dica}>
+              <Badge tom={selo.tom}>{selo.rotulo}</Badge>
+            </span>
+          </div>
+          <p className="kb-cargo">
+            <span className="numero">
+              {k.valorGlobal != null ? `Valor global ${moedaCurta(k.valorGlobal)}` : "Valor global não informado"}
+            </span>
+            {" · "}
+            <span className="numero">{descreverVigencia(k.vigenciaInicio, k.vigenciaFim)}</span>
+          </p>
+          {k.fornecedorNome && <p className="kb-sub">Fornecedor: {k.fornecedorNome}</p>}
+          <p className="kb-sub">{k.rotuloNivel}</p>
+          {!k.confirmado && (
+            <p className="kb-sub">O gestor ainda vai confirmar se este contrato é desta negociação.</p>
+          )}
+          {c.outrosContratos > 0 && (
+            <p className="kb-sub">
+              {c.outrosContratos === 1
+                ? "Há mais 1 contrato ligado a esta negociação."
+                : `Há mais ${c.outrosContratos} contratos ligados a esta negociação.`}
+            </p>
+          )}
+          <p className="kb-fonte">
+            <span>
+              {k.urlPncp ? (
+                <a
+                  href={k.urlPncp}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-semibold underline underline-offset-2"
+                  style={{ color: "var(--cor-marca-clara)" }}
+                >
+                  Ver contrato no PNCP
+                </a>
+              ) : (
+                <>
+                  Contrato <span className="codigo">{k.numeroControlePncp}</span>
+                </>
+              )}
+            </span>
+          </p>
+        </div>
+      </div>
     </>
   );
 }
