@@ -5,7 +5,7 @@ import type { SinalView } from "./sinais";
 
 /**
  * Carrega os cards do Kanban com tudo que o card e a gaveta mostram (contatos,
- * raio-X, interações, sinais, liquidações). Usado pelo Kanban do vendedor (uma
+ * raio-X, interações, sinais, liquidações, instrução da adesão). Usado pelo Kanban do vendedor (uma
  * ata, só os municípios dele) e pelo Pipeline do gestor (várias atas e
  * vendedores, com filtros e teto de cards). Consultas em lote: uma por tipo de
  * dado, nunca uma por card.
@@ -30,6 +30,8 @@ export async function carregarCartoes(
         liquidacoes: true,
         vendedor: { select: { nome: true } },
         ata: { include: { contrato: true } },
+        // Instrução da adesão (1:1 com a oportunidade): vai no mesmo join, sem consulta por card.
+        instrucao: true,
       },
       // Prazo mais curto primeiro (sem prazo no fim) — o que é urgente aparece
       // mesmo quando o teto de cards corta o resto.
@@ -194,6 +196,15 @@ export async function carregarCartoes(
           statusCobranca: l.statusCobranca,
         })),
         contratos: contratosPorOportunidade.get(o.id) ?? [],
+        instrucao: o.instrucao
+          ? {
+              itens: o.instrucao.itens,
+              declaracaoEm: o.instrucao.declaracaoEm,
+              declaracaoPorTipo: o.instrucao.declaracaoPorTipo,
+              declaracaoVersao: o.instrucao.declaracaoVersao,
+              declaracaoExcecao: o.instrucao.declaracaoExcecao,
+            }
+          : null,
       },
       {
         categoriaAta: o.ata.categoria,

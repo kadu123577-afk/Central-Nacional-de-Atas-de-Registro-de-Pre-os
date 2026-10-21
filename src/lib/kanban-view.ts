@@ -13,6 +13,7 @@ import {
 } from "./acompanhamento";
 import { nomeFornecedorPublico, resumir, urlContratoPncp } from "./sinais-preditivos";
 import { dataCurtaUtc } from "./formato";
+import { normalizarMapa, resumirInstrucao, type MapaInstrucao, type ResumoInstrucao } from "./instrucao-adesao";
 
 /**
  * Modelos de visão do Kanban do vendedor (2026-10-04, fase 2 de design):
@@ -80,6 +81,24 @@ export interface ContratoDetectadoView {
   urlPncp: string | null;
 }
 
+/**
+ * Instrução da adesão desta oportunidade (InstrucaoAdesao): o checklist do que
+ * o órgão aderente precisa reunir e a declaração interna de conformidade que
+ * libera o estágio "aderiu". A plataforma só organiza a informação; quem
+ * decide é o órgão aderente, o órgão gerenciador e o fornecedor.
+ */
+export interface InstrucaoView {
+  /** Já normalizado (normalizarMapa): só chaves conhecidas, esparso. */
+  itens: MapaInstrucao;
+  /** ISO; null = declaração ainda não registrada. */
+  declaracaoEm: string | null;
+  declaracaoPorTipo: "admin" | "vendedor" | null;
+  declaracaoVersao: number | null;
+  /** Justificativa de quem declarou com obrigatório pendente. */
+  declaracaoExcecao: string | null;
+  resumo: ResumoInstrucao;
+}
+
 export interface CartaoView {
   id: string;
   /** Ata e vendedor dono do card — o Pipeline do gestor mistura vários. */
@@ -119,6 +138,8 @@ export interface CartaoView {
   contratoDetectado: ContratoDetectadoView | null;
   /** Quantos outros contratos visíveis estão ligados à mesma oportunidade. */
   outrosContratos: number;
+  /** Instrução da adesão; null enquanto ninguém marcou nem declarou nada. */
+  instrucao: InstrucaoView | null;
 }
 
 const MS_DIA = 24 * 60 * 60 * 1000;
@@ -260,6 +281,17 @@ interface EntradaCartao {
   liquidacoes: { valorLiquidado: number; statusCobranca: string }[];
   /** Vínculos com contratos públicos (opcional: sem acompanhamento, sem contratos). */
   contratos?: EntradaContratoDetectado[];
+  /** Instrução da adesão como vem do banco (opcional: null/ausente = ainda não iniciada). */
+  instrucao?: EntradaInstrucao | null;
+}
+
+/** InstrucaoAdesao como vem do banco: `itens` é o JSON cru, normalizado só em montarInstrucao. */
+export interface EntradaInstrucao {
+  itens: unknown;
+  declaracaoEm: Date | null;
+  declaracaoPorTipo: string | null;
+  declaracaoVersao: number | null;
+  declaracaoExcecao: string | null;
 }
 
 /** Vínculo + contrato como vêm do banco (datas como Date, dinheiro já em number). */
@@ -381,6 +413,28 @@ function montarContratoDetectado(c: EntradaContratoDetectado): ContratoDetectado
   };
 }
 
+/**
+ * Instrução da oportunidade pronta para a tela. O JSON do banco é lido com
+ * normalizarMapa (nunca se confia nele) e o resumo vem de resumirInstrucao,
+ * então a regra de "o que falta" é uma só. Sem linha no banco, null.
+ */
+export function montarInstrucao(entrada: EntradaInstrucao | null | undefined): InstrucaoView | null {
+  if (!entrada) return null;
+  const itens = normalizarMapa(entrada.itens);
+  const em = entrada.declaracaoEm;
+  const declaracaoEm = em instanceof Date && !Number.isNaN(em.getTime()) ? em.toISOString() : null;
+  const por = entrada.declaracaoPorTipo;
+  const versao = entrada.declaracaoVersao;
+  return {
+    itens,
+    declaracaoEm,
+    declaracaoPorTipo: por === "admin" || por === "vendedor" ? por : null,
+    declaracaoVersao: typeof versao === "number" && Number.isInteger(versao) ? versao : null,
+    declaracaoExcecao: entrada.declaracaoExcecao?.trim() || null,
+    resumo: resumirInstrucao(itens),
+  };
+}
+
 /** Selo do card: confirmado pelo gestor ou ainda só sugerido pelo sistema. */
 export function seloDoContrato(contrato: Pick<ContratoDetectadoView, "confirmado">): {
   tom: "marca" | "atencao";
@@ -494,6 +548,7 @@ export function montarCartao(
     porQueAgora: porQueAgora(sinais, contexto.categoriaAta, daCategoria, agora),
     contratoDetectado: contrato ? montarContratoDetectado(contrato) : null,
     outrosContratos,
+    instrucao: montarInstrucao(entrada.instrucao),
   };
 }
 

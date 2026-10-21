@@ -19,6 +19,7 @@ import {
 import { registrarAuditoria } from "@/lib/auditoria";
 import { validarSenhaNova } from "@/lib/senha";
 import { prisma } from "@/lib/prisma";
+import { condicaoParaAderiu } from "@/lib/instrucao-adesao";
 import { prazoParaEstagio } from "@/lib/negociacao";
 import { resultadoInteracaoValido } from "@/lib/pontos-focais";
 import { expirarOportunidadesVencidas } from "@/lib/negociacao-expiracao";
@@ -184,6 +185,10 @@ export interface EstadoMoverEstagio {
   valores?: { valorAderido: string; observacoes: string; nonce: string };
 }
 
+/** Mensagem da trava do estágio "aderiu" (Projeto RNA, etapa 3). Não é exportada: arquivo "use server" só exporta funções. */
+const ERRO_DECLARACAO_PARA_ADERIU =
+  "Antes de marcar como Aderiu, registre a declaração de conformidade na aba Instrução do município.";
+
 export async function moverEstagioOportunidade(
   oportunidadeId: string,
   _estadoAnterior: EstadoMoverEstagio,
@@ -210,6 +215,22 @@ export async function moverEstagioOportunidade(
   }
   if (oportunidade.expiradaEm) {
     return { erro: "O prazo deste município venceu. Faça um novo pedido de negociação.", valores };
+  }
+
+  // Trava da instrução por adesão (Projeto RNA, etapa 3): ENTRAR em "aderiu"
+  // exige a declaração de conformidade já registrada na aba Instrução do
+  // município. Vem logo depois das checagens de dono e de prazo e antes de
+  // qualquer escrita, e só depende do que está no banco (nenhum campo do
+  // formulário a contorna). Quem já está em "aderiu" e só corrige o valor
+  // aderido não passa por ela de novo; os demais estágios não são afetados.
+  if (novoEstagio === "aderiu" && oportunidade.estagio !== "aderiu") {
+    const instrucao = await prisma.instrucaoAdesao.findUnique({
+      where: { oportunidadeId },
+      select: { declaracaoEm: true },
+    });
+    if (!condicaoParaAderiu({ declaracaoEm: instrucao?.declaracaoEm }).permitido) {
+      return { erro: ERRO_DECLARACAO_PARA_ADERIU, valores };
+    }
   }
 
   const observacoesLimpa = observacoes.trim() || null;
