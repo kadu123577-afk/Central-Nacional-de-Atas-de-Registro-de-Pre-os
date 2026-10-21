@@ -8,6 +8,7 @@ import {
   formatarVigencia,
   marcador,
   montarMinutas,
+  separarSubtitulo,
   type DadosMinutas,
   type Minuta,
 } from "./minutas";
@@ -79,6 +80,24 @@ function cenarios(): Array<[string, Minuta[]]> {
       montarMinutas(
         dadosCompletos({
           itens: {},
+          declaracao: { em: new Date("2026-10-20T15:00:00Z"), porTipo: "admin", porNome: "Carlos", excecao: EXCECAO, versao: 1 },
+        }),
+      ),
+    ],
+    [
+      "declaração registrada sem exceção, com item obrigatório desmarcado depois",
+      montarMinutas(
+        dadosCompletos({
+          itens: { ...mapaObrigatoriosFeitos(), dotacao: { feito: false } },
+          declaracao: { em: new Date("2026-10-20T15:00:00Z"), porTipo: "vendedor", porNome: "Maria Souza", versao: 1 },
+        }),
+      ),
+    ],
+    [
+      "declaração registrada com exceção e tudo feito hoje",
+      montarMinutas(
+        dadosCompletos({
+          itens: mapaObrigatoriosFeitos(),
           declaracao: { em: new Date("2026-10-20T15:00:00Z"), porTipo: "admin", porNome: "Carlos", excecao: EXCECAO, versao: 1 },
         }),
       ),
@@ -178,7 +197,7 @@ describe("preenchimento automático", () => {
 
   it("o ofício ao gerenciador pede anuência e o do fornecedor pede aceite sem prejuízo dos compromissos da ata", () => {
     const gerenciador = minuta(minutas, "oficio-gerenciador").paragrafos.join("\n");
-    expect(gerenciador).toContain("Ao Prefeitura Municipal de Goiânia (GO)");
+    expect(gerenciador).toContain("Destinatário: Prefeitura Municipal de Goiânia (GO)");
     expect(gerenciador).toMatch(/pedido de anuência/);
     expect(gerenciador).toContain("art. 86");
     expect(gerenciador).toContain("50% por órgão aderente e 200% no total por item");
@@ -340,7 +359,58 @@ describe("declaração interna de conformidade", () => {
     );
     const texto = m.paragrafos.join("\n");
     expect(texto).toContain(TEXTO_DECLARACAO);
+    expect(texto).toContain("Declaração registrada com exceção: na data do registro havia itens obrigatórios ainda não confirmados.");
     expect(texto).toContain(`Justificativa registrada: ${EXCECAO}`);
+  });
+
+  it("sem exceção gravada mas com item obrigatório desmarcado depois: o texto registrado continua o padrão e a situação de hoje vai numa observação", () => {
+    // Desmarcar item depois do registro não revoga a declaração (instrucao-actions): o papel não pode
+    // transformar a situação de hoje no que foi declarado.
+    const itens: MapaInstrucao = { ...mapaObrigatoriosFeitos(), parecer_juridico: { feito: false } };
+    const m = minuta(
+      montarMinutas(
+        dadosCompletos({
+          itens,
+          declaracao: { em: new Date("2026-10-20T15:00:00Z"), porTipo: "vendedor", porNome: "Maria", excecao: null, versao: 1 },
+        }),
+      ),
+      "declaracao-conformidade",
+    );
+    expect(m.paragrafos).toContain(TEXTO_DECLARACAO);
+    const registrado = m.paragrafos.find((p) => p.startsWith(TEXTO_DECLARACAO)) ?? "";
+    expect(registrado).not.toContain("Itens ainda não confirmados");
+    const observacao = m.paragrafos.find((p) => p.startsWith("Observação: em 21 de outubro de 2026")) ?? "";
+    expect(observacao).toContain("Parecer jurídico do órgão, art. 53");
+    expect(observacao).toContain("não foi revogada");
+    expect(m.paragrafos.join("\n")).not.toContain("Justificativa");
+  });
+
+  it("com exceção e itens ainda pendentes: texto da exceção e aviso de que a lista é a de hoje", () => {
+    const m = minuta(
+      montarMinutas(
+        dadosCompletos({
+          itens: { dfd: { feito: true, em: "2026-10-01" } },
+          declaracao: { em: new Date("2026-10-20T15:00:00Z"), porTipo: "admin", porNome: "Carlos", excecao: EXCECAO, versao: 1 },
+        }),
+      ),
+      "declaracao-conformidade",
+    );
+    const observacao = m.paragrafos.find((p) => p.startsWith("Observação: a lista de itens")) ?? "";
+    expect(observacao).toContain("em 21 de outubro de 2026");
+    expect(observacao).toContain("no dia do registro ela pode ter sido diferente");
+  });
+
+  it("registrada sem exceção e sem pendência hoje: nenhuma observação", () => {
+    const m = minuta(
+      montarMinutas(
+        dadosCompletos({
+          itens: mapaObrigatoriosFeitos(),
+          declaracao: { em: new Date("2026-10-20T15:00:00Z"), porTipo: "vendedor", porNome: "Maria", excecao: "   ", versao: 1 },
+        }),
+      ),
+      "declaracao-conformidade",
+    );
+    expect(m.paragrafos.some((p) => p.startsWith("Observação:"))).toBe(false);
   });
 
   it("quem registrou desconhecido vira marcador", () => {
@@ -369,7 +439,7 @@ describe("o que os textos não podem dizer", () => {
   const PROIBIDOS: Array<[string, RegExp]> = [
     ["sem licitação", /sem\s+licita/i],
     ["dispensa", /dispens/i],
-    ["qualquer menção a licitação ou concorrência", /licita|concorr/i],
+    ["qualquer menção a licitação ou concorrência", /\blicita|\bconcorr/i],
     ["garantia ou promessa", /garant|assegur|promet|certeza|sem\s+risco|sem\s+burocracia/i],
     ["automático", /autom[aá]tic/i],
     ["órgão regular", /\bregular(es)?\b|regularidade|irregular/i],
@@ -447,6 +517,34 @@ describe("formatarVigencia", () => {
     expect(formatarVigencia("")).toBe("[PREENCHER: vigência da ata]");
     expect(formatarVigencia("lixo")).toBe("[PREENCHER: vigência da ata]");
     expect(formatarVigencia(new Date("x"))).toBe("[PREENCHER: vigência da ata]");
+  });
+});
+
+describe("separarSubtitulo", () => {
+  it("separa o título curto dos blocos numerados", () => {
+    expect(separarSubtitulo("1. Objeto\nContratação de algo")).toEqual({ subtitulo: "1. Objeto", corpo: "Contratação de algo" });
+    expect(separarSubtitulo("2. Comparação com a pesquisa de preços (art. 23)\nTexto\nOutra linha")).toEqual({
+      subtitulo: "2. Comparação com a pesquisa de preços (art. 23)",
+      corpo: "Texto\nOutra linha",
+    });
+  });
+
+  it("não separa frases numeradas, parágrafos de uma linha só nem linhas sem número", () => {
+    const frase = "1. O Município tem interesse em aderir à ata.\nDados da ata: objeto";
+    expect(separarSubtitulo(frase)).toEqual({ subtitulo: null, corpo: frase });
+    expect(separarSubtitulo("3. Título sozinho")).toEqual({ subtitulo: null, corpo: "3. Título sozinho" });
+    expect(separarSubtitulo("Órgão aderente: X\nOutra")).toEqual({ subtitulo: null, corpo: "Órgão aderente: X\nOutra" });
+  });
+
+  it("no kit, os blocos numerados da formalização e da justificativa têm subtítulo e os ofícios não", () => {
+    const minutas = montarMinutas(dadosCompletos());
+    const quantos = (chave: Minuta["chave"]) =>
+      minuta(minutas, chave).paragrafos.filter((p) => separarSubtitulo(p).subtitulo !== null).length;
+    expect(quantos("formalizacao-demanda")).toBe(4);
+    expect(quantos("justificativa-vantagem")).toBe(5);
+    expect(quantos("oficio-gerenciador")).toBe(0);
+    expect(quantos("oficio-fornecedor")).toBe(0);
+    expect(quantos("declaracao-conformidade")).toBe(0);
   });
 });
 

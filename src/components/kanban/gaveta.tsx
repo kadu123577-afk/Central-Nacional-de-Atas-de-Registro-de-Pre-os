@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useState, type CSSProperties } from "react";
 import { Aviso } from "@/components/ui/aviso";
 import { Badge } from "@/components/ui/badge";
 import { Icone } from "@/components/ui/icones";
@@ -27,16 +27,36 @@ import {
   type EstadoRegistrarContato,
 } from "@/app/vendedor/actions";
 import { ROTULO_TIPO_SINAL, TOM_TIPO_SINAL, tipoSinalValido } from "@/lib/sinais";
+import { Instrucao } from "./instrucao";
 
-type Aba = "quem" | "necessidade" | "contexto" | "historico";
+type Aba = "quem" | "necessidade" | "contexto" | "historico" | "instrucao";
 const ABAS: { id: Aba; rotulo: string }[] = [
   { id: "quem", rotulo: "Quem falar" },
   { id: "necessidade", rotulo: "Necessidade" },
   { id: "contexto", rotulo: "Contexto" },
   { id: "historico", rotulo: "Histórico" },
+  { id: "instrucao", rotulo: "Instrução" },
 ];
 
 const ROTULO_PAPEL = { principal: "Principal", aprovacao: "Aprovação final", apoio: "Apoio" } as const;
+
+/**
+ * Fileira de abas que rola de lado quando não cabe (a gaveta tem min(480px, 100vw)).
+ * As sombras são só CSS: as duas primeiras camadas (local) cobrem a sombra quando a
+ * rolagem chegou ao começo ou ao fim; as outras duas (scroll) ficam presas nas pontas.
+ * Assim a sombra só aparece do lado em que ainda há abas escondidas.
+ */
+const SOMBRA_ABAS = "color-mix(in srgb, var(--cor-texto) 16%, transparent)";
+const ROLAGEM_ABAS: CSSProperties = {
+  overflowX: "auto",
+  scrollbarWidth: "thin",
+  background: [
+    "linear-gradient(to right, var(--cor-fundo) 30%, transparent) 0 0 / 28px 100% no-repeat local",
+    "linear-gradient(to left, var(--cor-fundo) 30%, transparent) 100% 0 / 28px 100% no-repeat local",
+    `linear-gradient(to right, ${SOMBRA_ABAS}, transparent) 0 0 / 16px 100% no-repeat scroll`,
+    `linear-gradient(to left, ${SOMBRA_ABAS}, transparent) 100% 0 / 16px 100% no-repeat scroll`,
+  ].join(", "),
+};
 
 
 const estadoMoverInicial: EstadoMoverEstagio = {};
@@ -113,30 +133,35 @@ export function Gaveta({
             </div>
           </div>
 
-          <div className="kb-abas" role="tablist">
-            {ABAS.map((a) => (
-              <button
-                key={a.id}
-                type="button"
-                role="tab"
-                className="kb-aba"
-                aria-selected={aba === a.id}
-                onClick={() => setAba(a.id)}
-              >
-                {a.rotulo}
-                {/* O contrato mora na aba Contexto: o ponto avisa quem veio do selo do card. */}
-                {a.id === "contexto" && c.contratoDetectado && (
-                  <>
-                    <span
-                      aria-hidden="true"
-                      className="ml-1.5 inline-block h-1.5 w-1.5 rounded-full align-middle"
-                      style={{ background: c.contratoDetectado.confirmado ? "var(--cor-marca)" : "var(--cor-atencao)" }}
-                    />
-                    <span className="sr-only"> (há contrato público ligado a esta negociação)</span>
-                  </>
-                )}
-              </button>
-            ))}
+          {/* Com cinco abas a fileira não cabe na gaveta do celular: rola de lado, com sombra na ponta onde ainda há abas. */}
+          <div style={ROLAGEM_ABAS}>
+            <div className="kb-abas" role="tablist" style={{ minWidth: "max-content", gap: 0 }}>
+              {ABAS.map((a) => (
+                <button
+                  key={a.id}
+                  type="button"
+                  role="tab"
+                  className="kb-aba"
+                  // Foco por dentro da aba: por fora o anel seria cortado pela área de rolagem.
+                  style={{ whiteSpace: "nowrap", padding: "8px 9px", outlineOffset: -2 }}
+                  aria-selected={aba === a.id}
+                  onClick={() => setAba(a.id)}
+                >
+                  {a.rotulo}
+                  {/* O contrato mora na aba Contexto: o ponto avisa quem veio do selo do card. */}
+                  {a.id === "contexto" && c.contratoDetectado && (
+                    <>
+                      <span
+                        aria-hidden="true"
+                        className="ml-1.5 inline-block h-1.5 w-1.5 rounded-full align-middle"
+                        style={{ background: c.contratoDetectado.confirmado ? "var(--cor-marca)" : "var(--cor-atencao)" }}
+                      />
+                      <span className="sr-only"> (há contrato público ligado a esta negociação)</span>
+                    </>
+                  )}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -279,6 +304,8 @@ export function Gaveta({
               )}
             </>
           )}
+
+          {aba === "instrucao" && <Instrucao cartao={c} somenteLeitura={somenteLeitura} />}
         </div>
 
         <div className="kb-gaveta-rodape" style={{ display: somenteLeitura ? "none" : undefined }}>

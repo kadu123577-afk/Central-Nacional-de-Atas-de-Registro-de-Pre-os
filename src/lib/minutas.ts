@@ -22,6 +22,7 @@ import {
   condicaoParaAderiu,
   normalizarJustificativa,
   normalizarMapa,
+  resumirInstrucao,
   textoDeclaracao,
 } from "./instrucao-adesao";
 
@@ -114,6 +115,22 @@ export function dividirMarcadores(texto: string): TrechoMinuta[] {
   }
   if (fim < texto.length) trechos.push({ texto: texto.slice(fim), marcador: false });
   return trechos;
+}
+
+/**
+ * Os modelos escrevem os blocos numerados como "1. Objeto\n<texto>". Separa a
+ * primeira linha quando ela é só um subtítulo (número, ponto e título curto
+ * sem ponto final), para a tela pôr em destaque. Os itens numerados dos
+ * ofícios ("1. O órgão tem interesse...") são frases e ficam inteiros.
+ */
+export function separarSubtitulo(paragrafo: string): { subtitulo: string | null; corpo: string } {
+  const quebra = paragrafo.indexOf("\n");
+  if (quebra === -1) return { subtitulo: null, corpo: paragrafo };
+  const primeira = paragrafo.slice(0, quebra);
+  if (/^\d+\. [^\n]{1,70}$/.test(primeira) && !/[.;:,]$/.test(primeira)) {
+    return { subtitulo: primeira, corpo: paragrafo.slice(quebra + 1) };
+  }
+  return { subtitulo: null, corpo: paragrafo };
 }
 
 /** Texto em uma linha só, sem espaços nas pontas; qualquer coisa que não seja texto vira "". */
@@ -320,11 +337,11 @@ function oficioAoGerenciador(c: Contexto): Minuta {
       AVISO_MINUTA,
       `Ofício nº ${marcador("número e ano do ofício")}`,
       localEData(c),
-      linhas(`Ao ${c.gerenciador}`, `A/C: ${marcador("nome e cargo da autoridade ou do setor responsável pela ata")}`),
+      linhas(`Destinatário: ${c.gerenciador}`, `A/C: ${marcador("nome e cargo da autoridade ou do setor responsável pela ata")}`),
       `Assunto: pedido de anuência para adesão à ata de registro de preços nº ${c.ata}.`,
       `Senhor(a) ${marcador("cargo da autoridade")},`,
       linhas(
-        `1. O ${c.aderente} tem interesse em aderir à ata de registro de preços nº ${c.ata}, gerenciada por esse órgão, nos termos do art. 86 da Lei 14.133/2021.`,
+        `1. O órgão aderente, ${c.aderente}, tem interesse em aderir à ata de registro de preços nº ${c.ata}, gerenciada por esse órgão, nos termos do art. 86 da Lei 14.133/2021.`,
         `Dados da ata considerados pelo órgão aderente: objeto: ${c.objeto}; categoria: ${c.categoria}; fornecedor registrado: ${c.fornecedor}; vigência até: ${c.vigencia}.`,
       ),
       `2. A adesão atenderá à necessidade descrita na formalização da demanda do órgão aderente: ${marcador("resumo da necessidade, dos itens e das quantidades pretendidas")}.`,
@@ -345,15 +362,15 @@ function oficioAoFornecedor(c: Contexto): Minuta {
       `Ofício nº ${marcador("número e ano do ofício")}`,
       localEData(c),
       linhas(`À empresa ${c.fornecedor}`, `A/C: ${marcador("nome e cargo do responsável da empresa pela ata")}`),
-      `Assunto: pedido de aceite para fornecimento ao ${c.aderenteNome} por adesão à ata de registro de preços nº ${c.ata}.`,
+      `Assunto: pedido de aceite para fornecimento ao órgão aderente ${c.aderenteNome} por adesão à ata de registro de preços nº ${c.ata}.`,
       "Prezados senhores,",
       linhas(
-        `1. O ${c.aderente} tem interesse em aderir à ata de registro de preços nº ${c.ata}, gerenciada por ${c.gerenciador}, da qual essa empresa é fornecedora registrada, nos termos do art. 86 da Lei 14.133/2021.`,
+        `1. O órgão aderente, ${c.aderente}, tem interesse em aderir à ata de registro de preços nº ${c.ata}, gerenciada pelo órgão ${c.gerenciador}, da qual essa empresa é fornecedora registrada, nos termos do art. 86 da Lei 14.133/2021.`,
         `Objeto da ata: ${c.objeto}; vigência até: ${c.vigencia}.`,
       ),
       `2. Itens e quantidades pretendidos: ${marcador("itens e quantidades que o órgão pretende contratar, conforme a formalização da demanda")}.`,
       "3. Solicitamos o aceite dessa empresa para fornecer ao órgão aderente nas condições da ata, sem prejuízo dos compromissos já assumidos na ata, perante o órgão gerenciador e os demais órgãos que a utilizam.",
-      `4. O aceite é uma decisão da empresa. Prazo para resposta: ${marcador("prazo para resposta, se o órgão quiser indicar um")}. Informamos que a adesão ainda depende da anuência do órgão gerenciador e das demais etapas da instrução do processo pelo órgão aderente.`,
+      `4. O aceite é uma decisão da empresa. Prazo para resposta: ${marcador("prazo, se o órgão quiser indicar um")}. Informamos que a adesão ainda depende da anuência do órgão gerenciador e das demais etapas da instrução do processo pelo órgão aderente.`,
       "5. Se a adesão for formalizada, a contratação será divulgada no Portal Nacional de Contratações Públicas (PNCP), conforme o art. 94.",
       "Atenciosamente,",
       assinatura(c),
@@ -368,25 +385,48 @@ function perfilDeQuemRegistrou(tipo: unknown): string {
 }
 
 /**
- * Texto que ficou registrado. É o que textoDeclaracao devolve para o mapa de
- * itens atual; se a justificativa de exceção foi registrada mas o mapa mudou
- * depois (todos os itens hoje feitos), ela não apareceria — então é acrescentada,
- * porque faz parte do que foi declarado.
+ * Parágrafos do texto que ficou registrado. A tabela InstrucaoAdesao não guarda
+ * o texto nem a lista de itens pendentes da época do registro, só a
+ * justificativa de exceção, que só existe quando havia obrigatório pendente
+ * (declararConformidade). E desmarcar um item depois do registro não revoga a
+ * declaração. Por isso o papel não pode contar a situação de hoje como se fosse
+ * a do registro:
+ * - sem justificativa gravada: foi registrada com todos os obrigatórios feitos,
+ *   então o texto é o padrão; se hoje há obrigatório desmarcado, vai uma
+ *   observação separada com a situação de hoje;
+ * - com justificativa e obrigatórios ainda pendentes: textoDeclaracao (o mesmo
+ *   que a pessoa viu ao declarar) e a observação de que a lista é a de hoje;
+ * - com justificativa e tudo feito hoje: o texto padrão, dito que o registro foi
+ *   com exceção, e a justificativa.
  */
-function textoRegistrado(itens: unknown, excecao: unknown): string {
+function paragrafosDoTextoRegistrado(itens: unknown, excecao: unknown, hoje: string): string[] {
   const bruta = typeof excecao === "string" ? excecao : null;
-  const texto = textoDeclaracao({ mapa: normalizarMapa(itens), justificativaExcecao: bruta });
   const justificativa = normalizarJustificativa(bruta);
-  if (justificativa && !texto.includes(justificativa)) {
-    return `${texto} Justificativa registrada: ${justificativa}${/[.!?]$/.test(justificativa) ? "" : "."}`;
+  const mapa = normalizarMapa(itens);
+  const { completo, pendentesObrigatorios } = resumirInstrucao(mapa);
+
+  if (!justificativa) {
+    if (completo) return [TEXTO_DECLARACAO];
+    return [
+      TEXTO_DECLARACAO,
+      `Observação: em ${hoje}, constam como não confirmados na plataforma os itens obrigatórios: ${pendentesObrigatorios.join("; ")}. A declaração acima foi registrada na data indicada e não foi revogada.`,
+    ];
   }
-  return texto;
+  if (!completo) {
+    return [
+      textoDeclaracao({ mapa, justificativaExcecao: bruta }),
+      `Observação: a lista de itens acima mostra a instrução na plataforma em ${hoje}; no dia do registro ela pode ter sido diferente.`,
+    ];
+  }
+  return [
+    `${TEXTO_DECLARACAO} Declaração registrada com exceção: na data do registro havia itens obrigatórios ainda não confirmados. Justificativa registrada: ${justificativa}${/[.!?]$/.test(justificativa) ? "" : "."}`,
+  ];
 }
 
 function declaracaoDeConformidade(c: Contexto, dados: DadosMinutas): Minuta {
   const declaracao = dados.declaracao;
   const registrada = condicaoParaAderiu({ declaracaoEm: declaracao?.em }).permitido;
-  const referencia = `Referência: adesão do ${c.aderente} à ata de registro de preços nº ${c.ata}, gerenciada por ${c.gerenciador}, fornecedor registrado ${c.fornecedor}, vigência até ${c.vigencia}.`;
+  const referencia = `Referência: adesão do órgão aderente ${c.aderente} à ata de registro de preços nº ${c.ata}, gerenciada pelo órgão ${c.gerenciador}, fornecedor registrado ${c.fornecedor}, vigência até ${c.vigencia}.`;
   const paragrafos: string[] = [AVISO_MINUTA];
 
   if (registrada && declaracao) {
@@ -395,7 +435,7 @@ function declaracaoDeConformidade(c: Contexto, dados: DadosMinutas): Minuta {
     const quem = `${ou(declaracao.porNome, "nome de quem registrou")}${perfil ? ` (${perfil})` : ""}`;
     paragrafos.push(`Situação: registrada na plataforma em ${dataPorExtenso(quando)}, por ${quem}.`);
     paragrafos.push(referencia);
-    paragrafos.push(textoRegistrado(dados.itens, declaracao.excecao));
+    paragrafos.push(...paragrafosDoTextoRegistrado(dados.itens, declaracao.excecao, c.data));
     if (typeof declaracao.versao === "number" && declaracao.versao !== VERSAO_DECLARACAO) {
       paragrafos.push(
         `Observação: a declaração foi registrada na versão ${declaracao.versao} do texto; o texto acima segue a versão atual (${VERSAO_DECLARACAO}).`,

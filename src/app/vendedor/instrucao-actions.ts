@@ -98,6 +98,42 @@ function diaDeHoje(): string {
   return new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
 }
 
+/** registrarAuditoria corta o detalhe em 500 caracteres; 480 por parte deixa espaço para o "(n/m) ". */
+const PARTE_AUDITORIA = 480;
+
+/** Parte o texto em pedaços de até PARTE_AUDITORIA caracteres sem separar um emoji ao meio. */
+function partirTexto(texto: string): string[] {
+  const partes: string[] = [];
+  let atual = "";
+  for (const ch of texto) {
+    if (atual.length + ch.length > PARTE_AUDITORIA) {
+      partes.push(atual);
+      atual = "";
+    }
+    atual += ch;
+  }
+  partes.push(atual);
+  return partes;
+}
+
+/**
+ * Grava o evento inteiro na trilha. A justificativa de uma exceção pode ter até
+ * 1000 caracteres e registrarAuditoria cortaria o detalhe em 500 sem avisar; como
+ * a trilha é o que sobra depois de revogar (a linha da instrução perde a
+ * justificativa), o texto longo vai em várias linhas, "(1/2) ...", com a mesma
+ * ação e o mesmo alvo.
+ */
+async function auditar(evento: { ator: string; acao: string; alvo: string; detalhe: string }): Promise<void> {
+  const partes = partirTexto(evento.detalhe);
+  if (partes.length === 1) {
+    await registrarAuditoria(evento);
+    return;
+  }
+  for (const [i, parte] of partes.entries()) {
+    await registrarAuditoria({ ...evento, detalhe: `(${i + 1}/${partes.length}) ${parte}` });
+  }
+}
+
 /**
  * Marca ou desmarca um item do checklist. O formulário manda `feito`
  * ("true" ou "false": como o item deve ficar) e, opcionalmente, `nota`:
@@ -147,7 +183,7 @@ export async function marcarItemInstrucao(
     mudancas.push("declaração mantida");
   }
 
-  await registrarAuditoria({
+  await auditar({
     ator: `${ator.tipo}:${ator.id}`,
     acao: `${ator.tipo}.marcarItemInstrucao`,
     alvo: oportunidade.id,
@@ -198,7 +234,7 @@ export async function declararConformidade(
   if (!gravou) return { erro: ERRO_CONFLITO };
 
   // A justificativa vai também para a auditoria: revogar apaga a da linha, e o histórico não pode se perder.
-  await registrarAuditoria({
+  await auditar({
     ator: `${ator.tipo}:${ator.id}`,
     acao: `${ator.tipo}.declararConformidade`,
     alvo: oportunidade.id,
@@ -214,10 +250,7 @@ export async function declararConformidade(
  * Apaga a declaração (data, quem, versão e exceção). Só enquanto o município
  * não está em "Aderiu": depois disso a declaração já sustentou uma adesão.
  */
-export async function revogarDeclaracao(
-  oportunidadeId: string,
-  _estadoAnterior: EstadoInstrucao,
-): Promise<EstadoInstrucao> {
+export async function revogarDeclaracao(oportunidadeId: string): Promise<EstadoInstrucao> {
   const sessao = await exigirSessao();
 
   const acesso = await autorizar(sessao, oportunidadeId);
@@ -235,7 +268,7 @@ export async function revogarDeclaracao(
     return { erro: "Não foi possível revogar: a declaração já foi revogada ou o município passou para Aderiu." };
   }
 
-  await registrarAuditoria({
+  await auditar({
     ator: `${ator.tipo}:${ator.id}`,
     acao: `${ator.tipo}.revogarDeclaracao`,
     alvo: oportunidade.id,

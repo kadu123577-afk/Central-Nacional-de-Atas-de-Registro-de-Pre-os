@@ -13,7 +13,7 @@ const dobles = vi.hoisted(() => ({
   redirect: vi.fn(),
   revalidatePath: vi.fn(),
   oportunidadeFindUnique: vi.fn(),
-  oportunidadeUpdate: vi.fn(),
+  oportunidadeUpdateMany: vi.fn(),
   instrucaoFindUnique: vi.fn(),
   contratoFindUnique: vi.fn(),
   liquidacaoCount: vi.fn(),
@@ -41,7 +41,7 @@ vi.mock("@/lib/senha", () => ({ validarSenhaNova: vi.fn() }));
 vi.mock("@/lib/negociacao-expiracao", () => ({ expirarOportunidadesVencidas: vi.fn() }));
 vi.mock("@/lib/prisma", () => ({
   prisma: {
-    oportunidadeVenda: { findUnique: dobles.oportunidadeFindUnique, update: dobles.oportunidadeUpdate },
+    oportunidadeVenda: { findUnique: dobles.oportunidadeFindUnique, updateMany: dobles.oportunidadeUpdateMany },
     instrucaoAdesao: { findUnique: dobles.instrucaoFindUnique },
     contratoIntermediacao: { findUnique: dobles.contratoFindUnique },
     liquidacao: { count: dobles.liquidacaoCount },
@@ -53,6 +53,8 @@ vi.mock("@/lib/prisma", () => ({
 import { moverEstagioOportunidade, type EstadoMoverEstagio } from "./actions";
 
 const ERRO_TRAVA = "Antes de marcar como Aderiu, registre a declaração de conformidade na aba Instrução do município.";
+const ERRO_REVOGADA_NO_MEIO =
+  "A declaração de conformidade foi revogada enquanto você salvava. Nada foi alterado. Atualize a página e confira a aba Instrução do município.";
 const ESTADO_INICIAL: EstadoMoverEstagio = {};
 
 function formulario(campos: Record<string, string>): FormData {
@@ -80,7 +82,7 @@ function mover(campos: Record<string, string>, id = "op1") {
 
 /** Quando a trava (ou qualquer outra checagem) recusa, nada pode ter sido lido a mais nem gravado. */
 function nadaGravado() {
-  expect(dobles.oportunidadeUpdate).not.toHaveBeenCalled();
+  expect(dobles.oportunidadeUpdateMany).not.toHaveBeenCalled();
   expect(dobles.interacaoCreate).not.toHaveBeenCalled();
   expect(dobles.revalidatePath).not.toHaveBeenCalled();
 }
@@ -93,7 +95,7 @@ beforeEach(() => {
     throw new Error(`NEXT_REDIRECT:${destino}`);
   });
   dobles.oportunidadeFindUnique.mockResolvedValue(oportunidade());
-  dobles.oportunidadeUpdate.mockResolvedValue({});
+  dobles.oportunidadeUpdateMany.mockResolvedValue({ count: 1 });
   dobles.instrucaoFindUnique.mockResolvedValue(null);
   dobles.contratoFindUnique.mockResolvedValue({ percentualComissao: { toString: () => "0.05" } });
   dobles.liquidacaoCount.mockResolvedValue(0);
@@ -204,9 +206,10 @@ describe("entrar em Aderiu com a declaração registrada", () => {
     const estado = await mover({ estagio: "aderiu", valorAderido: "2500,75", observacoes: " pedido assinado " });
 
     expect(estado).toEqual({ ok: true });
-    expect(dobles.oportunidadeUpdate).toHaveBeenCalledTimes(1);
-    const { where, data } = dobles.oportunidadeUpdate.mock.calls[0][0];
-    expect(where).toEqual({ id: "op1" });
+    expect(dobles.oportunidadeUpdateMany).toHaveBeenCalledTimes(1);
+    const { where, data } = dobles.oportunidadeUpdateMany.mock.calls[0][0];
+    // A gravação repete a condição da declaração na própria consulta (ver o teste da revogação no meio).
+    expect(where).toEqual({ id: "op1", instrucao: { is: { declaracaoEm: { not: null } } } });
     expect(data).toMatchObject({
       estagio: "aderiu",
       observacoes: "pedido assinado",
@@ -225,7 +228,31 @@ describe("entrar em Aderiu com a declaração registrada", () => {
     const estado = await mover({ estagio: "aderiu", valorAderido: "100" });
 
     expect(estado.ok).toBe(true);
-    expect(dobles.oportunidadeUpdate).toHaveBeenCalledTimes(1);
+    expect(dobles.oportunidadeUpdateMany).toHaveBeenCalledTimes(1);
+  });
+
+  it("declaração revogada entre a conferência e a gravação: nada é salvo e a pessoa é avisada", async () => {
+    // A conferência viu a declaração, mas quando o update roda ela já foi apagada
+    // em outra aba: a condição dentro do update não casa nenhuma linha.
+    dobles.oportunidadeUpdateMany.mockResolvedValue({ count: 0 });
+    const estado = await mover({ estagio: "aderiu", valorAderido: "1000", observacoes: "fechado" });
+
+    expect(estado.ok).toBeUndefined();
+    expect(estado.erro).toBe(ERRO_REVOGADA_NO_MEIO);
+    expect(estado.valores).toEqual({ valorAderido: "1000", observacoes: "fechado", nonce: expect.any(String) });
+    // Sem a mudança, não vira histórico de contato nem atualiza a tela como se tivesse dado certo.
+    expect(dobles.interacaoCreate).not.toHaveBeenCalled();
+    expect(dobles.revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("usa o id da oportunidade já conferida, não o argumento cru da action, ao consultar a instrução", async () => {
+    await mover({ estagio: "aderiu", valorAderido: "1000" }, "id-vindo-do-navegador");
+
+    expect(dobles.instrucaoFindUnique).toHaveBeenCalledWith({
+      where: { oportunidadeId: "op1" },
+      select: { declaracaoEm: true },
+    });
+    expect(dobles.oportunidadeUpdateMany.mock.calls[0][0].where.id).toBe("op1");
   });
 
   it("com a declaração feita, as demais exigências continuam valendo: valor aderido", async () => {
@@ -257,10 +284,12 @@ describe("oportunidade que já está em Aderiu", () => {
 
     expect(estado).toEqual({ ok: true });
     expect(dobles.instrucaoFindUnique).not.toHaveBeenCalled();
-    const { data } = dobles.oportunidadeUpdate.mock.calls[0][0];
+    const { data } = dobles.oportunidadeUpdateMany.mock.calls[0][0];
     // Mantém a comissão copiada na adesão, sem reler o contrato.
     expect(data).toMatchObject({ estagio: "aderiu", valorAderido: "9000", percentualComissao: "0.03" });
     expect(dobles.contratoFindUnique).not.toHaveBeenCalled();
+    // Já estava em Aderiu: a gravação não exige a declaração de novo.
+    expect(dobles.oportunidadeUpdateMany.mock.calls[0][0].where).toEqual({ id: "op1" });
   });
 
   it("sair de Aderiu também não passa pela trava", async () => {
@@ -268,7 +297,8 @@ describe("oportunidade que já está em Aderiu", () => {
 
     expect(estado.ok).toBe(true);
     expect(dobles.instrucaoFindUnique).not.toHaveBeenCalled();
-    const { data } = dobles.oportunidadeUpdate.mock.calls[0][0];
+    const { where, data } = dobles.oportunidadeUpdateMany.mock.calls[0][0];
+    expect(where).toEqual({ id: "op1" });
     expect(data).toMatchObject({ estagio: "recusado", valorAderido: null, percentualComissao: null });
   });
 });
@@ -285,9 +315,20 @@ describe("outros estágios não são afetados", () => {
 
     expect(estado).toEqual({ ok: true });
     expect(dobles.instrucaoFindUnique).not.toHaveBeenCalled();
-    expect(dobles.oportunidadeUpdate).toHaveBeenCalledTimes(1);
-    expect(dobles.oportunidadeUpdate.mock.calls[0][0].data.estagio).toBe(novo);
+    expect(dobles.oportunidadeUpdateMany).toHaveBeenCalledTimes(1);
+    // Fora de "aderiu" a gravação não carrega condição de declaração.
+    expect(dobles.oportunidadeUpdateMany.mock.calls[0][0].where).toEqual({ id: "op1" });
+    expect(dobles.oportunidadeUpdateMany.mock.calls[0][0].data.estagio).toBe(novo);
     expect(dobles.interacaoCreate.mock.calls[0][0].data.resultado).toBe(resultado);
+  });
+
+  it("zero linhas gravadas fora de Aderiu (card sumiu) devolve erro em vez de fingir sucesso", async () => {
+    dobles.oportunidadeUpdateMany.mockResolvedValue({ count: 0 });
+    const estado = await mover({ estagio: "em_negociacao" });
+
+    expect(estado.erro).toBe("Oportunidade não encontrada.");
+    expect(dobles.interacaoCreate).not.toHaveBeenCalled();
+    expect(dobles.revalidatePath).not.toHaveBeenCalled();
   });
 });
 

@@ -6,12 +6,14 @@ import {
   haQuantoTempo,
   mesesDesde,
   montarCartao,
+  montarInstrucao,
   nivelFrescor,
   niveisDeVinculoVisiveis,
   porQueAgoraDoRaioX,
   seloDoContrato,
   totalDaColuna,
   type EntradaContratoDetectado,
+  type EntradaInstrucao,
 } from "./kanban-view";
 import { CARGO_ADMINISTRACAO, CARGO_PREFEITO } from "./decisores";
 
@@ -471,5 +473,122 @@ describe("descreverVigencia", () => {
     expect(descreverVigencia(null, "2027-02-28T00:00:00.000Z")).toBe("Vigência até 28/02/2027");
     expect(descreverVigencia("2026-03-01T00:00:00.000Z", null)).toBe("Vigência desde 01/03/2026");
     expect(descreverVigencia(null, null)).toBe("Vigência não informada");
+  });
+});
+
+describe("instrução da adesão no card", () => {
+  const contexto = { categoriaAta: "veiculos", percentualContrato: null };
+  const entrada = (extra: Partial<EntradaInstrucao> = {}): EntradaInstrucao => ({
+    itens: {},
+    declaracaoEm: null,
+    declaracaoPorTipo: null,
+    declaracaoVersao: null,
+    declaracaoExcecao: null,
+    ...extra,
+  });
+
+  it("sem instrução (campo ausente ou null) o card fica com instrucao null", () => {
+    expect(montarCartao(base, contexto, agora).instrucao).toBeNull();
+    expect(montarCartao({ ...base, instrucao: null }, contexto, agora).instrucao).toBeNull();
+    expect(montarInstrucao(undefined)).toBeNull();
+  });
+
+  it("instrução recém-criada: nada feito, nada declarado, resumo zerado", () => {
+    const c = montarCartao({ ...base, instrucao: entrada() }, contexto, agora);
+    expect(c.instrucao).not.toBeNull();
+    expect(c.instrucao?.itens).toEqual({});
+    expect(c.instrucao?.declaracaoEm).toBeNull();
+    expect(c.instrucao?.declaracaoExcecao).toBeNull();
+    expect(c.instrucao?.resumo.feitos).toBe(0);
+    expect(c.instrucao?.resumo.completo).toBe(false);
+    expect(c.instrucao?.resumo.percentual).toBe(0);
+  });
+
+  it("os itens passam por normalizarMapa e o resumo conta só o que é válido", () => {
+    const c = montarCartao(
+      {
+        ...base,
+        instrucao: entrada({
+          itens: {
+            dfd: { feito: true, em: "2026-10-01", nota: "  assinada  " },
+            dotacao: { feito: "sim" },
+            inventado: { feito: true },
+          },
+        }),
+      },
+      contexto,
+      agora,
+    );
+    expect(c.instrucao?.itens).toEqual({
+      dfd: { feito: true, em: "2026-10-01", nota: "assinada" },
+      dotacao: { feito: false },
+    });
+    expect(c.instrucao?.resumo.feitos).toBe(1);
+    expect(c.instrucao?.resumo.obrigatoriosFeitos).toBe(1);
+  });
+
+  it("JSON do banco quebrado (null, texto, lista) vira mapa vazio, sem lançar", () => {
+    for (const itens of [null, "texto", 42, [], [1, 2]]) {
+      const c = montarCartao({ ...base, instrucao: entrada({ itens }) }, contexto, agora);
+      expect(c.instrucao?.itens).toEqual({});
+    }
+  });
+
+  it("declaração vira texto ISO, com quem, versão e exceção", () => {
+    const c = montarCartao(
+      {
+        ...base,
+        instrucao: entrada({
+          declaracaoEm: new Date("2026-10-21T15:30:00Z"),
+          declaracaoPorTipo: "vendedor",
+          declaracaoVersao: 1,
+          declaracaoExcecao: "  Parecer chega na semana que vem, órgão já pediu.  ",
+        }),
+      },
+      contexto,
+      agora,
+    );
+    expect(c.instrucao?.declaracaoEm).toBe("2026-10-21T15:30:00.000Z");
+    expect(c.instrucao?.declaracaoPorTipo).toBe("vendedor");
+    expect(c.instrucao?.declaracaoVersao).toBe(1);
+    expect(c.instrucao?.declaracaoExcecao).toBe("Parecer chega na semana que vem, órgão já pediu.");
+  });
+
+  it("quem declarou e versão fora do vocabulário não chegam à tela", () => {
+    const c = montarCartao(
+      {
+        ...base,
+        instrucao: entrada({
+          declaracaoEm: new Date("2026-10-21T15:30:00Z"),
+          declaracaoPorTipo: "fornecedor",
+          declaracaoVersao: 1.5,
+          declaracaoExcecao: "   ",
+        }),
+      },
+      contexto,
+      agora,
+    );
+    expect(c.instrucao?.declaracaoPorTipo).toBeNull();
+    expect(c.instrucao?.declaracaoVersao).toBeNull();
+    expect(c.instrucao?.declaracaoExcecao).toBeNull();
+    // A data continua: é ela que diz se está declarada.
+    expect(c.instrucao?.declaracaoEm).toBe("2026-10-21T15:30:00.000Z");
+  });
+
+  it("data de declaração inválida conta como não declarada", () => {
+    const c = montarCartao({ ...base, instrucao: entrada({ declaracaoEm: new Date("lixo") }) }, contexto, agora);
+    expect(c.instrucao?.declaracaoEm).toBeNull();
+  });
+
+  it("o card inteiro continua serializável (só texto, número, null e objetos simples)", () => {
+    const c = montarCartao(
+      {
+        ...base,
+        instrucao: entrada({ itens: { dfd: { feito: true, em: "2026-10-01" } }, declaracaoEm: new Date("2026-10-21T15:30:00Z") }),
+      },
+      contexto,
+      agora,
+    );
+    expect(JSON.parse(JSON.stringify(c.instrucao))).toEqual(c.instrucao);
   });
 });

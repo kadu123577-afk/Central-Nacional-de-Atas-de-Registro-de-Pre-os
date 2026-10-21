@@ -511,18 +511,24 @@ export async function decidirPedidosNegociacao(formData: FormData): Promise<void
       });
     } else if (ativa.expiradaEm) {
       // Reaproveita o card expirado (mesma ata+município): reinicia no
-      // começo do funil, sem dados de adesão.
-      await prisma.oportunidadeVenda.update({
-        where: { id: ativa.id },
-        data: {
-          vendedorId,
-          estagio: "a_contatar",
-          expiradaEm: null,
-          prazoEm: calcularPrazo(agora),
-          valorAderido: null,
-          percentualComissao: null,
-        },
-      });
+      // começo do funil, sem dados de adesão. A instrução da adesão (checklist
+      // e declaração de conformidade) é do ciclo anterior, talvez de outro
+      // vendedor: apaga junto, senão o novo vendedor herdaria a declaração e
+      // passaria pela trava do estágio "aderiu" sem ter declarado nada.
+      await prisma.$transaction([
+        prisma.instrucaoAdesao.deleteMany({ where: { oportunidadeId: ativa.id } }),
+        prisma.oportunidadeVenda.update({
+          where: { id: ativa.id },
+          data: {
+            vendedorId,
+            estagio: "a_contatar",
+            expiradaEm: null,
+            prazoEm: calcularPrazo(agora),
+            valorAderido: null,
+            percentualComissao: null,
+          },
+        }),
+      ]);
     }
     await prisma.pedidoNegociacao.update({
       where: { id: pedido.id },

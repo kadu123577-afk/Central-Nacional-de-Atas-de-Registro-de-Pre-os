@@ -371,6 +371,6 @@ export function condicaoParaAderiu(args: { declaracaoEm?: Date | string | null }
   if (data && !Number.isNaN(data.getTime())) return { permitido: true };
   return {
     permitido: false,
-    erro: "Antes de marcar como Aderiu, registre a declaração de conformidade da instrução da adesão.",
+    erro: "Antes de marcar como Aderiu, registre a declaração de conformidade na aba Instrução do município.",
   };
 }

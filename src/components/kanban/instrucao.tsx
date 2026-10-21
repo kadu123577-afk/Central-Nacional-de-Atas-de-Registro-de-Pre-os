@@ -1,6 +1,14 @@
 "use client";
 
-import { useActionState, useId, useState } from "react";
+import {
+  startTransition,
+  useActionState,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type ChangeEvent,
+} from "react";
 import { Aviso } from "@/components/ui/aviso";
 import { Badge } from "@/components/ui/badge";
 import { dataCurtaUtc } from "@/lib/formato";
@@ -12,6 +20,7 @@ import {
   MIN_JUSTIFICATIVA,
   TEXTO_DECLARACAO,
   VERSAO_DECLARACAO,
+  normalizarJustificativa,
   resumirInstrucao,
   textoDeclaracao,
   type EstadoItemInstrucao,
@@ -30,14 +39,30 @@ const estadoInicial: EstadoInstrucao = {};
 
 /** Dia e hora no fuso de Brasília: o mesmo texto no servidor e no navegador. */
 function dataHoraBrasilia(iso: string): string {
-  return new Date(iso).toLocaleString("pt-BR", {
+  const data = new Date(iso);
+  const dia = data.toLocaleDateString("pt-BR", {
     timeZone: "America/Sao_Paulo",
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
+  });
+  const hora = data.toLocaleTimeString("pt-BR", {
+    timeZone: "America/Sao_Paulo",
     hour: "2-digit",
     minute: "2-digit",
   });
+  return `${dia} às ${hora}`;
+}
+
+/** Lista curta dentro de um Aviso (os itens que faltam, um por linha, em vez de uma frase corrida). */
+function ListaDeItens({ itens }: { itens: string[] }) {
+  return (
+    <ul className="mt-1 list-disc space-y-0.5 pl-5">
+      {itens.map((rotulo) => (
+        <li key={rotulo}>{rotulo}</li>
+      ))}
+    </ul>
+  );
 }
 
 /**
@@ -64,6 +89,18 @@ export function Instrucao({ cartao: c, somenteLeitura }: { cartao: CartaoView; s
             ? "O vendedor marca conforme os documentos chegam."
             : "Marque conforme os documentos chegarem."}
         </p>
+        {/* Os modelos servem à instrução (demanda, justificativa, parecer...): ficam no começo, não depois de onze itens. */}
+        <p className="mt-1.5">
+          <a
+            href={`/minutas/${c.id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="botao-atas link"
+          >
+            Abrir kit de minutas →<span className="sr-only"> (abre em nova aba)</span>
+          </a>
+        </p>
+        <p className="kb-sub">Modelos de texto para o órgão adaptar; não substituem os atos dele.</p>
       </div>
 
       <div>
@@ -72,7 +109,7 @@ export function Instrucao({ cartao: c, somenteLeitura }: { cartao: CartaoView; s
             Itens obrigatórios
           </p>
           <p className="numero text-xs" style={{ color: "var(--cor-texto-2)" }}>
-            {resumo.obrigatoriosFeitos} de {resumo.obrigatoriosTotal} · {resumo.percentual}%
+            {resumo.obrigatoriosFeitos} de {resumo.obrigatoriosTotal} feitos · {resumo.percentual}%
           </p>
         </div>
         <div
@@ -109,15 +146,6 @@ export function Instrucao({ cartao: c, somenteLeitura }: { cartao: CartaoView; s
       ))}
 
       <BlocoDeclaracao cartao={c} mapa={mapa} resumo={resumo} somenteLeitura={somenteLeitura} />
-
-      <a
-        href={`/minutas/${c.id}`}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="botao-atas link self-start"
-      >
-        Abrir kit de minutas →<span className="sr-only"> (abre em nova aba)</span>
-      </a>
     </>
   );
 }
@@ -141,26 +169,42 @@ function LinhaItem({
   const [resposta, formAction, pendente] = useActionState(acao, estadoInicial);
 
   const feito = estado?.feito === true;
-  // Enquanto a gravação não volta, mostra como o item vai ficar (a caixa fica travada para não enviar duas vezes).
+  // Enquanto a gravação não volta, mostra como o item vai ficar (e ignora novos cliques, para não enviar duas vezes).
   const marcado = pendente ? !feito : feito;
   const nota = estado?.nota;
+
+  // A caixa NÃO fica dentro de um <form action>: quando uma action termina o React
+  // reinicia o formulário, e uma caixa controlada volta ao valor com que foi
+  // desenhada pela primeira vez (apareceria desmarcada mesmo com o item feito).
+  // Por isso o envio é direto, com o estado em que o item deve ficar: o servidor
+  // não deduz nada, confere.
+  // A caixa também não fica "disabled" enquanto grava: desabilitar o campo que tem o
+  // foco o tira de quem usa o teclado. Ela segue ativa e o clique é que é ignorado.
+  function aoMarcar(e: ChangeEvent<HTMLInputElement>) {
+    if (pendente) return;
+    const dados = new FormData();
+    dados.set("feito", e.currentTarget.checked ? "true" : "false");
+    startTransition(() => {
+      formAction(dados);
+    });
+  }
 
   return (
     <div className="flex items-start gap-3">
       {!somenteLeitura && (
-        <form action={formAction} className="pt-0.5">
-          {/* Como o item deve ficar depois do clique: o servidor não deduz, confere. */}
-          <input type="hidden" name="feito" value={feito ? "false" : "true"} />
+        // O rótulo sem texto só aumenta a área de toque da caixa (de 18 para 34 px) sem mexer no layout:
+        // a margem negativa devolve o espaço que o preenchimento ocupa.
+        <label htmlFor={id} className="-m-2 flex cursor-pointer p-2 pt-2.5">
           <input
             id={id}
             type="checkbox"
             checked={marcado}
-            disabled={pendente}
-            onChange={(e) => e.currentTarget.form?.requestSubmit()}
+            onChange={aoMarcar}
             aria-describedby={idAjuda}
-            style={{ width: 18, height: 18, accentColor: "var(--cor-marca)" }}
+            aria-busy={pendente || undefined}
+            style={{ width: 18, height: 18, accentColor: "var(--cor-marca)", opacity: pendente ? 0.6 : 1 }}
           />
-        </form>
+        </label>
       )}
 
       <div className="min-w-0 flex-1" style={{ overflowWrap: "anywhere" }}>
@@ -238,12 +282,19 @@ function BlocoDeclaracao({
   resumo: ResumoInstrucao;
   somenteLeitura: boolean;
 }) {
+  const titulo = useId();
   const instrucao = c.instrucao;
   const declaracaoEm = instrucao?.declaracaoEm ?? null;
 
   return (
-    <section className="flex flex-col gap-2.5" aria-label="Declaração de conformidade">
-      <p className="kb-secao">Declaração de conformidade</p>
+    <section className="flex flex-col gap-2.5" aria-labelledby={titulo}>
+      <p id={titulo} className="kb-secao">
+        Declaração de conformidade
+      </p>
+      {/* Região que já existe quando o resultado muda: é o que faz o leitor de tela avisar "registrada" ou "revogada". */}
+      <p className="sr-only" role="status">
+        {declaracaoEm ? "Declaração registrada." : "Declaração não registrada."}
+      </p>
 
       {declaracaoEm && instrucao ? (
         <DeclaracaoRegistrada cartao={c} resumo={resumo} somenteLeitura={somenteLeitura} />
@@ -277,11 +328,12 @@ function DeclaracaoRegistrada({
         ? "Administrador"
         : "Não informado";
   const aderiu = c.estagio === "aderiu";
-  const pendentes = resumo.pendentesObrigatorios.join("; ");
+  const pendentes = resumo.pendentesObrigatorios;
 
   return (
     <>
-      <Aviso tom="sucesso" titulo="Declaração registrada.">
+      {/* Verde só quando a declaração foi com tudo feito e continua assim: com pendência, só informa o registro. */}
+      <Aviso tom={declaracaoExcecao || !resumo.completo ? "info" : "sucesso"} titulo="Declaração registrada.">
         Em <span className="numero">{dataHoraBrasilia(declaracaoEm)}</span> por {quem}
         {declaracaoVersao != null ? `, versão ${declaracaoVersao} do texto` : ""}.
       </Aviso>
@@ -295,16 +347,28 @@ function DeclaracaoRegistrada({
 
       {declaracaoExcecao && (
         <Aviso tom="atencao" titulo="Registrada com itens obrigatórios pendentes.">
-          Justificativa: {declaracaoExcecao}
-          {pendentes ? ` Itens obrigatórios ainda sem confirmação: ${pendentes}.` : ""}
+          <span className="block" style={{ overflowWrap: "anywhere" }}>
+            Justificativa: {declaracaoExcecao}
+          </span>
+          {pendentes.length > 0 && (
+            <>
+              <span className="mt-1 block">Itens obrigatórios ainda sem confirmação:</span>
+              <ListaDeItens itens={pendentes} />
+            </>
+          )}
         </Aviso>
       )}
 
       {!declaracaoExcecao && !resumo.completo && (
-        <Aviso tom="atencao" titulo="A checklist mudou depois da declaração.">
-          A declaração foi registrada com todos os itens obrigatórios feitos, mas agora faltam: {pendentes}. Ela
-          continua registrada
-          {!somenteLeitura && !aderiu ? "; para refazê-la, revogue e registre de novo." : "."}
+        <Aviso tom="atencao" titulo="O checklist mudou depois da declaração.">
+          <span className="block">
+            A declaração foi registrada com todos os itens obrigatórios feitos, mas agora faltam:
+          </span>
+          <ListaDeItens itens={pendentes} />
+          <span className="mt-1 block">
+            Ela continua registrada
+            {!somenteLeitura && !aderiu ? "; para refazê-la, revogue e registre de novo." : "."}
+          </span>
         </Aviso>
       )}
 
@@ -321,10 +385,30 @@ function DeclaracaoRegistrada({
 function RevogarDeclaracao({ oportunidadeId }: { oportunidadeId: string }) {
   const [confirmando, setConfirmando] = useState(false);
   const [estado, formAction, pendente] = useActionState(revogarDeclaracao.bind(null, oportunidadeId), estadoInicial);
+  const botaoRevogar = useRef<HTMLButtonElement>(null);
+  const botaoCancelar = useRef<HTMLButtonElement>(null);
+  const cancelou = useRef(false);
+
+  // O botão que foi clicado some quando a confirmação aparece (e volta ao cancelar): leva o foco junto,
+  // para quem usa o teclado não cair no começo da página. Na confirmação o foco vai para o "Cancelar",
+  // o lado seguro.
+  useEffect(() => {
+    if (confirmando) {
+      botaoCancelar.current?.focus();
+    } else if (cancelou.current) {
+      cancelou.current = false;
+      botaoRevogar.current?.focus();
+    }
+  }, [confirmando]);
 
   if (!confirmando) {
     return (
-      <button type="button" className="botao-atas secundario self-start" onClick={() => setConfirmando(true)}>
+      <button
+        ref={botaoRevogar}
+        type="button"
+        className="botao-atas secundario self-start"
+        onClick={() => setConfirmando(true)}
+      >
         Revogar declaração
       </button>
     );
@@ -332,15 +416,24 @@ function RevogarDeclaracao({ oportunidadeId }: { oportunidadeId: string }) {
 
   return (
     <form action={formAction} className="flex flex-col gap-2">
-      <p className="text-xs" style={{ color: "var(--cor-texto-2)" }}>
+      <Aviso tom="atencao">
         Revogar apaga a declaração registrada. Enquanto não houver outra, o município não pode ser marcado como Aderiu.
-      </p>
-      {estado.erro && <Aviso tom="critico">{estado.erro}</Aviso>}
+      </Aviso>
+      <div aria-live="polite">{estado.erro && <Aviso tom="critico">{estado.erro}</Aviso>}</div>
       <div className="kb-linha-botoes">
         <button type="submit" disabled={pendente} className="botao-atas critico">
           {pendente ? "Revogando..." : "Confirmar revogação"}
         </button>
-        <button type="button" className="botao-atas link" disabled={pendente} onClick={() => setConfirmando(false)}>
+        <button
+          ref={botaoCancelar}
+          type="button"
+          className="botao-atas link"
+          disabled={pendente}
+          onClick={() => {
+            cancelou.current = true;
+            setConfirmando(false);
+          }}
+        >
           Cancelar
         </button>
       </div>
@@ -359,36 +452,30 @@ function FormularioDeclaracao({
 }) {
   const [estado, formAction, pendente] = useActionState(declararConformidade.bind(null, oportunidadeId), estadoInicial);
   const [justificativa, setJustificativa] = useState("");
+  const idJustificativa = useId();
+  const idContador = `${idJustificativa}-contador`;
 
   // O texto mostrado é o mesmo que o servidor grava como o que a pessoa declarou.
   const texto = textoDeclaracao({ mapa, justificativaExcecao: justificativa });
   const faltam = resumo.obrigatoriosTotal - resumo.obrigatoriosFeitos;
+  // Mesma contagem do servidor (sem caracteres invisíveis nem espaços repetidos).
+  const escritos = normalizarJustificativa(justificativa).length;
 
   return (
-    <form
-      action={formAction}
-      className="flex flex-col gap-2.5 rounded-[12px] border p-3"
-      style={{ borderColor: "var(--cor-borda)", background: "var(--cor-superficie)" }}
-    >
-      <div>
-        <p className="rotulo-campo" style={{ marginBottom: 4 }}>
-          Texto da declaração
-        </p>
-        <p className="text-xs" style={{ color: "var(--cor-texto-2)", overflowWrap: "anywhere" }}>
-          {texto}
-        </p>
-      </div>
-
+    <form action={formAction} className="flex flex-col gap-2.5">
       {!resumo.completo && (
         <>
+          {/* A lista do que falta já está no texto da declaração, logo abaixo. */}
           <Aviso tom="atencao">
-            {faltam === 1 ? "Falta 1 item obrigatório" : `Faltam ${faltam} itens obrigatórios`}:{" "}
-            {resumo.pendentesObrigatorios.join("; ")}. Para declarar mesmo assim, explique o motivo (mínimo de{" "}
-            {MIN_JUSTIFICATIVA} caracteres).
+            {faltam === 1 ? "Falta 1 item obrigatório" : `Faltam ${faltam} itens obrigatórios`}. Para declarar
+            mesmo assim, explique o motivo abaixo (mínimo de {MIN_JUSTIFICATIVA} caracteres).
           </Aviso>
-          <label className="block">
-            <span className="rotulo-campo">Justificativa da exceção</span>
+          <div>
+            <label htmlFor={idJustificativa} className="rotulo-campo">
+              Justificativa da exceção
+            </label>
             <textarea
+              id={idJustificativa}
               name="justificativaExcecao"
               rows={3}
               required
@@ -396,11 +483,23 @@ function FormularioDeclaracao({
               maxLength={MAX_JUSTIFICATIVA}
               value={justificativa}
               onChange={(e) => setJustificativa(e.target.value)}
+              aria-describedby={idContador}
               className="campo-atas"
             />
-          </label>
+            <p id={idContador} className="kb-sub numero">
+              {escritos} de {MIN_JUSTIFICATIVA} caracteres no mínimo
+            </p>
+          </div>
         </>
       )}
+
+      <div className="kb-abordagem">
+        <p className="titulo">Texto da declaração</p>
+        <span style={{ overflowWrap: "anywhere" }}>{texto}</span>
+      </div>
+      <p className="kb-sub" style={{ marginTop: 0 }}>
+        Ao registrar, você faz esta declaração. Ficam gravados a data, a hora e o seu nome.
+      </p>
 
       <div aria-live="polite">{estado.erro && <Aviso tom="critico">{estado.erro}</Aviso>}</div>
       <button type="submit" disabled={pendente} className="botao-atas self-start">

@@ -172,12 +172,7 @@ export async function solicitarMunicipios(
   redirect("/vendedor");
 }
 
-/**
- * Move o card no Kanban — e espelha a mudança como uma
- * InteracaoPontoFocal (histórico por contato que já existia), escolhendo
- * o primeiro contato ativo do município como representante. Assim o
- * painel de contatos e o Kanban nunca desencontram.
- */
+/** Resposta de moverEstagioOportunidade para o painel "Estágio" da gaveta. */
 export interface EstadoMoverEstagio {
   erro?: string;
   ok?: boolean;
@@ -189,6 +184,19 @@ export interface EstadoMoverEstagio {
 const ERRO_DECLARACAO_PARA_ADERIU =
   "Antes de marcar como Aderiu, registre a declaração de conformidade na aba Instrução do município.";
 
+/**
+ * A declaração sumiu (foi revogada) entre a conferência e a gravação: nada foi salvo.
+ * Três frases curtas: o que houve, o que isso significa e o que fazer.
+ */
+const ERRO_DECLARACAO_REVOGADA_NO_MEIO =
+  "A declaração de conformidade foi revogada enquanto você salvava. Nada foi alterado. Atualize a página e confira a aba Instrução do município.";
+
+/**
+ * Move o card no Kanban — e espelha a mudança como uma
+ * InteracaoPontoFocal (histórico por contato que já existia), escolhendo
+ * o primeiro contato ativo do município como representante. Assim o
+ * painel de contatos e o Kanban nunca desencontram.
+ */
 export async function moverEstagioOportunidade(
   oportunidadeId: string,
   _estadoAnterior: EstadoMoverEstagio,
@@ -223,9 +231,15 @@ export async function moverEstagioOportunidade(
   // qualquer escrita, e só depende do que está no banco (nenhum campo do
   // formulário a contorna). Quem já está em "aderiu" e só corrige o valor
   // aderido não passa por ela de novo; os demais estágios não são afetados.
-  if (novoEstagio === "aderiu" && oportunidade.estagio !== "aderiu") {
+  // Como a declaração pode ser revogada em outra aba entre esta conferência
+  // e a gravação, a gravação lá embaixo repete a condição no próprio filtro
+  // (é a outra metade da checagem de apagarDeclaracao). Isso estreita a
+  // janela da corrida; não a elimina sem transação serializável.
+  const entrandoEmAderiu = novoEstagio === "aderiu" && oportunidade.estagio !== "aderiu";
+  if (entrandoEmAderiu) {
+    // Usa o id da oportunidade já conferida (do vendedor), não o argumento cru da action.
     const instrucao = await prisma.instrucaoAdesao.findUnique({
-      where: { oportunidadeId },
+      where: { oportunidadeId: oportunidade.id },
       select: { declaracaoEm: true },
     });
     if (!condicaoParaAderiu({ declaracaoEm: instrucao?.declaracaoEm }).permitido) {
@@ -291,8 +305,12 @@ export async function moverEstagioOportunidade(
     limparRecebivel = true;
   }
 
-  await prisma.oportunidadeVenda.update({
-    where: { id: oportunidadeId },
+  const gravou = await prisma.oportunidadeVenda.updateMany({
+    where: {
+      id: oportunidade.id,
+      // Entrar em "aderiu" só grava se a declaração ainda existe NESTE instante.
+      ...(entrandoEmAderiu ? { instrucao: { is: { declaracaoEm: { not: null } } } } : {}),
+    },
     data: {
       estagio: novoEstagio,
       observacoes: observacoesLimpa,
@@ -302,6 +320,10 @@ export async function moverEstagioOportunidade(
       ...(limparRecebivel ? { valorAderido: null, percentualComissao: null } : {}),
     },
   });
+  if (gravou.count === 0) {
+    // Sem a condição da declaração (outros estágios), zero linhas só acontece se o card sumiu.
+    return { erro: entrandoEmAderiu ? ERRO_DECLARACAO_REVOGADA_NO_MEIO : "Oportunidade não encontrada.", valores };
+  }
 
   const contatoPrincipal = await prisma.pontoFocal.findFirst({
     where: { entidadeAlvoId: oportunidade.entidadeAlvoId, ativo: true },
