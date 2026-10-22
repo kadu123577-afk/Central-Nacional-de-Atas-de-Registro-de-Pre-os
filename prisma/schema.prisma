@@ -333,11 +333,18 @@ model Item {
   quantidadeRegistrada Int
   valorUnitario        Decimal @db.Decimal(14, 2)
   isSeed               Boolean @default(false)
+  // Código do item no catálogo do Compras.gov.br (CATMAT, para material;
+  // CATSER, para serviço) — 2026-10-22, comparativo de preços (vantajosidade).
+  // Nulo = ainda não informado: sem ele não há comparativo. Vários itens
+  // podem ter o mesmo código; a referência de preços (ReferenciaPreco) liga
+  // por ele, não por relação.
+  codigoCatalogo       String?
 
   ata     Ata      @relation(fields: [ataId], references: [id])
   adesoes Adesao[]
   saldo   Saldo?
 
+  @@index([codigoCatalogo])
   @@map("itens")
 }
 
@@ -815,4 +822,44 @@ model VinculoContrato {
 
   @@index([status])
   @@map("vinculos_contrato")
+}
+
+// Referência de preços praticados (2026-10-22, Projeto RNA etapa 4 —
+// "vantajosidade"): estatística dos preços unitários de um item do catálogo
+// do Compras.gov.br em contratações públicas, vinda da API oficial de pesquisa
+// de preços. Uma linha por código de catálogo + tipo; a consulta seguinte
+// atualiza a mesma linha. Liga ao Item pelo código (Item.codigoCatalogo), sem
+// relação, de propósito: vários itens compartilham o mesmo código. É um
+// comparativo AUXILIAR: não substitui a pesquisa de preços do órgão (Lei
+// 14.133/2021, art. 23). Cálculo em src/lib/vantajosidade.ts.
+model ReferenciaPreco {
+  id                  String   @id @default(cuid())
+  codigoCatalogo      String
+  // "material" (CATMAT) ou "servico" (CATSER) — texto, igual categorias/estágios.
+  tipoCatalogo        String   @default("material")
+  // Quantos preços a API devolveu e quantos sobraram depois de descartar
+  // valores inválidos e outliers (é sobre estes que as estatísticas valem).
+  n                   Int
+  nUsadas             Int
+  // Nulos quando a última consulta falhou ou não trouxe preço utilizável.
+  minimo              Decimal? @db.Decimal(16, 4)
+  p25                 Decimal? @db.Decimal(16, 4)
+  mediana             Decimal? @db.Decimal(16, 4)
+  p75                 Decimal? @db.Decimal(16, 4)
+  maximo              Decimal? @db.Decimal(16, 4)
+  media               Decimal? @db.Decimal(16, 4)
+  // Período das contratações consultadas (dataCompraInicio / dataCompraFim).
+  janelaInicio        DateTime
+  janelaFim           DateTime
+  // Unidade de fornecimento a que os preços se referem (ex.: "CAIXA 50 UN");
+  // preços de unidades diferentes não se comparam.
+  unidadeFornecimento String?
+  consultadoEm        DateTime @default(now())
+  fonte               String   @default("compras.gov.br/pesquisa-de-preco")
+  // Texto curto quando a última consulta falhou; nulo = deu certo.
+  erro                String?
+
+  @@unique([codigoCatalogo, tipoCatalogo])
+  @@index([consultadoEm])
+  @@map("referencias_preco")
 }
