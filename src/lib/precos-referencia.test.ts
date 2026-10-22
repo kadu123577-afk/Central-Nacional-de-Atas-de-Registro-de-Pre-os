@@ -5,7 +5,10 @@ import {
   codigoCatalogoValido,
   dedupePorIdItemCompra,
   escolherGrupoDeUnidade,
+  janelaDaAmostra,
   janelaDeDatas,
+  lerPaginaDaApi,
+  mensagemCurtaDeErro,
   normalizarUnidade,
   pareceCodigoDeServico,
   precisaConsultar,
@@ -13,6 +16,7 @@ import {
   rotuloUnidade,
   separarChave,
   siglaDaUnidadeDoItem,
+  unidadeMaisComum,
   urlPrecoMaterial,
   urlPrecoServico,
   type AmostraRegistro,
@@ -80,6 +84,8 @@ describe("janelaDeDatas", () => {
     expect(janelaDeDatas(new Date(2026, 9, 22, 12), Number.NaN).inicio).toBe("2025-10-22");
     expect(janelaDeDatas(new Date(2026, 9, 22, 12), 0).inicio).toBe("2026-09-22");
     expect(() => janelaDeDatas(new Date("lixo"))).toThrow();
+    // Fora do calendário: erro claro, não "NaN-NaN-NaN" numa consulta.
+    expect(() => janelaDeDatas(new Date(2026, 9, 22, 12), 1e9)).toThrow(/calendário/);
   });
 });
 
@@ -201,6 +207,17 @@ describe("chaveUnidade", () => {
     expect(chaveUnidade({ nomeUnidadeMedida: "HORA" })).toBe("H|0");
     // Com unidade de fornecimento, ela manda.
     expect(chaveUnidade({ siglaUnidadeFornecimento: "CX", capacidadeUnidadeFornecimento: 12, siglaUnidadeMedida: "UN" })).toBe("CX|12");
+  });
+
+  it("serviço de verdade (CATSER 25089): 'D'/'DIA' e 'UN'/'UNIDADE' ficam em grupos separados", () => {
+    expect(chaveUnidade({ siglaUnidadeMedida: "D", nomeUnidadeMedida: "DIA", siglaUnidadeFornecimento: null })).toBe("DIA|0");
+    expect(chaveUnidade({ siglaUnidadeMedida: "UN", nomeUnidadeMedida: "UNIDADE" })).toBe("UN|0");
+    expect(chaveUnidade({ siglaUnidadeMedida: "KMR", nomeUnidadeMedida: "QUILOMETRO RODADO" })).toBe("KMR|0");
+  });
+
+  it("sigla que não é conhecida cede à do nome, quando o nome é conhecido", () => {
+    expect(chaveUnidade({ siglaUnidadeFornecimento: "XX", nomeUnidadeFornecimento: "CAIXA", capacidadeUnidadeFornecimento: 10 })).toBe("CX|10");
+    expect(chaveUnidade({ siglaUnidadeFornecimento: "XX", nomeUnidadeFornecimento: "YY" })).toBe("XX|0");
   });
 
   it("sem sigla usa o nome; sem nada, '?'", () => {
@@ -387,6 +404,25 @@ describe("grupos de unidade: o caso real UN a 0,70 x PCT/100 a 7,20 x PCT/0 a 11
     expect(escolherGrupoDeUnidade({ "UN|0": [] }, "UN")).toBeNull();
   });
 
+  it("sem unidade que confira, o grupo 'sem unidade informada' só vale se não houver outro", () => {
+    const semUnidade = new Map([
+      ["?|0", Array.from({ length: 10 }, (_, i) => amostra(5, "?|0", `s${i}`))],
+      ["DIA|0", Array.from({ length: 3 }, (_, i) => amostra(238, "DIA|0", `d${i}`))],
+    ]);
+    expect(escolherGrupoDeUnidade(semUnidade, "")!.chave).toBe("DIA|0");
+    expect(escolherGrupoDeUnidade(new Map([["?|0", [amostra(5, "?|0")]]]), "")!.chave).toBe("?|0");
+  });
+
+  it("serviço: item em 'Dia' fica com o grupo DIA, mesmo com 'UN' a R$ 19.998 e maior", () => {
+    const servico = new Map([
+      ["UN|0", Array.from({ length: 275 }, (_, i) => amostra(19998.6, "UN|0", `u${i}`))],
+      ["DIA|0", Array.from({ length: 5 }, (_, i) => amostra(238.01, "DIA|0", `d${i}`))],
+    ]);
+    const g = escolherGrupoDeUnidade(servico, "Dia")!;
+    expect(g.chave).toBe("DIA|0");
+    expect(g.unidadeConfere).toBe(true);
+  });
+
   it("um grupo só e sem 'outros grupos' no motivo", () => {
     const g = escolherGrupoDeUnidade({ "UN|0": [amostra(1, "UN|0")] }, "UN")!;
     expect(g.motivo).not.toContain("ignorados");
@@ -394,11 +430,20 @@ describe("grupos de unidade: o caso real UN a 0,70 x PCT/100 a 7,20 x PCT/0 a 11
 });
 
 describe("pareceCodigoDeServico", () => {
-  it("até 5 dígitos e unidade que não é de coisa", () => {
+  it("até 5 dígitos e unidade de serviço (serviço, mês, hora, dia, diária)", () => {
     expect(pareceCodigoDeServico("25089", "serviço")).toBe(true);
-    expect(pareceCodigoDeServico("3670", "")).toBe(true);
-    expect(pareceCodigoDeServico("3670", "unidade")).toBe(true);
     expect(pareceCodigoDeServico("3670", "mês")).toBe(true);
+    expect(pareceCodigoDeServico("3670", "Hora")).toBe(true);
+    expect(pareceCodigoDeServico("3670", "diária")).toBe(true);
+    expect(pareceCodigoDeServico(3670, "dia")).toBe(true);
+  });
+
+  it("na dúvida (unidade 'unidade', vazia ou desconhecida) não parece: só a opção --servico tenta serviço", () => {
+    expect(pareceCodigoDeServico("3670", "unidade")).toBe(false);
+    expect(pareceCodigoDeServico("3670", "UN")).toBe(false);
+    expect(pareceCodigoDeServico("3670", "")).toBe(false);
+    expect(pareceCodigoDeServico("3670", undefined)).toBe(false);
+    expect(pareceCodigoDeServico("3670", "tambor")).toBe(false);
   });
 
   it("6 dígitos (CATMAT) ou unidade de coisa não parece serviço", () => {
@@ -407,6 +452,105 @@ describe("pareceCodigoDeServico", () => {
     expect(pareceCodigoDeServico("25089", "kg")).toBe(false);
     expect(pareceCodigoDeServico("abc", "serviço")).toBe(false);
     expect(pareceCodigoDeServico("", "serviço")).toBe(false);
+  });
+});
+
+describe("unidadeMaisComum (dica da unidade para o código)", () => {
+  it("a unidade que mais itens usam ganha, mesmo sem ser a primeira em ordem alfabética", () => {
+    expect(unidadeMaisComum([["CAIXA", 1], ["UNIDADE", 40]])).toBe("UNIDADE");
+    expect(unidadeMaisComum([["UNIDADE", 40], ["CAIXA", 1]])).toBe("UNIDADE");
+  });
+
+  it("junta as grafias da mesma unidade antes de contar", () => {
+    // Sozinhas, "Caixa" (2) e "cx" (2) perdem para "Unidade" (3); juntas (4) ganham.
+    expect(unidadeMaisComum([["Caixa", 2], ["cx", 2], ["Unidade", 3]])).toBe("Caixa");
+    expect(unidadeMaisComum([["TAMBOR TÉRMICO", 2], ["tambor termico", 2], ["Unidade", 3]])).toBe("TAMBOR TÉRMICO");
+  });
+
+  it("empate: a reconhecida primeiro, depois a ordem do texto (sempre o mesmo resultado)", () => {
+    expect(unidadeMaisComum([["Tambor", 1], ["Caixa", 1]])).toBe("Caixa");
+    expect(unidadeMaisComum([["Caixa", 1], ["Tambor", 1]])).toBe("Caixa");
+    expect(unidadeMaisComum([["Pacote", 1], ["Caixa", 1]])).toBe("Caixa");
+  });
+
+  it("ignora texto vazio, quantidade inválida e dado que não é texto", () => {
+    expect(unidadeMaisComum([])).toBeNull();
+    expect(unidadeMaisComum([["", 5], ["   ", 3]])).toBeNull();
+    expect(unidadeMaisComum([["Caixa", 0], ["Caixa", -2]])).toBeNull();
+    expect(unidadeMaisComum([[null as unknown as string, 4], ["Kg", 1]])).toBe("Kg");
+  });
+});
+
+describe("lerPaginaDaApi", () => {
+  it("lê o envelope: registros e páginas que faltam", () => {
+    const p = lerPaginaDaApi({ resultado: [{ a: 1 }, { a: 2 }], totalRegistros: 1200, totalPaginas: 3, paginasRestantes: 2 }, 1);
+    expect(p).toEqual({ registros: [{ a: 1 }, { a: 2 }], restantes: 2 });
+    expect(lerPaginaDaApi({ resultado: [], totalPaginas: 3, paginasRestantes: 0 }, 3)?.restantes).toBe(0);
+  });
+
+  it("sem resultado em lista, não é resposta da API", () => {
+    for (const ruim of [null, undefined, "texto", 5, [], {}, { resultado: null }, { resultado: "x" }, { resultado: {} }]) {
+      expect(lerPaginaDaApi(ruim, 1)).toBeNull();
+    }
+  });
+
+  it("paginasRestantes nulo ou texto inútil NÃO vira zero: cai no totalPaginas", () => {
+    // Number(null) e Number("") dão 0 e a leitura pararia no meio.
+    expect(lerPaginaDaApi({ resultado: [1], totalPaginas: 5, paginasRestantes: null }, 2)?.restantes).toBe(3);
+    expect(lerPaginaDaApi({ resultado: [1], totalPaginas: 5, paginasRestantes: "" }, 2)?.restantes).toBe(3);
+    expect(lerPaginaDaApi({ resultado: [1], totalPaginas: 5, paginasRestantes: "abc" }, 2)?.restantes).toBe(3);
+    expect(lerPaginaDaApi({ resultado: [1], totalPaginas: 5 }, 5)?.restantes).toBe(0);
+    expect(lerPaginaDaApi({ resultado: [1], totalPaginas: 5 }, 9)?.restantes).toBe(0);
+  });
+
+  it("aceita número em texto e, sem nenhum dos dois campos, considera a última página", () => {
+    expect(lerPaginaDaApi({ resultado: [1], paginasRestantes: "4" }, 1)?.restantes).toBe(4);
+    expect(lerPaginaDaApi({ resultado: [1] }, 1)?.restantes).toBe(0);
+    expect(lerPaginaDaApi({ resultado: [1], paginasRestantes: -1, totalPaginas: 3 }, 1)?.restantes).toBe(2);
+  });
+});
+
+describe("janelaDaAmostra", () => {
+  const janela = { inicio: "2025-10-22", fim: "2026-10-22" };
+
+  it("sem truncamento vale a janela pedida, mesmo que as datas lidas sejam mais novas", () => {
+    expect(janelaDaAmostra(janela, ["2026-09-01", "2026-10-01"], false)).toEqual(janela);
+  });
+
+  it("truncado: o início passa a ser a compra mais antiga lida, e o fim continua o mesmo", () => {
+    expect(janelaDaAmostra(janela, ["2026-10-21", "2026-08-03", "2026-09-15"], true)).toEqual({ inicio: "2026-08-03", fim: "2026-10-22" });
+  });
+
+  it("truncado: ignora data ausente, malformada ou fora da janela", () => {
+    expect(janelaDaAmostra(janela, [undefined, "lixo", "2024-01-01", "2027-01-01", "2026-07-07"], true)).toEqual({
+      inicio: "2026-07-07",
+      fim: "2026-10-22",
+    });
+  });
+
+  it("truncado sem nenhuma data utilizável: volta à janela pedida", () => {
+    expect(janelaDaAmostra(janela, [], true)).toEqual(janela);
+    expect(janelaDaAmostra(janela, [undefined, "x"], true)).toEqual(janela);
+  });
+});
+
+describe("mensagemCurtaDeErro", () => {
+  it("nunca devolve texto vazio: mensagem do Prisma começa com linha em branco", () => {
+    const prisma = new Error("\nInvalid `prisma.referenciaPreco.upsert()` invocation:\n\n\nValor fora do limite da coluna");
+    expect(mensagemCurtaDeErro(prisma)).toBe("Invalid `prisma.referenciaPreco.upsert()` invocation:");
+    expect(mensagemCurtaDeErro(prisma, { linha: "ultima" })).toBe("Valor fora do limite da coluna");
+  });
+
+  it("sem mensagem útil, texto padrão (nunca '')", () => {
+    for (const ruim of [new Error(""), new Error("\n \n"), "", null, undefined, 42, {}]) {
+      expect(mensagemCurtaDeErro(ruim)).toBe("Falha desconhecida");
+    }
+  });
+
+  it("texto simples, corte no tamanho máximo", () => {
+    expect(mensagemCurtaDeErro("HTTP 500")).toBe("HTTP 500");
+    expect(mensagemCurtaDeErro(new Error("x".repeat(500)))).toHaveLength(200);
+    expect(mensagemCurtaDeErro(new Error("abcdef"), { maximo: 3 })).toBe("abc");
   });
 });
 

@@ -277,10 +277,21 @@ function paraNumero(valor: Numerico): number | null {
   return Number.isFinite(numero) ? numero : null;
 }
 
+/**
+ * Código do item como a referência de preços o guarda: sem espaços nas pontas
+ * e, sendo número, sem zeros à esquerda (o script de preços grava a referência
+ * assim; "0123" no item e "123" na referência são o mesmo código). Vazio ou só
+ * zeros: sem código.
+ */
 function codigoLimpo(valor: string | null | undefined): string | null {
   if (typeof valor !== "string") return null;
   const limpo = valor.trim();
-  return limpo === "" ? null : limpo;
+  if (limpo === "") return null;
+  if (/^[0-9]+$/.test(limpo)) {
+    const semZeros = limpo.replace(/^0+/, "");
+    return semZeros === "" ? null : semZeros;
+  }
+  return limpo;
 }
 
 // ------------------------------------------------------------- montagem
@@ -322,7 +333,28 @@ function escolherLinha(candidatas: LinhaReferencia[]): LinhaReferencia {
   return ordenadas[0];
 }
 
-function referenciaDaLinha(linha: LinhaReferencia): ReferenciaDoItem {
+const MEIO_DIA_MS = 12 * 60 * 60 * 1000;
+
+/**
+ * Quando os preços da linha foram de fato consultados. Quando a última
+ * tentativa do script falhou, ele troca só `erro` e `consultadoEm` (a data da
+ * TENTATIVA): as estatísticas e a janela continuam as da última consulta que
+ * deu certo, e a janela termina no dia dessa consulta. Mostrar a data da
+ * tentativa ao lado de números antigos faria o comparativo parecer mais novo
+ * do que é (e a minuta diria "consultados em" um dia em que nada foi
+ * consultado); por isso, nesse caso, vale o fim da janela (ao meio-dia UTC,
+ * para o fuso de São Paulo mostrar o mesmo dia).
+ */
+function quandoOsPrecosForamConsultados(linha: LinhaReferencia, temEstatisticas: boolean): Date {
+  if (!linha.erro || !temEstatisticas) return linha.consultadoEm;
+  const fim = linha.janelaFim instanceof Date ? linha.janelaFim.getTime() : Number.NaN;
+  return Number.isNaN(fim) ? linha.consultadoEm : new Date(fim + MEIO_DIA_MS);
+}
+
+const AVISO_ATUALIZACAO_FALHOU =
+  "A última tentativa de atualizar os preços deste código não deu certo; esta comparação usa a consulta anterior.";
+
+function referenciaDaLinha(linha: LinhaReferencia, temEstatisticas: boolean): ReferenciaDoItem {
   return {
     mediana: paraNumero(linha.mediana),
     p25: paraNumero(linha.p25),
@@ -334,7 +366,7 @@ function referenciaDaLinha(linha: LinhaReferencia): ReferenciaDoItem {
     janelaInicio: linha.janelaInicio,
     janelaFim: linha.janelaFim,
     unidadeFornecimento: linha.unidadeFornecimento,
-    consultadoEm: linha.consultadoEm,
+    consultadoEm: quandoOsPrecosForamConsultados(linha, temEstatisticas),
     erro: linha.erro,
   };
 }
@@ -394,8 +426,8 @@ export function montarComparativo(itensDoBanco: LinhaItem[], referencias: LinhaR
     }
 
     const linha = escolherLinha(candidatas);
-    const referencia = referenciaDaLinha(linha);
     const estatisticas = estatisticasUsaveis(linha);
+    const referencia = referenciaDaLinha(linha, estatisticas !== null);
 
     if (estatisticas === null) {
       itens.push(
@@ -427,7 +459,7 @@ export function montarComparativo(itensDoBanco: LinhaItem[], referencias: LinhaR
       referencia,
       classificacao: resultado.situacao,
       diferencaPercentual: resultado.diferencaPercentual,
-      explicacao: resultado.explicacao,
+      explicacao: linha.erro ? `${resultado.explicacao} ${AVISO_ATUALIZACAO_FALHOU}` : resultado.explicacao,
       unidadeDiverge: false,
     });
   }

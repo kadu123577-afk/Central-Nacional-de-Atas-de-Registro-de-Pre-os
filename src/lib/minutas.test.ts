@@ -272,7 +272,7 @@ describe("justificativa da vantagem: referência auxiliar de preços", () => {
     expect(referencia).toContain("Compatíveis com os preços consultados: 6.");
     expect(referencia).toContain("Acima dos preços consultados: 2.");
     expect(referencia).toContain("Abaixo dos preços consultados: 1.");
-    expect(referencia).toContain("Sem comparação (sem código do catálogo, poucos preços consultados ou unidade diferente): 3.");
+    expect(referencia).toContain("Sem comparação (por exemplo, sem código do catálogo, sem preços consultados, poucos preços ou unidade diferente): 3.");
     expect(referencia).toContain("somam 18,5% do valor dos itens comparados");
     expect(referencia).toContain(TEXTO_AVISO_VANTAJOSIDADE);
     expect(referencia).toContain("Avaliação do órgão sobre esta referência: [PREENCHER: avaliação do órgão");

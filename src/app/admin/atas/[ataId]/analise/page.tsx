@@ -354,8 +354,8 @@ function ComparativoDosItens({ comparativo }: { comparativo: ComparativoDaAta })
       {nenhumConsultado && (
         <Aviso tom="atencao" titulo={nenhumComCodigo ? "Nenhum item desta ata tem código do catálogo." : "Ainda não há preços consultados para esta ata."}>
           {nenhumComCodigo
-            ? "Informe o código CATMAT ou CATSER de cada item (campo “Código do catálogo” ao cadastrar ou completar a ata). "
-            : "Os itens já têm código, mas os preços ainda não foram buscados. "}
+            ? "O código CATMAT ou CATSER é informado em cada item (campo “Código do catálogo”), ao cadastrar a ata ou ao adicionar um item na tela de completar a ata. "
+            : "Há itens com código, mas os preços ainda não foram buscados. "}
           O script <span className="codigo">scripts/inteligencia/buscar-precos-referencia.ts</span> busca os preços de
           referência no Compras.gov.br depois que os itens têm código; quando ele rodar, esta tabela é preenchida.
         </Aviso>
@@ -363,6 +363,7 @@ function ComparativoDosItens({ comparativo }: { comparativo: ComparativoDaAta })
 
       <div className="moldura-tabela">
         <table className="tabela-atas min-w-[1040px]">
+          <caption className="sr-only">Comparativo auxiliar do preço unitário de cada item da ata</caption>
           <thead>
             <tr>
               <th>Item</th>
@@ -370,7 +371,7 @@ function ComparativoDosItens({ comparativo }: { comparativo: ComparativoDaAta })
               <th>Mediana e faixa (p25–p75)</th>
               <th>Preços usados</th>
               <th>Período e consulta</th>
-              <th>Diferença</th>
+              <th>Diferença sobre a mediana</th>
               <th>Situação</th>
             </tr>
           </thead>
@@ -395,7 +396,7 @@ function LinhaDoItem({ item }: { item: ItemComparado }) {
       <td className="min-w-[14rem] max-w-[20rem] align-top">
         <span className="titulo-linha block text-[13.5px] leading-snug">{item.descricao}</span>
         <span className="mt-0.5 block text-xs" style={COR_SECUNDARIA}>
-          <span className="numero">{item.quantidade}</span> {item.unidade}
+          <span className="numero">{item.quantidade.toLocaleString("pt-BR")}</span> {item.unidade}
           {item.codigoCatalogo ? (
             <>
               {" · cód. "}
@@ -422,6 +423,11 @@ function LinhaDoItem({ item }: { item: ItemComparado }) {
                 {reais(referencia.p25)} – {reais(referencia.p75)}
               </span>
             </span>
+            {referencia.unidadeFornecimento && (
+              <span className="mt-0.5 block text-xs" style={COR_SECUNDARIA}>
+                por {referencia.unidadeFornecimento}
+              </span>
+            )}
           </>
         ) : (
           <span style={COR_SECUNDARIA}>—</span>

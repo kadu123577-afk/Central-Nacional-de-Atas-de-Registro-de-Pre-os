@@ -136,7 +136,8 @@ function ResumoDePrecos({ comparativo }: { comparativo: ComparativoDaAta }) {
           </b>{" "}
           {itensTotal === 1 ? "item comparado" : "itens comparados"} com preços de contratações públicas
         </span>
-        <Badge tom={acima > 0 ? "atencao" : "marca"}>
+        {/* Neutro quando nenhum item está acima: verde diria "aprovado", e o comparativo é só auxiliar. */}
+        <Badge tom={acima > 0 ? "atencao" : "neutro"}>
           {acima === 0
             ? "Nenhum item acima da referência"
             : acima === 1

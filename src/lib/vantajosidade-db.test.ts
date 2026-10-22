@@ -205,6 +205,17 @@ describe("montarComparativo: situações", () => {
     }
   });
 
+  it("código com zeros à esquerda no item acha a referência gravada sem eles; só zeros vale como sem código", () => {
+    const { itens } = montarComparativo([item({ codigoCatalogo: " 0123456 " })], [referencia({ codigoCatalogo: "123456" })]);
+    expect(itens[0].codigoCatalogo).toBe("123456");
+    expect(itens[0].classificacao).toBe("compativel");
+
+    const zeros = montarComparativo([item({ codigoCatalogo: "000" })], [referencia({ codigoCatalogo: "0" })]);
+    expect(zeros.itens[0].codigoCatalogo).toBeNull();
+    expect(zeros.itens[0].classificacao).toBe("sem_referencia");
+    expect(zeros.itens[0].explicacao).toBe("Informe o código do catálogo do item para comparar.");
+  });
+
   it("com código mas sem linha de referência: ainda não consultado", () => {
     const { itens } = montarComparativo([item({ codigoCatalogo: "999" })], [referencia()]);
     expect(itens[0].classificacao).toBe("sem_referencia");
@@ -230,6 +241,36 @@ describe("montarComparativo: situações", () => {
     expect(itens[0].referencia?.erro).toBe("API fora do ar");
     expect(itens[0].referencia?.mediana).toBeNull();
     expect(itens[0].explicacao).toMatch(/não deu certo/);
+  });
+
+  it("última consulta falhou mas há estatística da anterior: compara, avisa da falha e mostra o dia em que os preços foram de fato consultados", () => {
+    // O script, ao falhar, troca só erro e consultadoEm (a data da TENTATIVA); a janela continua a da última consulta boa.
+    const tentativa = new Date("2026-10-25T13:00:00Z");
+    const antiga = referencia({ erro: "API fora do ar", consultadoEm: tentativa, janelaFim: new Date("2026-10-22T00:00:00Z") });
+    const { itens, consultadoEm } = montarComparativo([item({ valorUnitario: new Prisma.Decimal("130.00") })], [antiga]);
+
+    expect(itens[0].classificacao).toBe("acima");
+    expect(itens[0].explicacao).toMatch(/não deu certo/);
+    expect(itens[0].explicacao).toMatch(/consulta anterior/);
+    expect(itens[0].referencia?.erro).toBe("API fora do ar");
+    // Nunca a data da tentativa (25/10) ao lado de preços de 22/10.
+    const dia = itens[0].referencia?.consultadoEm;
+    expect(dia).toEqual(new Date("2026-10-22T12:00:00Z"));
+    expect(dia?.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })).toBe("22/10/2026");
+    expect(consultadoEm).toEqual({ maisAntiga: dia, maisRecente: dia });
+  });
+
+  it("sem falha, a data de consulta é a do próprio registro, não a do fim da janela", () => {
+    const { itens } = montarComparativo([item()], [referencia({ consultadoEm: new Date("2026-10-23T13:00:00Z") })]);
+    expect(itens[0].referencia?.consultadoEm).toEqual(new Date("2026-10-23T13:00:00Z"));
+    expect(itens[0].explicacao).not.toMatch(/não deu certo|consulta anterior/);
+  });
+
+  it("falha com a janela ilegível: cai na data da tentativa, sem quebrar", () => {
+    const quebrada = referencia({ erro: "falhou", janelaFim: new Date("não é data") });
+    const { itens } = montarComparativo([item()], [quebrada]);
+    expect(itens[0].classificacao).toBe("compativel");
+    expect(itens[0].referencia?.consultadoEm).toEqual(CONSULTA);
   });
 
   it("consulta sem erro mas sem preços: diz que não encontrou preços", () => {
@@ -467,6 +508,18 @@ describe("carregarComparativoDaAta: o que pede ao banco", () => {
     expect(dobles.referenciaFindMany).toHaveBeenCalledWith({ where: { codigoCatalogo: { in: ["111", "222"] } } });
     expect(resultado.itens).toHaveLength(40);
     expect(resultado.resumo.itensTotal).toBe(40);
+  });
+
+  it("pede as referências pelos códigos já normalizados (sem espaços nem zeros à esquerda)", async () => {
+    dobles.itemFindMany.mockResolvedValue([
+      item({ id: "a", codigoCatalogo: "00123" }),
+      item({ id: "b", codigoCatalogo: " 123 " }),
+      item({ id: "c", codigoCatalogo: "456" }),
+    ]);
+    dobles.referenciaFindMany.mockResolvedValue([referencia({ codigoCatalogo: "123" })]);
+    const resultado = await carregarComparativoDaAta("ata1");
+    expect(dobles.referenciaFindMany).toHaveBeenCalledWith({ where: { codigoCatalogo: { in: ["123", "456"] } } });
+    expect(resultado.itens.map((i) => i.classificacao)).toEqual(["compativel", "compativel", "sem_referencia"]);
   });
 
   it("nenhum item com código: não consulta as referências", async () => {

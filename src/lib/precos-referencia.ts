@@ -15,10 +15,14 @@
  *  - `idItemCompra` é um número seguro (< 2^53) e identifica o item da compra;
  *    `idCompra` PASSA de 2^53 (o JSON.parse perde precisão), então nunca é
  *    usado como chave nem exibido;
- *  - o endpoint de serviço (3_consultarServico) traz a unidade de MEDIDA
- *    (siglaUnidadeMedida/nomeUnidadeMedida, quase sempre "UNIDADE"), sem
- *    capacidade; um mesmo código CATSER reúne cobranças diferentes (valor fixo,
- *    hora, quilômetro), então a faixa de preços de serviço é larga;
+ *  - o endpoint de serviço (3_consultarServico) EXIGE codigoItemCatalogo (sem ele
+ *    devolve 404 "Resource not found"; com código inexistente devolve 200 com
+ *    lista vazia) e traz a unidade de MEDIDA (siglaUnidadeMedida/nomeUnidadeMedida:
+ *    "UN"/"UNIDADE", "D"/"DIA", "H", "KMR"...), sem capacidade; um mesmo código
+ *    CATSER reúne cobranças diferentes (valor fixo, dia, hora, quilômetro: o
+ *    CATSER 25089, locação de veículo, mistura "UN" a R$ 19.998 com "DIA" a
+ *    R$ 238), então a faixa de preços de serviço é larga e o filtro por unidade
+ *    é indispensável;
  *  - ARMADILHA DE UNIDADE: o mesmo item aparece a R$ 0,70 em "UN" e a R$ 7,20
  *    em "PCT" de capacidade 100, e há "PCT" de capacidade 0 a R$ 116. A chave de
  *    unidade é SIGLA + CAPACIDADE e grupos diferentes nunca se misturam: o
@@ -101,6 +105,8 @@ export function janelaDeDatas(hoje: Date, meses: number = MESES_JANELA_PADRAO): 
   const primeiroDoMes = new Date(hoje.getFullYear(), hoje.getMonth() - m, 1);
   const ultimoDia = new Date(primeiroDoMes.getFullYear(), primeiroDoMes.getMonth() + 1, 0).getDate();
   const inicio = new Date(primeiroDoMes.getFullYear(), primeiroDoMes.getMonth(), Math.min(hoje.getDate(), ultimoDia));
+  // Meses absurdos (ex.: 1e9) saem do calendário: melhor erro claro do que "NaN-NaN-NaN" na consulta.
+  if (Number.isNaN(inicio.getTime())) throw new Error(`janelaDeDatas: ${m} meses fica fora do calendário`);
   return { inicio: formatarData(inicio), fim: formatarData(hoje) };
 }
 
@@ -199,7 +205,8 @@ const SINONIMOS_DE_UNIDADE: Record<string, string[]> = {
   BARRA: ["BARRA", "BARRAS"],
   TON: ["TON", "TONELADA", "TONELADAS"],
   H: ["H", "HR", "HRS", "HORA", "HORAS"],
-  DIA: ["DIA", "DIAS"],
+  // "D" é a sigla que o endpoint de serviço usa para DIA (conferido ao vivo, código 25089).
+  DIA: ["D", "DIA", "DIAS"],
   MES: ["MES", "MESES"],
   DIARIA: ["DIARIA", "DIARIAS"],
   SERV: ["SERV", "SERVICO", "SERVICOS"],
@@ -209,17 +216,18 @@ const SIGLA_PELO_SINONIMO: ReadonlyMap<string, string> = new Map(
   Object.entries(SINONIMOS_DE_UNIDADE).flatMap(([sigla, formas]) => formas.map((f) => [f, sigla] as [string, string])),
 );
 
-/** Unidades de coisas que se contam, pesam ou medem: um serviço não vem nelas. */
-const UNIDADES_DE_COISA = new Set([
-  "CX", "PCT", "FR", "KG", "G", "MG", "L", "ML", "M", "M2", "M3", "CM", "MM", "PAR", "RESMA", "ROLO", "SC", "TB",
-  "BD", "GL", "LATA", "PC", "AMP", "CP", "BL", "KIT", "JG", "DZ", "CENTO", "MIL", "BOB", "BIS", "EMB", "FD", "SACHE",
-  "BARRA", "TON",
-]);
+/**
+ * Unidades que só um serviço usa (mês, hora, dia, diária, serviço). "Unidade"
+ * não está aqui de propósito: bem mais itens de material vêm em "UN" do que
+ * serviços, e um número de CATMAT com até 5 dígitos pode ser, também, um
+ * número de CATSER de outro serviço.
+ */
+const UNIDADES_DE_SERVICO = new Set(["SERV", "H", "DIA", "MES", "DIARIA"]);
 
 function textoSimples(texto: string): string {
   return texto
     .normalize("NFKD")
-    .replace(/[̀-ͯ]/g, "")
+    .replace(/\p{M}/gu, "")
     .toUpperCase()
     .replace(/\./g, "")
     .replace(/\s+/g, " ")
@@ -252,6 +260,35 @@ export function siglaDaUnidadeDoItem(texto: unknown): string {
   return (primeira && SIGLA_PELO_SINONIMO.get(primeira)) || "";
 }
 
+/**
+ * Unidade que melhor representa os itens que usam um mesmo código de catálogo:
+ * a mais frequente, juntando as grafias da mesma unidade ("Caixa", "CAIXA" e
+ * "cx" contam juntas). Empate: a unidade reconhecida e, depois, o texto em
+ * ordem alfabética (resultado sempre igual). `contagens` traz [texto da
+ * unidade do item, quantos itens a usam]. Nulo quando não há unidade escrita.
+ */
+export function unidadeMaisComum(contagens: Iterable<[string, number]>): string | null {
+  const porChave = new Map<string, { texto: string; total: number; reconhecida: boolean }>();
+  for (const [bruto, quantidade] of contagens) {
+    if (typeof bruto !== "string" || !(quantidade > 0)) continue;
+    const texto = bruto.trim();
+    if (texto === "") continue;
+    const sigla = siglaDaUnidadeDoItem(texto);
+    const chave = sigla || textoSimples(texto);
+    const atual = porChave.get(chave);
+    if (atual) {
+      atual.total += quantidade;
+      if (texto < atual.texto) atual.texto = texto;
+    } else {
+      porChave.set(chave, { texto, total: quantidade, reconhecida: sigla !== "" });
+    }
+  }
+  const ordenadas = [...porChave.values()].sort(
+    (a, b) => b.total - a.total || Number(b.reconhecida) - Number(a.reconhecida) || (a.texto < b.texto ? -1 : a.texto > b.texto ? 1 : 0),
+  );
+  return ordenadas[0]?.texto ?? null;
+}
+
 function capacidadeValida(valor: unknown): number {
   const n = typeof valor === "number" ? valor : typeof valor === "string" && /^\d+(\.\d+)?$/.test(valor.trim()) ? Number(valor) : NaN;
   return Number.isFinite(n) && n > 0 ? Number(n.toFixed(4)) : 0;
@@ -259,21 +296,31 @@ function capacidadeValida(valor: unknown): number {
 
 const SIGLA_DESCONHECIDA = "?";
 
+const SIGLAS_CONHECIDAS: ReadonlySet<string> = new Set(Object.keys(SINONIMOS_DE_UNIDADE));
+
+/** Sigla de um par sigla/nome: a que for conhecida (sigla primeiro), senão a que houver, já limpa. */
+function siglaDoPar(sigla: unknown, nome: unknown): string {
+  const a = normalizarUnidade(sigla);
+  const b = normalizarUnidade(nome);
+  if (SIGLAS_CONHECIDAS.has(a)) return a;
+  if (SIGLAS_CONHECIDAS.has(b)) return b;
+  return a || b;
+}
+
 /**
  * Chave da unidade de um registro da API: sigla padronizada + "|" +
  * capacidade ("UN|0", "PCT|100"). Sem sigla, usa o nome da unidade; sem nenhum
  * dos dois, "?". Capacidade ausente ou inválida vale 0.
  * O endpoint de material informa a unidade de FORNECIMENTO (com capacidade);
  * o de serviço só a unidade de MEDIDA (siglaUnidadeMedida/nomeUnidadeMedida,
- * conferido ao vivo em 2026-10-22), que serve de segunda opção.
+ * conferido ao vivo em 2026-10-22: "UN"/"UNIDADE", "D"/"DIA"), que serve de
+ * segunda opção.
  */
 export function chaveUnidade(registro: unknown): string {
   const r = (registro && typeof registro === "object" ? registro : {}) as Record<string, unknown>;
   const sigla =
-    normalizarUnidade(r.siglaUnidadeFornecimento) ||
-    normalizarUnidade(r.nomeUnidadeFornecimento) ||
-    normalizarUnidade(r.siglaUnidadeMedida) ||
-    normalizarUnidade(r.nomeUnidadeMedida) ||
+    siglaDoPar(r.siglaUnidadeFornecimento, r.nomeUnidadeFornecimento) ||
+    siglaDoPar(r.siglaUnidadeMedida, r.nomeUnidadeMedida) ||
     SIGLA_DESCONHECIDA;
   let capacidade = capacidadeValida(r.capacidadeUnidadeFornecimento);
   // "UN" de capacidade 1 é o mesmo que "UN" sem capacidade: sem isto o mesmo item se partiria em dois grupos.
@@ -297,15 +344,18 @@ export function rotuloUnidade(chave: string): string | null {
 
 /**
  * O código de um item que não achou preço de material PARECE de serviço?
- * Códigos CATSER têm até 5 dígitos (CATMAT passa disso) e a unidade do item
- * não pode ser de coisa (caixa, quilo, litro...). É só um palpite — os
- * números de CATMAT e CATSER se sobrepõem —, por isso só vale depois que a
- * consulta de material veio vazia.
+ * Só quando o código tem até 5 dígitos (os CATSER são curtos; a maioria dos
+ * CATMAT tem 6) E a unidade do item é de serviço (serviço, mês, hora, dia,
+ * diária). É só um palpite — os números de CATMAT e CATSER se sobrepõem, e um
+ * número de material consultado como serviço devolveria preços de OUTRO item —,
+ * por isso só vale depois que a consulta de material veio vazia e, na dúvida
+ * (unidade "unidade" ou não reconhecida), o script só tenta serviço com
+ * a opção --servico.
  */
 export function pareceCodigoDeServico(codigo: unknown, unidadeDoItem?: unknown): boolean {
   const c = codigoCatalogoValido(codigo);
   if (!c || c.length > 5) return false;
-  return !UNIDADES_DE_COISA.has(siglaDaUnidadeDoItem(unidadeDoItem));
+  return UNIDADES_DE_SERVICO.has(siglaDaUnidadeDoItem(unidadeDoItem));
 }
 
 // ------------------------------------------------------------- registros
@@ -413,7 +463,8 @@ function rotuloOuChave(chave: string): string {
  *  - Se a unidade do item é reconhecida e há grupo com a mesma sigla, vale o
  *    maior grupo com essa sigla (capacidades diferentes não se juntam).
  *  - Se a unidade do item não é reconhecida, ou nenhum grupo tem a sigla dela,
- *    vale o MAIOR grupo, e o motivo avisa que a unidade pode divergir.
+ *    vale o MAIOR grupo (deixando por último o grupo "sem unidade informada"),
+ *    e o motivo avisa que a unidade pode divergir.
  *  - Empate de tamanho: ordem da chave (resultado sempre igual).
  * Nulo quando não há nenhuma amostra.
  */
@@ -443,7 +494,9 @@ export function escolherGrupoDeUnidade<T>(
         ? `A unidade do item (${siglaItem}) bate com o grupo ${rotuloOuChave(escolhido[0])} (${escolhido[1].length} preços).`
         : `A unidade do item (${siglaItem}) bate com mais de um grupo (capacidades diferentes); usado o maior, ${rotuloOuChave(escolhido[0])} (${escolhido[1].length} preços). A capacidade da embalagem pode divergir da do item.`;
   } else {
-    escolhido = maior(entradas);
+    // Sem unidade que confira, vale o maior grupo; um grupo "sem unidade informada" só se não houver outro.
+    const comUnidade = entradas.filter(([chave]) => separarChave(chave).sigla !== SIGLA_DESCONHECIDA);
+    escolhido = maior(comUnidade.length > 0 ? comUnidade : entradas);
     confere = false;
     motivo = siglaItem
       ? `Nenhum grupo de preços tem a unidade do item (${siglaItem}); usado o maior grupo, ${rotuloOuChave(escolhido[0])} (${escolhido[1].length} preços). A unidade pode divergir da do item.`
@@ -462,6 +515,75 @@ export function escolherGrupoDeUnidade<T>(
   }
 
   return { chave: escolhido[0], amostras: escolhido[1], motivo, unidadeConfere: confere };
+}
+
+// ------------------------------------------------------------- resposta da API
+
+export interface PaginaDaApi {
+  registros: unknown[];
+  /** Quantas páginas ainda faltam depois desta (0 = era a última). */
+  restantes: number;
+}
+
+function inteiroNaoNegativo(valor: unknown): number | null {
+  const n = typeof valor === "number" ? valor : typeof valor === "string" && /^\d+$/.test(valor.trim()) ? Number(valor) : NaN;
+  return Number.isInteger(n) && n >= 0 ? n : null;
+}
+
+/**
+ * Lê o envelope da API ({ resultado, totalRegistros, totalPaginas,
+ * paginasRestantes }). Nulo quando não tem a lista `resultado`. Sem
+ * `paginasRestantes` válido (ausente, nulo, texto), usa totalPaginas - pagina;
+ * sem nenhum dos dois, considera a última página. Nulo NÃO vira zero por
+ * engano: `Number(null)` é 0 e faria a leitura parar no meio.
+ */
+export function lerPaginaDaApi(json: unknown, pagina: number): PaginaDaApi | null {
+  if (!json || typeof json !== "object" || Array.isArray(json)) return null;
+  const j = json as Record<string, unknown>;
+  if (!Array.isArray(j.resultado)) return null;
+  const restantes = inteiroNaoNegativo(j.paginasRestantes);
+  if (restantes !== null) return { registros: j.resultado, restantes };
+  const total = inteiroNaoNegativo(j.totalPaginas);
+  return { registros: j.resultado, restantes: total !== null ? Math.max(0, total - pagina) : 0 };
+}
+
+/**
+ * Período que as estatísticas de fato cobrem. A API devolve do mais recente
+ * para o mais antigo; quando a leitura para no teto de páginas (`truncado`), os
+ * registros lidos podem cobrir só parte da janela pedida. Nesse caso o início
+ * passa a ser a data da compra mais antiga lida (AAAA-MM-DD, dentro da janela),
+ * para a referência não dizer que cobre um período maior que o real. Sem
+ * truncamento, ou sem nenhuma data utilizável, vale a janela pedida.
+ */
+export function janelaDaAmostra(
+  janela: { inicio: string; fim: string },
+  datas: ReadonlyArray<string | undefined>,
+  truncado: boolean,
+): { inicio: string; fim: string } {
+  if (!truncado) return janela;
+  let menor: string | null = null;
+  for (const d of datas) {
+    if (typeof d !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(d)) continue;
+    if (d < janela.inicio || d > janela.fim) continue;
+    if (menor === null || d < menor) menor = d;
+  }
+  return menor ? { inicio: menor, fim: janela.fim } : janela;
+}
+
+/**
+ * Uma linha com texto de uma mensagem de erro, curta: a primeira (padrão) ou a
+ * última (nas mensagens do Prisma é a que diz a causa). Nunca devolve texto
+ * vazio (o banco leria "" como "sem erro"): as mensagens do Prisma, por
+ * exemplo, começam com uma linha em branco.
+ */
+export function mensagemCurtaDeErro(erro: unknown, opcoes: { maximo?: number; linha?: "primeira" | "ultima" } = {}): string {
+  const texto = erro instanceof Error ? erro.message : typeof erro === "string" ? erro : "";
+  const linhas = texto
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => l !== "");
+  const escolhida = opcoes.linha === "ultima" ? linhas[linhas.length - 1] : linhas[0];
+  return (escolhida ?? "Falha desconhecida").slice(0, Math.max(1, opcoes.maximo ?? 200));
 }
 
 // ------------------------------------------------------------- atualização

@@ -357,7 +357,7 @@ function paragrafoReferenciaAuxiliar(comparativo: ComparativoDaMinuta | null | u
 
   const partes: string[] = [
     `Referência auxiliar da plataforma: ${comparados} de ${total} ${total === 1 ? "item" : "itens"} da ata ${comparados === 1 ? "foi comparado" : "foram comparados"} com preços de contratações públicas consultados no Compras.gov.br ${quandoForamConsultados(comparativo?.consultadoEm)}.`,
-    `Compatíveis com os preços consultados: ${contadorValido(resumo.compativeis)}. Acima dos preços consultados: ${acima}. Abaixo dos preços consultados: ${abaixo}. Sem comparação (sem código do catálogo, poucos preços consultados ou unidade diferente): ${contadorValido(resumo.semReferencia)}.`,
+    `Compatíveis com os preços consultados: ${contadorValido(resumo.compativeis)}. Acima dos preços consultados: ${acima}. Abaixo dos preços consultados: ${abaixo}. Sem comparação (por exemplo, sem código do catálogo, sem preços consultados, poucos preços ou unidade diferente): ${contadorValido(resumo.semReferencia)}.`,
   ];
   if (acima > 0 && typeof pesoAcima === "number" && Number.isFinite(pesoAcima) && pesoAcima >= 0) {
     const percentual = pesoAcima.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });

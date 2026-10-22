@@ -7,13 +7,15 @@
  * src/lib/precos-referencia.ts e src/lib/vantajosidade.ts.
  *
  * O que faz:
- *  1. lê os códigos de catálogo distintos de Item.codigoCatalogo (só dígitos);
+ *  1. lê os códigos de catálogo distintos de Item.codigoCatalogo (só dígitos) e,
+ *     de cada um, a unidade que mais itens usam (a dica da unidade certa);
  *  2. para cada código sem ReferenciaPreco, ou com consulta mais velha que 30
  *     dias (consulta que falhou é repetida depois de 1 dia), consulta a API
  *     (material; se vier vazio e houver --servico, ou o código parecer de
  *     serviço, tenta o endpoint de serviço e grava tipoCatalogo "servico");
  *  3. pagina com 500 registros por vez até acabar (teto de 20 páginas por
- *     código), janela de 12 meses até hoje;
+ *     código), janela de 12 meses até hoje (se o teto cortar a leitura, o início
+ *     do período gravado passa a ser a compra mais antiga lida);
  *  4. converte, tira duplicidade por idItemCompra, separa por unidade de
  *     fornecimento (sigla + capacidade), escolhe o grupo da unidade do item e
  *     calcula as estatísticas desse grupo (grupos de unidades diferentes
@@ -22,13 +24,20 @@
  *     consulta, sem apagar as estatísticas anteriores. Sem preço: n = 0 e
  *     quantis nulos.
  *
- * Serviço (CATSER): o endpoint informa só a unidade de MEDIDA (quase sempre
- * "UNIDADE"), sem capacidade, e um mesmo código reúne cobranças de natureza
- * diferente (valor fixo, hora, quilômetro...). A faixa de preços costuma ser
- * larga: tratar o comparativo de serviço com mais cautela que o de material.
+ * Serviço (CATSER): o endpoint informa só a unidade de MEDIDA ("UN", "DIA",
+ * "H", "KMR"...), sem capacidade, e um mesmo código reúne cobranças de natureza
+ * diferente (valor fixo, dia, hora, quilômetro...), que o filtro por unidade
+ * separa. A faixa de preços costuma ser larga: tratar o comparativo de serviço
+ * com mais cautela que o de material. Os números de CATMAT e CATSER se
+ * sobrepõem: com --servico, um código de material sem preço no período pode
+ * casar com um serviço qualquer; use a opção só para códigos que se sabe serem
+ * de serviço (--codigo=...).
  *
  * Nunca guarda amostras individuais: só n, nUsadas, mínimo, p25, mediana, p75,
  * máximo e média. Nada de fornecedor, órgão ou idCompra é lido ou gravado.
+ * n e nUsadas valem para o grupo de unidade escolhido (preços de outras
+ * unidades ficam de fora e só aparecem no resumo de --mostrar); a unidade do
+ * grupo vai em unidadeFornecimento (ex.: "PCT 100", "UN", "DIA").
  *
  * A API é pública e gratuita: o script é gentil com ela (1 segundo entre
  * chamadas, 90 s de timeout, 3 tentativas com espera crescente e parada depois
@@ -44,29 +53,38 @@
  *   --mostrar          detalha cada código (grupos de unidade, estatísticas)
  *   --tipo=servico     (teste) consulta só o endpoint de serviço (ou "material")
  *   --paginas=N        (teste) teto de páginas por código (padrão e máximo: 20)
+ *   --tamanho=N        (teste) registros por página, de 10 a 500 (padrão: 500)
  *
  * Com --dry-run, se o banco estiver fora do ar o script segue sem ele (sem
  * dica de unidade e sem saber o que já foi consultado).
+ *
+ * Argumento errado (opção desconhecida, --dryrun, --codigo 631014 com espaço)
+ * faz o script parar antes de consultar ou gravar qualquer coisa.
  */
 import "dotenv/config";
 import { PrismaClient, Prisma } from "../../src/generated/prisma/client";
 import {
   MESES_JANELA_PADRAO,
   TAMANHO_PAGINA_MAXIMO,
+  TAMANHO_PAGINA_MINIMO,
   agruparPorUnidade,
   codigoCatalogoValido,
   dedupePorIdItemCompra,
   escolherGrupoDeUnidade,
+  janelaDaAmostra,
   janelaDeDatas,
+  lerPaginaDaApi,
+  mensagemCurtaDeErro,
   pareceCodigoDeServico,
   precisaConsultar,
   registroParaAmostra,
   rotuloUnidade,
-  siglaDaUnidadeDoItem,
+  unidadeMaisComum,
   urlPrecoMaterial,
   urlPrecoServico,
   type AmostraRegistro,
   type GrupoEscolhido,
+  type PaginaDaApi,
   type TipoCatalogo,
 } from "../../src/lib/precos-referencia";
 import { estatisticasDePrecos, formatarReais, type EstatisticasPrecos } from "../../src/lib/vantajosidade";
@@ -80,32 +98,61 @@ const ESPERA_ENTRE_TENTATIVAS_MS = [3000, 8000];
 const MAX_FALHAS_SEGUIDAS = 5;
 
 const prisma = new PrismaClient();
-const opcoes = Object.fromEntries(
-  process.argv
-    .slice(2)
-    .filter((a) => a.startsWith("--"))
-    .map((a) => {
-      const [k, v] = a.slice(2).split("=");
-      return [k, v ?? "1"];
-    }),
-);
+
+/**
+ * Argumentos estritos: um erro de digitação (--dryrun, --dry-run=0, --codigo
+ * 631014 com espaço) NÃO pode ser ignorado em silêncio, porque o script
+ * gravaria no banco quando a pessoa queria só simular.
+ */
+const OPCOES_SEM_VALOR = new Set(["dry-run", "forcar", "servico", "mostrar"]);
+const OPCOES_COM_VALOR = new Set(["limit", "codigo", "tipo", "paginas", "tamanho"]);
+
+function lerArgumentos(argumentos: string[]): Record<string, string> {
+  const lidas: Record<string, string> = {};
+  const problemas: string[] = [];
+  for (const a of argumentos) {
+    const m = /^--([a-z][a-z-]*)(?:=(.*))?$/.exec(a);
+    if (!m) {
+      problemas.push(`${a} (use --opcao ou --opcao=valor, sem espaço antes do valor)`);
+      continue;
+    }
+    const [, nome, valor] = m;
+    if (OPCOES_SEM_VALOR.has(nome)) {
+      if (valor !== undefined) problemas.push(`${a} (a opção --${nome} não recebe valor)`);
+      else lidas[nome] = "1";
+    } else if (OPCOES_COM_VALOR.has(nome)) {
+      if (valor === undefined || valor.trim() === "") problemas.push(`${a} (use --${nome}=valor)`);
+      else lidas[nome] = valor;
+    } else {
+      problemas.push(`${a} (opção desconhecida)`);
+    }
+  }
+  if (problemas.length > 0) {
+    console.error(`Argumento inválido, nada foi consultado nem gravado:\n  - ${problemas.join("\n  - ")}`);
+    process.exit(1);
+  }
+  return lidas;
+}
+
+const opcoes = lerArgumentos(process.argv.slice(2));
 const dryRun = Boolean(opcoes["dry-run"]);
 const forcar = Boolean(opcoes.forcar);
 const tentarServico = Boolean(opcoes.servico);
 const mostrar = Boolean(opcoes.mostrar);
 
-function inteiroDaOpcao(nome: string, padrao: number, maximo: number): number {
+function inteiroDaOpcao(nome: string, padrao: number, maximo: number, minimo = 1): number {
   const bruto = opcoes[nome];
   if (bruto === undefined) return padrao;
   const n = Number(bruto);
-  if (!Number.isInteger(n) || n < 1 || n > maximo) {
-    console.error(`Opção --${nome} inválida (use um número inteiro de 1 a ${maximo}).`);
+  if (!Number.isInteger(n) || n < minimo || n > maximo) {
+    console.error(`Opção --${nome} inválida (use um número inteiro de ${minimo} a ${maximo}).`);
     process.exit(1);
   }
   return n;
 }
 const limite = opcoes.limit === undefined ? null : inteiroDaOpcao("limit", 1, 1_000_000);
 const maxPaginas = inteiroDaOpcao("paginas", TETO_PAGINAS, TETO_PAGINAS);
+const tamanhoPagina = inteiroDaOpcao("tamanho", TAMANHO_PAGINA_MAXIMO, TAMANHO_PAGINA_MAXIMO, TAMANHO_PAGINA_MINIMO);
 const tipoFixo: TipoCatalogo | null = (() => {
   const t = opcoes.tipo;
   if (t === undefined) return null;
@@ -180,20 +227,10 @@ async function pegarJson(url: string): Promise<unknown> {
   throw ultimo ?? new ErroConsulta("Falha desconhecida", false);
 }
 
-interface Pagina {
-  registros: unknown[];
-  restantes: number;
-}
-
-function lerPagina(json: unknown, pagina: number): Pagina {
-  if (!json || typeof json !== "object" || !Array.isArray((json as { resultado?: unknown }).resultado)) {
-    throw new ErroConsulta("Resposta fora do formato esperado", false);
-  }
-  const j = json as { resultado: unknown[]; paginasRestantes?: unknown; totalPaginas?: unknown };
-  const restantes = Number(j.paginasRestantes);
-  if (Number.isFinite(restantes)) return { registros: j.resultado, restantes };
-  const total = Number(j.totalPaginas);
-  return { registros: j.resultado, restantes: Number.isFinite(total) ? Math.max(0, total - pagina) : 0 };
+function lerPagina(json: unknown, pagina: number): PaginaDaApi {
+  const lida = lerPaginaDaApi(json, pagina);
+  if (!lida) throw new ErroConsulta("Resposta fora do formato esperado", false);
+  return lida;
 }
 
 interface RegistrosDaApi {
@@ -211,7 +248,7 @@ async function buscarRegistros(
   const registros: unknown[] = [];
   let paginas = 0;
   for (let pagina = 1; pagina <= maxPaginas; pagina++) {
-    const params = { codigo, inicio: janela.inicio, fim: janela.fim, pagina, tamanhoPagina: TAMANHO_PAGINA_MAXIMO };
+    const params = { codigo, inicio: janela.inicio, fim: janela.fim, pagina, tamanhoPagina };
     const url = tipo === "material" ? urlPrecoMaterial(params) : urlPrecoServico(params);
     const lida = lerPagina(await pegarJson(url), pagina);
     paginas++;
@@ -233,6 +270,8 @@ interface ResultadoDoTipo {
   estatisticas: EstatisticasPrecos | null;
   paginas: number;
   truncado: boolean;
+  /** Período que as estatísticas cobrem: a janela pedida, ou menor quando o teto de páginas cortou a leitura. */
+  janela: { inicio: string; fim: string };
 }
 
 async function consultarTipo(
@@ -256,6 +295,11 @@ async function consultarTipo(
     estatisticas: escolha ? estatisticasDePrecos(escolha.amostras) : null,
     paginas: bruto.paginas,
     truncado: bruto.truncado,
+    janela: janelaDaAmostra(
+      janela,
+      validas.map((a) => a.data),
+      bruto.truncado,
+    ),
   };
 }
 
@@ -278,12 +322,7 @@ const decimal = (n: number | undefined) => (n === undefined || !Number.isFinite(
 
 const dataUtc = (aaaammdd: string) => new Date(`${aaaammdd}T00:00:00Z`);
 
-async function gravarSucesso(
-  codigo: string,
-  r: ResultadoDoTipo,
-  janela: { inicio: string; fim: string },
-  agora: Date,
-): Promise<void> {
+async function gravarSucesso(codigo: string, r: ResultadoDoTipo, agora: Date): Promise<void> {
   const e = r.estatisticas;
   const dados = {
     n: e?.n ?? 0,
@@ -294,8 +333,8 @@ async function gravarSucesso(
     p75: decimal(e?.p75),
     maximo: decimal(e?.maximo),
     media: decimal(e?.media),
-    janelaInicio: dataUtc(janela.inicio),
-    janelaFim: dataUtc(janela.fim),
+    janelaInicio: dataUtc(r.janela.inicio),
+    janelaFim: dataUtc(r.janela.fim),
     unidadeFornecimento: r.escolha ? rotuloUnidade(r.escolha.chave) : null,
     consultadoEm: agora,
     erro: null,
@@ -361,33 +400,33 @@ function detalhar(r: ResultadoDoTipo): void {
 // ------------------------------------------------------------- banco
 
 interface DadosDoBanco {
-  /** código => unidade mais comum entre os itens que usam o código. */
+  /** Códigos de catálogo distintos (válidos) dos itens do banco. */
+  codigos: string[];
+  /** código => unidade mais comum entre os itens que usam o código (só quando algum item traz unidade escrita). */
   unidadePorCodigo: Map<string, string>;
   existentesPorCodigo: Map<string, LinhaExistente[]>;
-  bancoDisponivel: boolean;
-}
-
-/** Unidade mais frequente do código, dando preferência a uma que seja reconhecida. */
-function unidadeMaisComum(contagem: Map<string, number>): string {
-  const ordenadas = [...contagem.entries()].sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1));
-  return (ordenadas.find(([u]) => siglaDaUnidadeDoItem(u) !== "") ?? ordenadas[0])[0];
 }
 
 async function carregarDoBanco(): Promise<DadosDoBanco> {
-  const itens = await prisma.item.findMany({
+  // Contagem de verdade por (código, unidade): com `distinct` cada par viria uma vez só e a "mais comum" seria sorteio.
+  const grupos = await prisma.item.groupBy({
+    by: ["codigoCatalogo", "unidade"],
     where: { codigoCatalogo: { not: null } },
-    select: { codigoCatalogo: true, unidade: true },
-    distinct: ["codigoCatalogo", "unidade"],
+    _count: { _all: true },
   });
   const contagens = new Map<string, Map<string, number>>();
-  for (const it of itens) {
-    const codigo = codigoCatalogoValido(it.codigoCatalogo);
+  for (const g of grupos) {
+    const codigo = codigoCatalogoValido(g.codigoCatalogo);
     if (!codigo) continue;
     const c = contagens.get(codigo) ?? new Map<string, number>();
-    c.set(it.unidade, (c.get(it.unidade) ?? 0) + 1);
+    c.set(g.unidade, (c.get(g.unidade) ?? 0) + g._count._all);
     contagens.set(codigo, c);
   }
-  const unidadePorCodigo = new Map([...contagens.entries()].map(([codigo, c]) => [codigo, unidadeMaisComum(c)] as [string, string]));
+  const unidadePorCodigo = new Map<string, string>();
+  for (const [codigo, c] of contagens) {
+    const unidade = unidadeMaisComum(c);
+    if (unidade) unidadePorCodigo.set(codigo, unidade);
+  }
 
   const linhas = await prisma.referenciaPreco.findMany({
     select: { codigoCatalogo: true, tipoCatalogo: true, consultadoEm: true, erro: true, nUsadas: true },
@@ -398,7 +437,7 @@ async function carregarDoBanco(): Promise<DadosDoBanco> {
     lista.push(l);
     existentesPorCodigo.set(l.codigoCatalogo, lista);
   }
-  return { unidadePorCodigo, existentesPorCodigo, bancoDisponivel: true };
+  return { codigos: [...contagens.keys()], unidadePorCodigo, existentesPorCodigo };
 }
 
 /** A consulta mais recente do código decide se ele precisa ser consultado de novo. */
@@ -419,8 +458,8 @@ async function main() {
     banco = await carregarDoBanco();
   } catch (e) {
     if (!dryRun) throw e;
-    console.log(`Aviso: banco indisponível (${e instanceof Error ? e.message.split("\n").pop() : String(e)}). Seguindo sem ele, como --dry-run.`);
-    banco = { unidadePorCodigo: new Map(), existentesPorCodigo: new Map(), bancoDisponivel: false };
+    console.log(`Aviso: banco indisponível (${mensagemCurtaDeErro(e, { linha: "ultima" })}). Seguindo sem ele, como --dry-run.`);
+    banco = { codigos: [], unidadePorCodigo: new Map(), existentesPorCodigo: new Map() };
   }
 
   // Quais códigos olhar: os da opção --codigo ou todos os do banco.
@@ -432,12 +471,12 @@ async function main() {
     if (invalidos.length > 0) console.log(`Códigos ignorados (devem ter só dígitos, de 1 a 10): ${invalidos.join(", ")}`);
     codigos = [...new Set(validos.filter((c): c is string => c !== null))];
   } else {
-    codigos = [...banco.unidadePorCodigo.keys()];
+    codigos = banco.codigos;
   }
 
   const resumo = {
     janela: `${janela.inicio} a ${janela.fim}`,
-    codigosNoBanco: banco.unidadePorCodigo.size,
+    codigosNoBanco: banco.codigos.length,
     codigosConsiderados: codigos.length,
     jaAtualizados: 0,
     consultados: 0,
@@ -482,7 +521,8 @@ async function main() {
     try {
       let escolhido: ResultadoDoTipo | null = null;
       let primeiroVazio: ResultadoDoTipo | null = null;
-      for (const tipo of tiposParaTentar(codigo, unidadeDoItem, existentes)) {
+      const tipos = tiposParaTentar(codigo, unidadeDoItem, existentes);
+      for (const tipo of tipos) {
         tentando = tipo;
         const r = await consultarTipo(tipo, codigo, janela, unidadeDoItem);
         if (mostrar) detalhar(r);
@@ -494,7 +534,8 @@ async function main() {
       }
       const final = escolhido ?? primeiroVazio!;
       console.log(`    ${descreverResultado(final)}`);
-      if (escolhido && escolhido.tipo === "servico" && !tipoFixo) console.log("    (material vazio; preços do endpoint de serviço)");
+      if (escolhido && escolhido.tipo === "servico" && tipos[0] === "material") console.log("    (material vazio; preços do endpoint de serviço)");
+      if (!escolhido && tipos.length > 1) console.log(`    (também tentado como ${tipos.slice(1).join(", ")}: sem preços)`);
 
       resumo.consultados++;
       if (final.estatisticas) resumo.comPreco++;
@@ -503,20 +544,26 @@ async function main() {
       if (final.escolha && !final.escolha.unidadeConfere && final.tipo === "material") resumo.unidadePodeDivergir++;
       if (final.truncado) {
         resumo.amostraParcial++;
-        console.log(`    Aviso: teto de ${maxPaginas} páginas atingido; estatística feita com amostra parcial.`);
+        console.log(
+          `    Aviso: teto de ${maxPaginas} páginas atingido; estatística feita com amostra parcial` +
+            `${final.janela.inicio !== janela.inicio ? `, período ajustado para ${final.janela.inicio} a ${final.janela.fim}` : ""}.`,
+        );
       }
-      if (!dryRun) await gravarSucesso(codigo, final, janela, agora);
+      if (!dryRun) await gravarSucesso(codigo, final, agora);
       falhasSeguidas = 0;
     } catch (e) {
-      const mensagem = (e instanceof Error ? e.message : String(e)).split("\n")[0].slice(0, 200);
-      console.log(`    FALHA (${tentando}): ${mensagem}`);
+      // No log vai o detalhe; no banco, só texto curto e sem linha vazia ("" seria lido como "sem erro") e,
+      // quando o erro não é da consulta (ex.: do próprio banco), um texto genérico, sem detalhes internos.
+      const detalhe = mensagemCurtaDeErro(e, { linha: "ultima" });
+      const mensagem = e instanceof ErroConsulta ? detalhe : "Erro ao processar ou gravar o resultado (veja o log do script)";
+      console.log(`    FALHA (${tentando}): ${detalhe}`);
       resumo.falhas++;
       falhasSeguidas++;
       if (!dryRun) {
         try {
           await gravarFalha(codigo, tentando, mensagem, janela, agora);
         } catch (e2) {
-          console.log(`    (não foi possível registrar a falha no banco: ${e2 instanceof Error ? e2.message.split("\n").pop() : String(e2)})`);
+          console.log(`    (não foi possível registrar a falha no banco: ${mensagemCurtaDeErro(e2, { linha: "ultima" })})`);
         }
       }
       if (falhasSeguidas >= MAX_FALHAS_SEGUIDAS) {
