@@ -107,6 +107,25 @@ const TIPO_DA_UNIDADE: Record<string, string> = {
   cm: "centimetro",
   mm: "milimetro",
   km: "quilometro",
+  // "KMR" é como o endpoint de serviço do Compras.gov.br escreve quilômetro rodado.
+  kmr: "quilometro",
+  // Unidades de serviço (CATSER): sem elas, "Mês" contra "DIA" não divergia e a
+  // comparação saía conclusiva. "D" é a sigla que o endpoint de serviço usa para
+  // DIA (conferido ao vivo, código 25089). "Diária" fica de fora de propósito:
+  // pode ou não ser o mesmo que "dia", e em dúvida a tela não barra.
+  dia: "dia",
+  dias: "dia",
+  d: "dia",
+  mes: "mes",
+  meses: "mes",
+  h: "hora",
+  hr: "hora",
+  hrs: "hora",
+  hora: "hora",
+  horas: "hora",
+  serv: "servico",
+  servico: "servico",
+  servicos: "servico",
   par: "par",
   pares: "par",
   pr: "par",
@@ -202,7 +221,12 @@ export interface ReferenciaDoItem {
   p75: number | null;
   minimo: number | null;
   maximo: number | null;
-  /** Preços que a API devolveu. */
+  /**
+   * Tamanho do grupo de unidade que o script de preços escolheu (preços de
+   * outras unidades não entram), depois de tirar a duplicidade por
+   * idItemCompra e antes de descartar outliers. NÃO é o total de preços que a
+   * API devolveu.
+   */
   n: number;
   /** Preços que sobraram depois de descartar inválidos e outliers (as estatísticas valem sobre estes). */
   nUsadas: number;

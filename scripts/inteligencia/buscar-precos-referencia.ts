@@ -21,8 +21,11 @@
  *     calcula as estatísticas desse grupo (grupos de unidades diferentes
  *     nunca se misturam);
  *  5. grava com upsert (código + tipo). Falha: grava só o erro e a data da
- *     consulta, sem apagar as estatísticas anteriores. Sem preço: n = 0 e
- *     quantis nulos.
+ *     consulta, sem apagar as estatísticas anteriores. Sem preço (lista vazia
+ *     ou nenhum preço utilizável): se o código já tinha estatísticas
+ *     (nUsadas > 0), mantém-nas e grava só a data da consulta e o erro "A última
+ *     consulta não trouxe registros; mantidas as estatísticas anteriores."; só
+ *     quando não havia nada de bom antes grava n = 0 com quantis nulos.
  *
  * Serviço (CATSER): o endpoint informa só a unidade de MEDIDA ("UN", "DIA",
  * "H", "KMR"...), sem capacidade, e um mesmo código reúne cobranças de natureza
@@ -69,6 +72,7 @@ import {
   TAMANHO_PAGINA_MINIMO,
   agruparPorUnidade,
   codigoCatalogoValido,
+  decidirGravacaoDaConsulta,
   dedupePorIdItemCompra,
   escolherGrupoDeUnidade,
   janelaDaAmostra,
@@ -346,7 +350,10 @@ async function gravarSucesso(codigo: string, r: ResultadoDoTipo, agora: Date): P
   });
 }
 
-/** Falha: só o erro e a data da consulta; estatísticas anteriores ficam como estavam. */
+/**
+ * Falha (ou consulta vazia com estatísticas anteriores a preservar): só o erro e
+ * a data da consulta; estatísticas anteriores ficam como estavam.
+ */
 async function gravarFalha(
   codigo: string,
   tipo: TipoCatalogo,
@@ -483,6 +490,7 @@ async function main() {
     comPreco: 0,
     semPreco: 0,
     comoServico: 0,
+    estatisticasMantidas: 0,
     falhas: 0,
     unidadePodeDivergir: 0,
     amostraParcial: 0,
@@ -549,7 +557,19 @@ async function main() {
             `${final.janela.inicio !== janela.inicio ? `, período ajustado para ${final.janela.inicio} a ${final.janela.fim}` : ""}.`,
         );
       }
-      if (!dryRun) await gravarSucesso(codigo, final, agora);
+      // Consulta sem preço: se o código já tinha estatísticas (mesmo tipo de catálogo), elas ficam e só
+      // a data da consulta e o erro mudam; sem nada de bom antes, grava o n = 0 normalmente.
+      const decisao = decidirGravacaoDaConsulta(
+        { registros: final.registros, temEstatisticas: final.estatisticas !== null },
+        existentes.find((l) => l.tipoCatalogo === final.tipo),
+      );
+      if (decisao.acao === "manter_estatisticas_anteriores") {
+        resumo.estatisticasMantidas++;
+        console.log(`    ${decisao.erro}`);
+        if (!dryRun) await gravarFalha(codigo, final.tipo, decisao.erro, janela, agora);
+      } else if (!dryRun) {
+        await gravarSucesso(codigo, final, agora);
+      }
       falhasSeguidas = 0;
     } catch (e) {
       // No log vai o detalhe; no banco, só texto curto e sem linha vazia ("" seria lido como "sem erro") e,

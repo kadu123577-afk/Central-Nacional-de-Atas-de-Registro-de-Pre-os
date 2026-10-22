@@ -606,3 +606,39 @@ export function precisaConsultar(
   if (existente.erro) return idadeDias > diasRetentarErro;
   return idadeDias > diasValidade;
 }
+
+// ------------------------------------------------------------- consulta sem preço
+
+/** Gravada no erro quando a API não devolveu nenhum registro e as estatísticas anteriores foram mantidas. */
+export const MENSAGEM_MANTIDAS_SEM_REGISTROS = "A última consulta não trouxe registros; mantidas as estatísticas anteriores.";
+
+/** Idem, quando a API devolveu registros mas nenhum deu preço utilizável. */
+export const MENSAGEM_MANTIDAS_SEM_PRECO_UTIL = "A última consulta não trouxe preços utilizáveis; mantidas as estatísticas anteriores.";
+
+export type DecisaoDeGravacao =
+  | { acao: "gravar" }
+  /** Não mexe nas estatísticas: grava só `consultadoEm` e `erro` (o comparativo avisa que usa a consulta anterior). */
+  | { acao: "manter_estatisticas_anteriores"; erro: string };
+
+/**
+ * O que gravar quando uma consulta termina. Consulta com estatísticas: grava.
+ * Consulta SEM estatísticas (n = 0: a API devolveu lista vazia, ou só registros
+ * sem preço utilizável) quando o código já tinha uma referência com preços
+ * usados (`nUsadas` > 0): mantém as estatísticas anteriores, porque uma
+ * consulta vazia (instabilidade da API, janela sem compras) não prova que os
+ * preços de antes deixaram de valer, e sobrescrever com n = 0 e quantis nulos
+ * apagaria o comparativo. Sem nada de bom antes, grava o n = 0 normalmente.
+ * `linhaAnterior` é a linha do MESMO código e tipo de catálogo.
+ */
+export function decidirGravacaoDaConsulta(
+  consulta: { registros: number; temEstatisticas: boolean },
+  linhaAnterior: { nUsadas: number } | null | undefined,
+): DecisaoDeGravacao {
+  if (consulta.temEstatisticas) return { acao: "gravar" };
+  const tinhaPrecos = Boolean(linhaAnterior) && Number.isFinite(linhaAnterior!.nUsadas) && linhaAnterior!.nUsadas > 0;
+  if (!tinhaPrecos) return { acao: "gravar" };
+  return {
+    acao: "manter_estatisticas_anteriores",
+    erro: consulta.registros === 0 ? MENSAGEM_MANTIDAS_SEM_REGISTROS : MENSAGEM_MANTIDAS_SEM_PRECO_UTIL,
+  };
+}

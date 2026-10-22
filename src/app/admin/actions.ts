@@ -47,7 +47,7 @@ import {
 } from "@/lib/recebiveis";
 import { expirarOportunidadesVencidas } from "@/lib/negociacao-expiracao";
 import { ITENS_CONFORMIDADE, itensPendentes, type RespostasConformidade } from "@/lib/conformidade";
-import { interpretarCodigoCatalogo } from "@/lib/vantajosidade-db";
+import { MENSAGEM_CODIGO_CATALOGO_INVALIDO, interpretarCodigoCatalogo } from "@/lib/vantajosidade-db";
 
 export interface EstadoLoginAdmin {
   erro?: string;
@@ -205,6 +205,87 @@ export async function adicionarItemNaAta(
   revalidatePath(`/admin/atas/${ataId}/completar`);
   revalidatePath("/admin");
   return {};
+}
+
+export interface EstadoDefinirCodigoCatalogo {
+  erro?: string;
+  mensagem?: string;
+  /**
+   * O que o campo deve mostrar: o código como ficou gravado ("" quando foi
+   * apagado) ou, em caso de erro, o que foi digitado. O React zera o formulário
+   * depois da action; isto repõe o valor.
+   */
+  valor?: string;
+}
+
+/**
+ * Informa, corrige ou apaga o código do catálogo (CATMAT/CATSER) de um item JÁ
+ * cadastrado (2026-10-22, vantajosidade dos preços). Campo em branco apaga o
+ * código; lixo é recusado em vez de adivinhado (mesma regra de
+ * interpretarCodigoCatalogo, usada ao criar a ata e ao adicionar o item). O
+ * campo precisa vir no formulário: sem ele, a requisição é recusada, não vira
+ * "apagar". Só grava e audita quando o código de fato muda.
+ */
+export async function definirCodigoCatalogoItem(
+  _estadoAnterior: EstadoDefinirCodigoCatalogo,
+  formData: FormData,
+): Promise<EstadoDefinirCodigoCatalogo> {
+  const adminId = await adminIdLogado();
+  if (!adminId) {
+    redirect("/admin/login");
+  }
+
+  const itemId = formData.get("itemId");
+  const digitado = formData.get("codigoCatalogo");
+  // O que volta ao campo em caso de erro; cortado para não devolver um texto enorme.
+  const valor = typeof digitado === "string" ? digitado.slice(0, 64) : "";
+
+  if (typeof itemId !== "string" || itemId.trim() === "" || itemId.length > 100) {
+    return { erro: "Item inválido. Recarregue a página e tente de novo.", valor };
+  }
+  if (typeof digitado !== "string") {
+    return { erro: MENSAGEM_CODIGO_CATALOGO_INVALIDO, valor };
+  }
+  const codigo = interpretarCodigoCatalogo(digitado);
+  if (!codigo.ok) {
+    return { erro: codigo.erro, valor };
+  }
+
+  const item = await prisma.item.findUnique({
+    where: { id: itemId },
+    select: { id: true, ataId: true, codigoCatalogo: true },
+  });
+  if (!item) {
+    return { erro: "Item não encontrado. Recarregue a página e tente de novo.", valor };
+  }
+
+  const anterior = item.codigoCatalogo;
+  const novo = codigo.codigo;
+  if (anterior === novo) {
+    return {
+      mensagem: novo ? "O item já tinha esse código; nada foi alterado." : "O item já estava sem código; nada foi alterado.",
+      valor: novo ?? "",
+    };
+  }
+
+  try {
+    await prisma.item.update({ where: { id: item.id }, data: { codigoCatalogo: novo } });
+  } catch (erro) {
+    console.error("Falha ao gravar o código do catálogo do item:", erro);
+    return { erro: "Não foi possível salvar o código agora. Tente de novo.", valor };
+  }
+
+  await registrarAuditoria({
+    ator: `admin:${adminId}`,
+    acao: "admin.definirCodigoCatalogoItem",
+    alvo: `item:${item.id}`,
+    detalhe: `Ata ${item.ataId}: código do catálogo ${anterior ?? "(vazio)"} → ${novo ?? "(vazio)"}.`,
+  });
+
+  revalidatePath(`/admin/atas/${item.ataId}/analise`);
+  revalidatePath(`/admin/atas/${item.ataId}/completar`);
+  revalidatePath(`/vendedor/atas/${item.ataId}`);
+  return { mensagem: novo ? `Código ${novo} salvo.` : "Código apagado.", valor: novo ?? "" };
 }
 
 export async function trocarSenhaAdmin(

@@ -125,6 +125,17 @@ describe("unidadesDivergem", () => {
     ["Metro quadrado", "M2"],
     ["m²", "M2"],
     ["Gr", "Grama"],
+    // Unidades de serviço (CATSER).
+    ["Dia", "D"],
+    ["DIA", "Dias"],
+    ["Mês", "MES"],
+    ["Mes", "meses"],
+    ["H", "Hora"],
+    ["Hora", "HRS"],
+    ["Serviço", "SERV"],
+    ["Servico", "SERVICO"],
+    ["Km", "KMR"],
+    ["Quilômetro", "KMR"],
   ])("%s e %s são a mesma unidade", (a, b) => {
     expect(unidadesDivergem(a, b)).toBe(false);
     expect(unidadesDivergem(b, a)).toBe(false);
@@ -140,6 +151,16 @@ describe("unidadesDivergem", () => {
     ["Frasco", "Galão"],
     ["Metro", "M2"],
     ["M2", "M3"],
+    // Unidades de serviço (CATSER): tipos diferentes divergem.
+    ["Mês", "DIA"],
+    ["Dia", "H"],
+    ["Hora", "Mês"],
+    ["D", "MES"],
+    ["Serviço", "Unidade"],
+    ["SERV", "DIA"],
+    ["Km", "Metro"],
+    ["KMR", "DIA"],
+    ["Mês", "UN"],
   ])("%s e %s são diferentes", (a, b) => {
     expect(unidadesDivergem(a, b)).toBe(true);
     expect(unidadesDivergem(b, a)).toBe(true);
@@ -155,6 +176,9 @@ describe("unidadesDivergem", () => {
     expect(unidadesDivergem("Pacote", "PACOTE")).toBe(false);
     // Capacidade só de um lado não prova nada.
     expect(unidadesDivergem("Pacote", "PACOTE 500")).toBe(false);
+    // "Diária" pode ou não ser o mesmo que "dia": não é reconhecida, então não barra.
+    expect(unidadesDivergem("Diária", "DIA")).toBe(false);
+    expect(unidadesDivergem("Mês", "Diária")).toBe(false);
   });
 });
 
@@ -309,6 +333,33 @@ describe("montarComparativo: unidade diferente", () => {
     const { itens } = montarComparativo([item({ unidade: "CX" })], [referencia({ unidadeFornecimento: "Caixa" })]);
     expect(itens[0].unidadeDiverge).toBe(false);
     expect(itens[0].classificacao).toBe("compativel");
+  });
+
+  it("serviço: item em Mês contra referência em DIA não é comparação conclusiva e traz o aviso de unidade", () => {
+    const { itens, resumo } = montarComparativo(
+      [item({ unidade: "Mês", valorUnitario: new Prisma.Decimal("130.00") })],
+      [referencia({ unidadeFornecimento: "DIA" })],
+    );
+    expect(itens[0].unidadeDiverge).toBe(true);
+    expect(itens[0].classificacao).toBe("sem_referencia");
+    expect(itens[0].diferencaPercentual).toBeNull();
+    expect(itens[0].explicacao).toBe(
+      "A unidade do item (Mês) parece diferente da unidade da referência (DIA); confira antes de comparar.",
+    );
+    expect(resumo).toMatchObject({ itensComReferencia: 0, semReferencia: 1 });
+  });
+
+  it("serviço: mesma unidade escrita de outro jeito (Mês e MES, Dia e D) continua comparando", () => {
+    for (const [unidade, unidadeFornecimento] of [
+      ["Mês", "MES"],
+      ["Dia", "D"],
+      ["Hora", "H"],
+      ["Serviço", "SERV"],
+    ]) {
+      const { itens } = montarComparativo([item({ unidade })], [referencia({ unidadeFornecimento })]);
+      expect(itens[0].unidadeDiverge, `${unidade} x ${unidadeFornecimento}`).toBe(false);
+      expect(itens[0].classificacao, `${unidade} x ${unidadeFornecimento}`).toBe("compativel");
+    }
   });
 
   it("referência sem unidade informada: em dúvida, compara", () => {

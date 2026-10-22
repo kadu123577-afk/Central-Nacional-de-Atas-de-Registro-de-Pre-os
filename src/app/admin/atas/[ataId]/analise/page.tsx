@@ -16,6 +16,7 @@ import { percentualDeFracao } from "@/lib/formato";
 import { TEXTO_AVISO_VANTAJOSIDADE, formatarReais, type SituacaoPreco } from "@/lib/vantajosidade";
 import { carregarComparativoOuNulo, type ComparativoDaAta, type ItemComparado } from "@/lib/vantajosidade-db";
 import { FormularioAnalise } from "./formulario";
+import { FormularioCodigoCatalogo } from "./formulario-codigo-catalogo";
 
 export const dynamic = "force-dynamic";
 
@@ -354,7 +355,7 @@ function ComparativoDosItens({ comparativo }: { comparativo: ComparativoDaAta })
       {nenhumConsultado && (
         <Aviso tom="atencao" titulo={nenhumComCodigo ? "Nenhum item desta ata tem código do catálogo." : "Ainda não há preços consultados para esta ata."}>
           {nenhumComCodigo
-            ? "O código CATMAT ou CATSER é informado em cada item (campo “Código do catálogo”), ao cadastrar a ata ou ao adicionar um item na tela de completar a ata. "
+            ? "O código CATMAT ou CATSER é informado em cada item (campo “Código do catálogo”): ao cadastrar a ata, ao adicionar um item na tela de completar a ata ou direto na tabela abaixo. "
             : "Há itens com código, mas os preços ainda não foram buscados. "}
           O script <span className="codigo">scripts/inteligencia/buscar-precos-referencia.ts</span> busca os preços de
           referência no Compras.gov.br depois que os itens têm código; quando ele rodar, esta tabela é preenchida.
@@ -406,6 +407,7 @@ function LinhaDoItem({ item }: { item: ItemComparado }) {
             " · sem código"
           )}
         </span>
+        <FormularioCodigoCatalogo itemId={item.itemId} codigoAtual={item.codigoCatalogo} descricao={item.descricao} />
       </td>
       <td className="align-top">
         <span className="numero font-semibold" style={{ color: "var(--cor-texto)" }}>

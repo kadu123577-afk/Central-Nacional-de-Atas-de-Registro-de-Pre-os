@@ -3,11 +3,14 @@ import {
   agruparPorUnidade,
   chaveUnidade,
   codigoCatalogoValido,
+  decidirGravacaoDaConsulta,
   dedupePorIdItemCompra,
   escolherGrupoDeUnidade,
   janelaDaAmostra,
   janelaDeDatas,
   lerPaginaDaApi,
+  MENSAGEM_MANTIDAS_SEM_PRECO_UTIL,
+  MENSAGEM_MANTIDAS_SEM_REGISTROS,
   mensagemCurtaDeErro,
   normalizarUnidade,
   pareceCodigoDeServico,
@@ -577,5 +580,39 @@ describe("precisaConsultar", () => {
   it("aceita outros prazos", () => {
     expect(precisaConsultar({ consultadoEm: diasAtras(10), erro: null }, agora, { diasValidade: 7 })).toBe(true);
     expect(precisaConsultar({ consultadoEm: diasAtras(10), erro: null }, agora, { diasValidade: 60 })).toBe(false);
+  });
+});
+
+describe("decidirGravacaoDaConsulta", () => {
+  it("consulta com estatísticas: grava, tenha havido referência antes ou não", () => {
+    expect(decidirGravacaoDaConsulta({ registros: 40, temEstatisticas: true }, { nUsadas: 12 })).toEqual({ acao: "gravar" });
+    expect(decidirGravacaoDaConsulta({ registros: 40, temEstatisticas: true }, null)).toEqual({ acao: "gravar" });
+  });
+
+  it("lista vazia com referência anterior de nUsadas > 0: mantém as estatísticas e só registra o erro", () => {
+    expect(decidirGravacaoDaConsulta({ registros: 0, temEstatisticas: false }, { nUsadas: 7 })).toEqual({
+      acao: "manter_estatisticas_anteriores",
+      erro: "A última consulta não trouxe registros; mantidas as estatísticas anteriores.",
+    });
+    expect(MENSAGEM_MANTIDAS_SEM_REGISTROS).toBe("A última consulta não trouxe registros; mantidas as estatísticas anteriores.");
+  });
+
+  it("nUsadas = 1 já conta como estatística anterior", () => {
+    expect(decidirGravacaoDaConsulta({ registros: 0, temEstatisticas: false }, { nUsadas: 1 }).acao).toBe("manter_estatisticas_anteriores");
+  });
+
+  it("lista vazia sem nada de bom antes (sem linha, ou linha com nUsadas = 0): grava o n = 0", () => {
+    expect(decidirGravacaoDaConsulta({ registros: 0, temEstatisticas: false }, null)).toEqual({ acao: "gravar" });
+    expect(decidirGravacaoDaConsulta({ registros: 0, temEstatisticas: false }, undefined)).toEqual({ acao: "gravar" });
+    expect(decidirGravacaoDaConsulta({ registros: 0, temEstatisticas: false }, { nUsadas: 0 })).toEqual({ acao: "gravar" });
+    expect(decidirGravacaoDaConsulta({ registros: 0, temEstatisticas: false }, { nUsadas: Number.NaN })).toEqual({ acao: "gravar" });
+  });
+
+  it("registros sem nenhum preço utilizável também não apagam as estatísticas anteriores, com mensagem própria", () => {
+    expect(decidirGravacaoDaConsulta({ registros: 25, temEstatisticas: false }, { nUsadas: 9 })).toEqual({
+      acao: "manter_estatisticas_anteriores",
+      erro: MENSAGEM_MANTIDAS_SEM_PRECO_UTIL,
+    });
+    expect(decidirGravacaoDaConsulta({ registros: 25, temEstatisticas: false }, null)).toEqual({ acao: "gravar" });
   });
 });
