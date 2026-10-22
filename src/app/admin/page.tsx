@@ -19,6 +19,7 @@ import { ONDE_LIQUIDACAO_A_COBRAR } from "@/lib/recebiveis";
 import { expirarOportunidadesVencidas } from "@/lib/negociacao-expiracao";
 import { montarPainel, resumirPorVendedor } from "@/lib/painel-vendedor";
 import { carregarLinhasOportunidades } from "@/lib/painel-vendedor-db";
+import { filtroContatoVencido } from "@/lib/radar-atas-view";
 
 export const dynamic = "force-dynamic";
 
@@ -76,6 +77,7 @@ export default async function PainelAdminPage() {
     linhasPipeline,
     contratosDetectadosParaConfirmar,
     aditivosAAcompanhar,
+    fornecedoresComContatoVencido,
   ] = await Promise.all([
     prisma.ata.count({ where: { status: "APROVADA" } }),
     // Funil de conversão (mapa do núcleo de atas, 2026-09-05): quantas atas
@@ -128,6 +130,9 @@ export default async function PainelAdminPage() {
     prisma.termoContratoPublico.count({
       where: { cobrancaStatus: "a_acompanhar", contrato: { vinculo: { is: { status: "confirmado" } } } },
     }),
+    // Funil de prospecção de fornecedores (Projeto RNA, etapa 5): contatado ou
+    // interessado cujo próximo contato marcado já passou.
+    prisma.prospeccaoFornecedor.count({ where: filtroContatoVencido(new Date()) }),
   ]);
 
   const taxaConversao = totalAtas > 0 ? Math.round((atasComAdesao / totalAtas) * 100) : null;
@@ -197,6 +202,13 @@ export default async function PainelAdminPage() {
       descricao: "Aditivo de valor ou prazo gera comissão em cascata: lance a liquidação ou marque sem comissão.",
       n: aditivosAAcompanhar,
       href: "/admin/contratos-detectados",
+      tom: "atencao",
+    },
+    {
+      rotulo: "Fornecedores com contato vencido",
+      descricao: "Fornecedores contatados ou interessados cujo próximo contato já passou.",
+      n: fornecedoresComContatoVencido,
+      href: "/admin/prospeccao-fornecedores",
       tom: "atencao",
     },
     {

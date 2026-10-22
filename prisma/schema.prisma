@@ -863,3 +863,73 @@ model ReferenciaPreco {
   @@index([consultadoEm])
   @@map("referencias_preco")
 }
+
+// Radar de atas (2026-10-22, Projeto RNA etapa 5): atas vigentes que os
+// municípios-alvo publicaram no PNCP e que podem ser oferecidas a OUTROS
+// municípios com necessidade da mesma categoria (adesão, Lei 14.133/2021,
+// art. 86). Calculado por script a partir dos dados coletados; cada rodada
+// regrava a linha da ata (numeroControlePncpAta é a chave natural). O
+// fornecedor vem dos contratos que citam a ata; só CNPJ de 14 dígitos (pessoa
+// física não entra). Pontuação: regras em src/lib/radar-atas.ts. Tela só da
+// equipe (admin).
+model RadarAta {
+  id                    String    @id @default(cuid())
+  numeroControlePncpAta String    @unique
+  orgaoCnpj             String
+  orgaoNome             String
+  uf                    String?
+  municipioNome         String?
+  // Até 1000 caracteres: quem grava a linha corta o excedente.
+  objeto                String
+  // Slug de src/lib/categorias.ts (classificarObjeto) — nulo = não classificada.
+  categoria             String?
+  vigenciaInicio        DateTime?
+  vigenciaFim           DateTime
+  // Nulo = o PNCP não informou; só false tira a ata do radar.
+  possibilidadeAdesao   Boolean?
+  fornecedorCnpj        String?
+  fornecedorNome        String?
+  // Quantos municípios-alvo (fora o órgão da ata) mostram necessidade da
+  // categoria, pelos sinais e pelo raio-X de consumo.
+  municipiosComDemanda  Int       @default(0)
+  pontuacao             Int       @default(0)
+  calculadoEm           DateTime
+
+  @@index([categoria])
+  @@index([pontuacao])
+  @@index([fornecedorCnpj])
+  @@index([uf])
+  @@map("radar_atas")
+}
+
+// Funil de prospecção de fornecedores (2026-10-22, Projeto RNA etapa 5): os
+// donos das atas do radar, para a equipe trazê-los para a rede. estagio:
+// identificado → contatado → interessado → credenciado, ou recusou (texto, não
+// enum, igual categorias/estágios; vocabulário em src/lib/radar-atas.ts). Uma
+// linha por CNPJ (14 dígitos, só empresa — nunca CPF). Guarda só dado público
+// da empresa e anotação da equipe; contato de pessoa fica fora. A rodada do
+// radar atualiza atasVigentes, pontuacao, categorias e ufs, mas nunca muda
+// estagio nem observacoes.
+model ProspeccaoFornecedor {
+  id                String    @id @default(cuid())
+  cnpj              String    @unique
+  razaoSocial       String
+  estagio           String    @default("identificado")
+  observacoes       String?
+  proximoContatoEm  DateTime?
+  atasVigentes      Int       @default(0)
+  pontuacao         Int       @default(0)
+  // Listas separadas por vírgula (slugs de categoria; siglas de UF).
+  categorias        String?
+  ufs               String?
+  // "radar" = veio do radar de atas; outra origem = cadastro manual.
+  origem            String    @default("radar")
+  // Quem mexeu por último: tipo ("admin") e id do usuário.
+  atualizadoPorTipo String?
+  atualizadoPorId   String?
+  criadoEm          DateTime  @default(now())
+  atualizadoEm      DateTime  @updatedAt
+
+  @@index([estagio])
+  @@map("prospeccao_fornecedores")
+}
