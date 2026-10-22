@@ -8,9 +8,13 @@ import { AppShell } from "@/components/ui/app-shell";
 import { Aviso } from "@/components/ui/aviso";
 import { CabecalhoPagina } from "@/components/ui/cabecalho-pagina";
 import { Secao } from "@/components/ui/secao";
-import { Badge } from "@/components/ui/badge";
+import { Badge, type Tom } from "@/components/ui/badge";
+import { FaixaNumeros } from "@/components/ui/faixa-numeros";
+import { dataSoDia } from "@/lib/acompanhamento-view";
 import { ITENS_CONFORMIDADE, alertasAutomaticos, type RespostasConformidade } from "@/lib/conformidade";
 import { percentualDeFracao } from "@/lib/formato";
+import { TEXTO_AVISO_VANTAJOSIDADE, formatarReais, type SituacaoPreco } from "@/lib/vantajosidade";
+import { carregarComparativoOuNulo, type ComparativoDaAta, type ItemComparado } from "@/lib/vantajosidade-db";
 import { FormularioAnalise } from "./formulario";
 
 export const dynamic = "force-dynamic";
@@ -50,6 +54,9 @@ export default async function AnaliseAtaPage({ params }: { params: Promise<{ ata
   if (!ata.contrato) {
     alertas.push("Sem contrato de intermediação — o vendedor não verá esta ata até o contrato ser cadastrado.");
   }
+
+  // Comparativo auxiliar de preços (null se o banco falhar: o bloco avisa e o resto da página segue).
+  const comparativo = await carregarComparativoOuNulo(ata.id);
 
   const c = ata.conformidade;
   const respostasAtuais: RespostasConformidade = {
@@ -177,6 +184,13 @@ export default async function AnaliseAtaPage({ params }: { params: Promise<{ ata
         </p>
       </Secao>
 
+      <Secao
+        titulo="Vantajosidade dos preços"
+        descricao="Compara o preço unitário de cada item da ata com preços de contratações públicas consultados no Compras.gov.br."
+      >
+        <BlocoVantajosidade comparativo={comparativo} />
+      </Secao>
+
       <Secao titulo="Checklist de conformidade" destaque>
         {ata.documentos.length > 0 && (
           <p
@@ -247,6 +261,221 @@ function Etapa({
       </p>
       {children}
     </li>
+  );
+}
+
+const SITUACAO: Record<SituacaoPreco, { rotulo: string; tom: Tom }> = {
+  acima: { rotulo: "Acima da referência", tom: "atencao" },
+  // Preço muito baixo também merece conferência (item ou unidade diferente): mesmo tom de atenção.
+  abaixo: { rotulo: "Abaixo da referência", tom: "atencao" },
+  compativel: { rotulo: "Compatível", tom: "marca" },
+  amostra_insuficiente: { rotulo: "Amostra insuficiente", tom: "neutro" },
+  sem_referencia: { rotulo: "Sem referência", tom: "neutro" },
+};
+
+const COR_SECUNDARIA = { color: "var(--cor-texto-3)" } as const;
+
+function percentual(valor: number, comSinal = false): string {
+  return `${valor.toLocaleString("pt-BR", {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+    signDisplay: comSinal ? "exceptZero" : "auto",
+  })}%`;
+}
+
+function reais(valor: number | null): string {
+  return valor !== null && Number.isFinite(valor) ? formatarReais(valor) : "—";
+}
+
+function diaDaConsulta(quando: Date): string {
+  return quando.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });
+}
+
+/** Preços de referência só valem para mostrar quando a comparação foi conclusiva. */
+function comparacaoConclusiva(item: ItemComparado): boolean {
+  return item.classificacao === "acima" || item.classificacao === "abaixo" || item.classificacao === "compativel";
+}
+
+/**
+ * Comparativo AUXILIAR de preços da ata (Projeto RNA, etapa 4): o preço
+ * unitário de cada item frente aos preços de contratações públicas consultados
+ * no Compras.gov.br. Não substitui a pesquisa de preços do órgão (art. 23); o
+ * aviso vai sempre junto dos números.
+ */
+function BlocoVantajosidade({ comparativo }: { comparativo: ComparativoDaAta | null }) {
+  return (
+    <div className="flex flex-col gap-5">
+      <Aviso tom="info">{TEXTO_AVISO_VANTAJOSIDADE}</Aviso>
+
+      {comparativo === null ? (
+        <Aviso tom="atencao">Não foi possível carregar o comparativo agora. Recarregue a página para tentar de novo.</Aviso>
+      ) : comparativo.itens.length === 0 ? (
+        <p className="text-sm" style={{ color: "var(--cor-texto-2)" }}>
+          Esta ata ainda não tem itens para comparar.
+        </p>
+      ) : (
+        <ComparativoDosItens comparativo={comparativo} />
+      )}
+    </div>
+  );
+}
+
+function ComparativoDosItens({ comparativo }: { comparativo: ComparativoDaAta }) {
+  const { itens, resumo } = comparativo;
+  const nenhumComCodigo = itens.every((i) => i.codigoCatalogo === null);
+  const nenhumConsultado = itens.every((i) => i.referencia === null);
+
+  return (
+    <>
+      <FaixaNumeros
+        itens={[
+          {
+            valor: `${resumo.itensComReferencia} de ${resumo.itensTotal}`,
+            rotulo: "Itens comparados",
+            nota: `${resumo.semReferencia} sem comparação`,
+            tom: resumo.itensComReferencia > 0 ? "marca" : undefined,
+          },
+          { valor: resumo.acima, rotulo: "Acima da referência", tom: resumo.acima > 0 ? "atencao" : undefined },
+          {
+            valor: resumo.abaixo,
+            rotulo: "Abaixo da referência",
+            nota: resumo.abaixo > 0 ? "também merece conferência" : undefined,
+            tom: resumo.abaixo > 0 ? "atencao" : undefined,
+          },
+          {
+            valor: resumo.pesoAcima !== null ? percentual(resumo.pesoAcima) : "—",
+            rotulo: "Peso dos itens acima",
+            nota: "do valor dos itens comparados",
+            tom: resumo.pesoAcima !== null && resumo.pesoAcima > 0 ? "atencao" : undefined,
+          },
+        ]}
+      />
+
+      {nenhumConsultado && (
+        <Aviso tom="atencao" titulo={nenhumComCodigo ? "Nenhum item desta ata tem código do catálogo." : "Ainda não há preços consultados para esta ata."}>
+          {nenhumComCodigo
+            ? "Informe o código CATMAT ou CATSER de cada item (campo “Código do catálogo” ao cadastrar ou completar a ata). "
+            : "Os itens já têm código, mas os preços ainda não foram buscados. "}
+          O script <span className="codigo">scripts/inteligencia/buscar-precos-referencia.ts</span> busca os preços de
+          referência no Compras.gov.br depois que os itens têm código; quando ele rodar, esta tabela é preenchida.
+        </Aviso>
+      )}
+
+      <div className="moldura-tabela">
+        <table className="tabela-atas min-w-[1040px]">
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th>Preço da ata</th>
+              <th>Mediana e faixa (p25–p75)</th>
+              <th>Preços usados</th>
+              <th>Período e consulta</th>
+              <th>Diferença</th>
+              <th>Situação</th>
+            </tr>
+          </thead>
+          <tbody>
+            {itens.map((item) => (
+              <LinhaDoItem key={item.itemId} item={item} />
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
+  );
+}
+
+function LinhaDoItem({ item }: { item: ItemComparado }) {
+  const { referencia } = item;
+  const situacao = SITUACAO[item.classificacao];
+  const conclusiva = comparacaoConclusiva(item);
+
+  return (
+    <tr>
+      <td className="min-w-[14rem] max-w-[20rem] align-top">
+        <span className="titulo-linha block text-[13.5px] leading-snug">{item.descricao}</span>
+        <span className="mt-0.5 block text-xs" style={COR_SECUNDARIA}>
+          <span className="numero">{item.quantidade}</span> {item.unidade}
+          {item.codigoCatalogo ? (
+            <>
+              {" · cód. "}
+              <span className="codigo">{item.codigoCatalogo}</span>
+            </>
+          ) : (
+            " · sem código"
+          )}
+        </span>
+      </td>
+      <td className="align-top">
+        <span className="numero font-semibold" style={{ color: "var(--cor-texto)" }}>
+          {reais(item.precoAta)}
+        </span>
+      </td>
+      <td className="align-top">
+        {conclusiva && referencia ? (
+          <>
+            <span className="numero font-semibold" style={{ color: "var(--cor-texto)" }}>
+              {reais(referencia.mediana)}
+            </span>
+            <span className="mt-0.5 block text-xs" style={COR_SECUNDARIA}>
+              <span className="numero">
+                {reais(referencia.p25)} – {reais(referencia.p75)}
+              </span>
+            </span>
+          </>
+        ) : (
+          <span style={COR_SECUNDARIA}>—</span>
+        )}
+      </td>
+      <td className="align-top">
+        {referencia ? (
+          <>
+            <span className="numero font-semibold" style={{ color: "var(--cor-texto)" }}>
+              {referencia.nUsadas}
+            </span>
+            <span className="mt-0.5 block text-xs" style={COR_SECUNDARIA}>
+              de <span className="numero">{referencia.n}</span> consultados
+            </span>
+          </>
+        ) : (
+          <span style={COR_SECUNDARIA}>—</span>
+        )}
+      </td>
+      <td className="align-top">
+        {referencia ? (
+          <>
+            <span className="numero whitespace-nowrap text-[13px]">
+              {dataSoDia(referencia.janelaInicio)} a {dataSoDia(referencia.janelaFim)}
+            </span>
+            <span className="mt-0.5 block text-xs" style={COR_SECUNDARIA}>
+              consultado em <span className="numero">{diaDaConsulta(referencia.consultadoEm)}</span>
+            </span>
+          </>
+        ) : (
+          <span style={COR_SECUNDARIA}>—</span>
+        )}
+      </td>
+      <td className="align-top">
+        {conclusiva && item.diferencaPercentual !== null ? (
+          <span className="numero font-semibold whitespace-nowrap" style={{ color: "var(--cor-texto)" }}>
+            {percentual(item.diferencaPercentual, true)}
+          </span>
+        ) : (
+          <span style={COR_SECUNDARIA}>—</span>
+        )}
+      </td>
+      <td className="min-w-[16rem] max-w-[26rem] align-top">
+        <Badge tom={situacao.tom}>{situacao.rotulo}</Badge>
+        <span className="mt-1.5 block text-xs leading-relaxed" style={COR_SECUNDARIA}>
+          {item.explicacao}
+        </span>
+        {referencia?.erro && (
+          <span className="mt-1 block break-words text-xs" style={COR_SECUNDARIA}>
+            Detalhe da consulta: {referencia.erro.slice(0, 200)}
+          </span>
+        )}
+      </td>
+    </tr>
   );
 }
 

@@ -57,6 +57,13 @@ export function FormularioAdicionarItem({
           required
         />
       </div>
+      <Campo
+        label="Código do catálogo (CATMAT/CATSER)"
+        name="codigoCatalogo"
+        opcional
+        inputMode="numeric"
+        ajuda="Número do item no catálogo do Compras.gov.br. Com ele a plataforma compara o preço da ata com preços de contratações públicas."
+      />
 
       {estado.erro && <Aviso tom="critico">{estado.erro}</Aviso>}
 
@@ -74,6 +81,9 @@ function Campo({
   required,
   min,
   step,
+  opcional,
+  inputMode,
+  ajuda,
 }: {
   label: string;
   name: string;
@@ -81,18 +91,35 @@ function Campo({
   required?: boolean;
   min?: string;
   step?: string;
+  opcional?: boolean;
+  inputMode?: "numeric";
+  ajuda?: string;
 }) {
   return (
     <label className="block text-sm">
-      <span className="rotulo-campo">{label}</span>
+      <span className="rotulo-campo">
+        {label}
+        {opcional && (
+          <>
+            {" "}
+            <small>(opcional)</small>
+          </>
+        )}
+      </span>
       <input
         name={name}
         type={type}
         required={required}
         min={min}
         step={step}
+        inputMode={inputMode}
         className="campo-atas"
       />
+      {ajuda && (
+        <span className="mt-1 block text-xs" style={{ color: "var(--cor-texto-3)" }}>
+          {ajuda}
+        </span>
+      )}
     </label>
   );
 }

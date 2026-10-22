@@ -47,6 +47,7 @@ import {
 } from "@/lib/recebiveis";
 import { expirarOportunidadesVencidas } from "@/lib/negociacao-expiracao";
 import { ITENS_CONFORMIDADE, itensPendentes, type RespostasConformidade } from "@/lib/conformidade";
+import { interpretarCodigoCatalogo } from "@/lib/vantajosidade-db";
 
 export interface EstadoLoginAdmin {
   erro?: string;
@@ -182,6 +183,12 @@ export async function adicionarItemNaAta(
     return { erro: "Preencha todos os campos do item com valores válidos." };
   }
 
+  // Opcional: vazio vira null; lixo é recusado em vez de adivinhado.
+  const codigoCatalogo = interpretarCodigoCatalogo(formData.get("codigoCatalogo"));
+  if (!codigoCatalogo.ok) {
+    return { erro: codigoCatalogo.erro };
+  }
+
   await prisma.item.create({
     data: {
       ataId,
@@ -190,6 +197,7 @@ export async function adicionarItemNaAta(
       unidade,
       quantidadeRegistrada,
       valorUnitario,
+      codigoCatalogo: codigoCatalogo.codigo,
       saldo: { create: {} },
     },
   });
@@ -1266,6 +1274,8 @@ export async function cadastrarAtaComoAdmin(
   const itensUnidade = formData.getAll("itemUnidade[]").map((v) => String(v).trim());
   const itensQuantidade = formData.getAll("itemQuantidade[]").map((v) => Number(v));
   const itensValorUnitario = formData.getAll("itemValorUnitario[]").map((v) => String(v).trim());
+  // Opcional em cada item. Sem o campo (formulário antigo), todos ficam sem código.
+  const itensCodigoCatalogoBrutos = formData.getAll("itemCodigoCatalogo[]");
 
   if (
     !fornecedorNome ||
@@ -1309,6 +1319,15 @@ export async function cadastrarAtaComoAdmin(
 
   if (!todosItensValidos) {
     return { erro: "Preencha todos os campos obrigatórios de cada item com valores válidos." };
+  }
+
+  const itensCodigoCatalogo: Array<string | null> = [];
+  for (let i = 0; i < itensDescricao.length; i++) {
+    const codigo = interpretarCodigoCatalogo(itensCodigoCatalogoBrutos[i]);
+    if (!codigo.ok) {
+      return { erro: `Item ${i + 1}: ${codigo.erro}` };
+    }
+    itensCodigoCatalogo.push(codigo.codigo);
   }
 
   const documento = formData.get("documento");
@@ -1363,6 +1382,7 @@ export async function cadastrarAtaComoAdmin(
             unidade: itensUnidade[i],
             quantidadeRegistrada: itensQuantidade[i],
             valorUnitario: itensValorUnitario[i],
+            codigoCatalogo: itensCodigoCatalogo[i],
             saldo: { create: {} },
           })),
         },

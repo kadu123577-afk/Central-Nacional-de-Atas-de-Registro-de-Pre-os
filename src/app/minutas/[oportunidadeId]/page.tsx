@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { adminIdLogado, vendedorIdLogado } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { AVISO_MINUTA, dataPorExtenso, dividirMarcadores, montarMinutas, separarSubtitulo } from "@/lib/minutas";
+import { carregarComparativoOuNulo } from "@/lib/vantajosidade-db";
 import { Aviso } from "@/components/ui/aviso";
 import { CabecalhoPagina } from "@/components/ui/cabecalho-pagina";
 import { Secao } from "@/components/ui/secao";
@@ -132,6 +133,9 @@ export default async function MinutasPage({ params }: { params: Promise<{ oportu
     }
   }
 
+  // Comparativo auxiliar de preços da ata: entra só na justificativa da vantagem, e só se algum item foi comparado.
+  const comparativo = await carregarComparativoOuNulo(oportunidade.ataId);
+
   const hoje = new Date();
   const minutas = montarMinutas({
     hoje,
@@ -145,6 +149,7 @@ export default async function MinutasPage({ params }: { params: Promise<{ oportu
     orgaoGerenciador: { nome: ata.orgaoGerenciador.nome, uf: ata.orgaoGerenciador.uf },
     fornecedor: { razaoSocial: ata.fornecedor.razaoSocial },
     itens: instrucao?.itens,
+    comparativo: comparativo ? { resumo: comparativo.resumo, consultadoEm: comparativo.consultadoEm } : null,
     declaracao: instrucao?.declaracaoEm
       ? {
           em: instrucao.declaracaoEm,

@@ -3,11 +3,15 @@ import { notFound, redirect } from "next/navigation";
 import { vendedorIdLogado } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { AppShell } from "@/components/ui/app-shell";
+import { Aviso } from "@/components/ui/aviso";
+import { Badge } from "@/components/ui/badge";
 import { CabecalhoPagina } from "@/components/ui/cabecalho-pagina";
 import { rotuloDaCategoria } from "@/lib/categorias";
 import { percentualDeFracao } from "@/lib/formato";
 import { carregarCartoes } from "@/lib/kanban-db";
 import { expirarOportunidadesVencidas } from "@/lib/negociacao-expiracao";
+import { TEXTO_AVISO_VANTAJOSIDADE } from "@/lib/vantajosidade";
+import { carregarComparativoOuNulo, type ComparativoDaAta } from "@/lib/vantajosidade-db";
 import { logoutVendedor } from "../../actions";
 import { NAV_VENDEDOR } from "../../nav";
 import { KanbanAta } from "@/components/kanban/kanban-ata";
@@ -40,6 +44,9 @@ export default async function KanbanAtaPage({ params }: { params: Promise<{ ataI
   if (cartoes.length === 0) {
     redirect("/vendedor");
   }
+
+  // Só o resumo do comparativo auxiliar de preços (contagens); se falhar, o bloco some e o Kanban segue.
+  const comparativo = await carregarComparativoOuNulo(ataId);
 
   const percentualContrato = ata.contrato ? Number(ata.contrato.percentualComissao) : null;
   const tecnico = ata.fornecedor;
@@ -101,7 +108,43 @@ export default async function KanbanAtaPage({ params }: { params: Promise<{ ataI
         </div>
       )}
 
+      {comparativo && <ResumoDePrecos comparativo={comparativo} />}
+
       <KanbanAta cartoes={cartoes} />
     </AppShell>
+  );
+}
+
+/**
+ * Bloco compacto do comparativo AUXILIAR de preços da ata: só as contagens
+ * (quantos itens foram comparados e quantos ficaram acima da referência) e o
+ * aviso. Sem itens, preços ou tabela: o detalhe é do gestor. Enquanto nenhum
+ * item foi comparado (atas sem código do catálogo ou ainda sem preços
+ * consultados), o bloco não aparece: não há número para mostrar.
+ */
+function ResumoDePrecos({ comparativo }: { comparativo: ComparativoDaAta }) {
+  const { itensTotal, itensComReferencia, acima } = comparativo.resumo;
+  if (itensComReferencia === 0) return null;
+
+  return (
+    <section className="painel flex flex-col gap-3 px-5 py-3.5 text-[13px]" style={{ color: "var(--cor-texto-2)" }}>
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5">
+        <span className="eyebrow">Comparativo de preços (auxiliar)</span>
+        <span>
+          <b className="numero font-semibold" style={{ color: "var(--cor-texto)" }}>
+            {itensComReferencia} de {itensTotal}
+          </b>{" "}
+          {itensTotal === 1 ? "item comparado" : "itens comparados"} com preços de contratações públicas
+        </span>
+        <Badge tom={acima > 0 ? "atencao" : "marca"}>
+          {acima === 0
+            ? "Nenhum item acima da referência"
+            : acima === 1
+              ? "1 item acima da referência"
+              : `${acima} itens acima da referência`}
+        </Badge>
+      </div>
+      <Aviso tom="info">{TEXTO_AVISO_VANTAJOSIDADE}</Aviso>
+    </section>
   );
 }

@@ -25,6 +25,7 @@ import {
   resumirInstrucao,
   textoDeclaracao,
 } from "./instrucao-adesao";
+import { TEXTO_AVISO_VANTAJOSIDADE, type ResumoAta } from "./vantajosidade";
 
 export const FUSO_MINUTAS = "America/Sao_Paulo";
 
@@ -63,6 +64,20 @@ export type DeclaracaoRegistrada = {
   versao?: number | null;
 };
 
+/**
+ * Comparativo AUXILIAR de preços da ata (src/lib/vantajosidade-db.ts), só o que
+ * a minuta de justificativa da vantagem usa: o resumo e quando os preços foram
+ * consultados. A conclusão sobre a vantagem é sempre do órgão aderente.
+ */
+export type ComparativoDaMinuta = {
+  resumo: Pick<
+    ResumoAta,
+    "itensTotal" | "itensComReferencia" | "compativeis" | "acima" | "abaixo" | "semReferencia" | "pesoAcima"
+  >;
+  /** Primeira e última consulta entre os itens comparados (ReferenciaPreco.consultadoEm). */
+  consultadoEm?: { maisAntiga?: Date | string | null; maisRecente?: Date | string | null } | null;
+};
+
 export type DadosMinutas = {
   /** Data de hoje (a página passa new Date()); o fuso de exibição é America/Sao_Paulo. */
   hoje: Date;
@@ -82,6 +97,12 @@ export type DadosMinutas = {
   itens?: unknown;
   /** Presente quando a oportunidade já tem InstrucaoAdesao com declaração. */
   declaracao?: DeclaracaoRegistrada | null;
+  /**
+   * Comparativo auxiliar de preços da ata. Quando há ao menos um item comparado,
+   * a justificativa da vantagem ganha um parágrafo de referência auxiliar; sem
+   * ele, o texto é o de sempre.
+   */
+  comparativo?: ComparativoDaMinuta | null;
 };
 
 // ---------------------------------------------------------------------------
@@ -297,7 +318,67 @@ function formalizacaoDaDemanda(c: Contexto): Minuta {
   };
 }
 
-function justificativaDaVantagem(c: Contexto): Minuta {
+function contadorValido(valor: unknown): number {
+  return typeof valor === "number" && Number.isFinite(valor) && valor > 0 ? Math.floor(valor) : 0;
+}
+
+function dataValida(valor: Date | string | null | undefined): Date | null {
+  const data = valor instanceof Date ? valor : typeof valor === "string" && valor.trim() ? new Date(valor) : null;
+  return data && !Number.isNaN(data.getTime()) ? data : null;
+}
+
+/** "em 22 de outubro de 2026" ou "entre 1º de outubro de 2026 e 22 de outubro de 2026" (fuso de São Paulo). */
+function quandoForamConsultados(consultadoEm: ComparativoDaMinuta["consultadoEm"]): string {
+  const antiga = dataValida(consultadoEm?.maisAntiga);
+  const recente = dataValida(consultadoEm?.maisRecente);
+  const primeira = antiga ?? recente;
+  const ultima = recente ?? antiga;
+  if (!primeira || !ultima) return `em ${marcador("data da consulta")}`;
+  const de = dataPorExtenso(primeira);
+  const ate = dataPorExtenso(ultima);
+  return de === ate ? `em ${de}` : `entre ${de} e ${ate}`;
+}
+
+/**
+ * Parágrafo de referência AUXILIAR na justificativa da vantagem: o resumo do
+ * comparativo da plataforma, a data da consulta e o aviso-padrão. Não afirma
+ * que o preço é vantajoso nem que algo foi comprovado: a conclusão é do órgão
+ * aderente e fica como marcador. Sem nenhum item comparado, não há parágrafo.
+ */
+function paragrafoReferenciaAuxiliar(comparativo: ComparativoDaMinuta | null | undefined): string | null {
+  const resumo = comparativo?.resumo;
+  if (!resumo) return null;
+  const comparados = contadorValido(resumo.itensComReferencia);
+  if (comparados === 0) return null;
+  const total = Math.max(contadorValido(resumo.itensTotal), comparados);
+  const acima = contadorValido(resumo.acima);
+  const abaixo = contadorValido(resumo.abaixo);
+  const pesoAcima = resumo.pesoAcima;
+
+  const partes: string[] = [
+    `Referência auxiliar da plataforma: ${comparados} de ${total} ${total === 1 ? "item" : "itens"} da ata ${comparados === 1 ? "foi comparado" : "foram comparados"} com preços de contratações públicas consultados no Compras.gov.br ${quandoForamConsultados(comparativo?.consultadoEm)}.`,
+    `Compatíveis com os preços consultados: ${contadorValido(resumo.compativeis)}. Acima dos preços consultados: ${acima}. Abaixo dos preços consultados: ${abaixo}. Sem comparação (sem código do catálogo, poucos preços consultados ou unidade diferente): ${contadorValido(resumo.semReferencia)}.`,
+  ];
+  if (acima > 0 && typeof pesoAcima === "number" && Number.isFinite(pesoAcima) && pesoAcima >= 0) {
+    const percentual = pesoAcima.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    partes.push(
+      `Os itens acima dos preços consultados somam ${percentual}% do valor dos itens comparados (preço registrado multiplicado pela quantidade registrada).`,
+    );
+  }
+  if (abaixo > 0) {
+    partes.push("Preço abaixo dos preços consultados também merece conferência: pode indicar item ou unidade diferente do pesquisado.");
+  }
+  partes.push(TEXTO_AVISO_VANTAJOSIDADE);
+  partes.push(
+    `Avaliação do órgão sobre esta referência: ${marcador(
+      "avaliação do órgão sobre a comparação acima e sobre a pesquisa de preços do próprio órgão, com a justificativa para os itens acima ou abaixo dos preços consultados, se houver",
+    )}`,
+  );
+  return linhas(...partes);
+}
+
+function justificativaDaVantagem(c: Contexto, comparativo?: ComparativoDaMinuta | null): Minuta {
+  const referenciaAuxiliar = paragrafoReferenciaAuxiliar(comparativo);
   return {
     chave: "justificativa-vantagem",
     titulo: "Justificativa da vantagem da adesão (modelo)",
@@ -312,6 +393,7 @@ function justificativaDaVantagem(c: Contexto): Minuta {
           "para cada item, o preço registrado na ata, os preços pesquisados, as fontes e as datas da pesquisa e a diferença encontrada",
         ),
       ),
+      ...(referenciaAuxiliar ? [referenciaAuxiliar] : []),
       linhas(
         "3. Vantagem da adesão",
         marcador(
@@ -462,7 +544,7 @@ export function montarMinutas(dados: DadosMinutas): Minuta[] {
   const c = montarContexto(dados);
   return [
     formalizacaoDaDemanda(c),
-    justificativaDaVantagem(c),
+    justificativaDaVantagem(c, dados.comparativo),
     oficioAoGerenciador(c),
     oficioAoFornecedor(c),
     declaracaoDeConformidade(c, dados),

@@ -9,9 +9,11 @@ import {
   marcador,
   montarMinutas,
   separarSubtitulo,
+  type ComparativoDaMinuta,
   type DadosMinutas,
   type Minuta,
 } from "./minutas";
+import { TEXTO_AVISO_VANTAJOSIDADE } from "./vantajosidade";
 
 const HOJE = new Date("2026-10-21T15:00:00Z");
 
@@ -49,6 +51,12 @@ function mapaObrigatoriosFeitos(): MapaInstrucao {
   return mapa;
 }
 
+/** 9 de 12 itens comparados; 6 compatíveis, 2 acima (18,5% do valor comparado), 1 abaixo, 3 sem comparação. */
+const COMPARATIVO: ComparativoDaMinuta = {
+  resumo: { itensTotal: 12, itensComReferencia: 9, compativeis: 6, acima: 2, abaixo: 1, semReferencia: 3, pesoAcima: 18.46 },
+  consultadoEm: { maisAntiga: new Date("2026-10-22T15:00:00Z"), maisRecente: new Date("2026-10-22T18:00:00Z") },
+};
+
 const EXCECAO = "Compra urgente; o parecer jurídico está em análise e será juntado depois.";
 
 function tudo(minutas: Minuta[]): string {
@@ -66,6 +74,11 @@ function cenarios(): Array<[string, Minuta[]]> {
   return [
     ["dados completos, sem declaração", montarMinutas(dadosCompletos())],
     ["sem nenhum dado", montarMinutas(dadosVazios())],
+    ["com comparativo auxiliar de preços", montarMinutas(dadosCompletos({ comparativo: COMPARATIVO }))],
+    [
+      "com comparativo auxiliar, sem data de consulta e sem dado nenhum",
+      montarMinutas({ ...dadosVazios(), comparativo: { resumo: COMPARATIVO.resumo } }),
+    ],
     [
       "declaração registrada sem exceção",
       montarMinutas(
@@ -224,6 +237,146 @@ describe("preenchimento automático", () => {
     expect(texto).not.toContain("99999");
     expect(texto).not.toContain("João Técnico");
     expect(texto).not.toMatch(/cnpj|telefone|e-mail|whatsapp/i);
+  });
+});
+
+describe("justificativa da vantagem: referência auxiliar de preços", () => {
+  const PREFIXO = "Referência auxiliar da plataforma:";
+
+  function justificativa(comparativo?: ComparativoDaMinuta | null, extra: Partial<DadosMinutas> = {}): Minuta {
+    return minuta(montarMinutas(dadosCompletos({ comparativo, ...extra })), "justificativa-vantagem");
+  }
+  const referenciaDe = (m: Minuta) => m.paragrafos.find((p) => p.startsWith(PREFIXO)) ?? "";
+
+  it("sem comparativo (ausente, nulo, sem item comparado ou resumo inválido), o texto é o de sempre", () => {
+    const base = justificativa().paragrafos;
+    const semComparados: ComparativoDaMinuta = {
+      resumo: { itensTotal: 5, itensComReferencia: 0, compativeis: 0, acima: 0, abaixo: 0, semReferencia: 5, pesoAcima: null },
+    };
+    const invalido = { resumo: { itensTotal: Number.NaN, itensComReferencia: Number.NaN } } as unknown as ComparativoDaMinuta;
+    for (const comparativo of [undefined, null, semComparados, invalido]) {
+      const m = justificativa(comparativo);
+      expect(m.paragrafos).toEqual(base);
+      expect(m.paragrafos.join("\n")).not.toContain(PREFIXO);
+      expect(m.paragrafos.join("\n")).not.toContain("Compras.gov.br");
+    }
+  });
+
+  it("com comparativo, inclui o resumo, a data da consulta, o aviso-padrão e deixa a avaliação para o órgão", () => {
+    const m = justificativa(COMPARATIVO);
+    const referencia = referenciaDe(m);
+    expect(referencia).not.toBe("");
+    expect(referencia).toContain(
+      "9 de 12 itens da ata foram comparados com preços de contratações públicas consultados no Compras.gov.br em 22 de outubro de 2026.",
+    );
+    expect(referencia).toContain("Compatíveis com os preços consultados: 6.");
+    expect(referencia).toContain("Acima dos preços consultados: 2.");
+    expect(referencia).toContain("Abaixo dos preços consultados: 1.");
+    expect(referencia).toContain("Sem comparação (sem código do catálogo, poucos preços consultados ou unidade diferente): 3.");
+    expect(referencia).toContain("somam 18,5% do valor dos itens comparados");
+    expect(referencia).toContain(TEXTO_AVISO_VANTAJOSIDADE);
+    expect(referencia).toContain("Avaliação do órgão sobre esta referência: [PREENCHER: avaliação do órgão");
+    // Marcador inteiro: o [PREENCHER: ...] do parágrafo é reconhecido pela tela.
+    expect(dividirMarcadores(referencia).some((t) => t.marcador && t.texto.startsWith("[PREENCHER: avaliação do órgão"))).toBe(true);
+  });
+
+  it("fica entre o bloco 2 (comparação com a pesquisa) e o bloco 3, sem criar subtítulo novo", () => {
+    const m = justificativa(COMPARATIVO);
+    const indice = (comeco: string) => m.paragrafos.findIndex((p) => p.startsWith(comeco));
+    expect(indice(PREFIXO)).toBe(indice("2. Comparação") + 1);
+    expect(indice("3. Vantagem")).toBe(indice(PREFIXO) + 1);
+    expect(separarSubtitulo(referenciaDe(m)).subtitulo).toBeNull();
+    expect(m.paragrafos.filter((p) => separarSubtitulo(p).subtitulo !== null)).toHaveLength(5);
+    // Os blocos e marcadores que já existiam continuam.
+    expect(m.paragrafos.join("\n")).toContain("[PREENCHER: para cada item");
+    expect(m.paragrafos.find((p) => p.startsWith("4. Conclusão")) ?? "").toContain("[PREENCHER: conclusão do órgão");
+  });
+
+  it("as outras quatro minutas não mudam", () => {
+    const sem = montarMinutas(dadosCompletos());
+    const com = montarMinutas(dadosCompletos({ comparativo: COMPARATIVO }));
+    for (const chave of CHAVES_MINUTAS) {
+      if (chave === "justificativa-vantagem") continue;
+      expect(minuta(com, chave)).toEqual(minuta(sem, chave));
+    }
+  });
+
+  it("consultas em dias diferentes viram um período; a data vale no fuso de São Paulo", () => {
+    const periodo = justificativa({
+      ...COMPARATIVO,
+      consultadoEm: { maisAntiga: new Date("2026-10-01T15:00:00Z"), maisRecente: "2026-10-22T15:00:00Z" },
+    });
+    expect(referenciaDe(periodo)).toContain("entre 1º de outubro de 2026 e 22 de outubro de 2026.");
+
+    // 01h UTC de 22/10 ainda é 21/10 em São Paulo.
+    const fuso = justificativa({
+      ...COMPARATIVO,
+      consultadoEm: { maisAntiga: new Date("2026-10-22T01:00:00Z"), maisRecente: new Date("2026-10-22T02:00:00Z") },
+    });
+    expect(referenciaDe(fuso)).toContain("em 21 de outubro de 2026.");
+  });
+
+  it("só uma das datas serve; sem data nenhuma ou inválida, vira marcador", () => {
+    const so = justificativa({ ...COMPARATIVO, consultadoEm: { maisRecente: new Date("2026-10-22T15:00:00Z") } });
+    expect(referenciaDe(so)).toContain("em 22 de outubro de 2026.");
+    for (const consultadoEm of [undefined, null, {}, { maisAntiga: "ontem", maisRecente: null }]) {
+      const m = justificativa({ resumo: COMPARATIVO.resumo, consultadoEm });
+      expect(referenciaDe(m)).toContain("consultados no Compras.gov.br em [PREENCHER: data da consulta].");
+    }
+  });
+
+  it("singular para um item só; sem item acima não fala do peso; sem item abaixo não fala da conferência", () => {
+    const um = referenciaDe(
+      justificativa({
+        ...COMPARATIVO,
+        resumo: { itensTotal: 1, itensComReferencia: 1, compativeis: 1, acima: 0, abaixo: 0, semReferencia: 0, pesoAcima: 0 },
+      }),
+    );
+    expect(um).toContain("1 de 1 item da ata foi comparado");
+    expect(um).not.toContain("somam");
+    expect(um).not.toContain("merece conferência");
+
+    const comAbaixo = referenciaDe(justificativa(COMPARATIVO));
+    expect(comAbaixo).toContain("Preço abaixo dos preços consultados também merece conferência");
+  });
+
+  it("número inválido no resumo vale zero e o total nunca fica menor que os comparados", () => {
+    const m = justificativa({
+      resumo: {
+        itensTotal: 0,
+        itensComReferencia: 4,
+        compativeis: Number.NaN,
+        acima: -3,
+        abaixo: Number.POSITIVE_INFINITY,
+        semReferencia: Number.NaN,
+        pesoAcima: Number.NaN,
+      },
+      consultadoEm: COMPARATIVO.consultadoEm,
+    });
+    const referencia = referenciaDe(m);
+    expect(referencia).toContain("4 de 4 itens da ata foram comparados");
+    expect(referencia).not.toMatch(/undefined|null|NaN|Infinity|-\d/);
+  });
+
+  it("não diz que o preço é vantajoso nem que algo foi comprovado: quem conclui é o órgão", () => {
+    for (const comparativo of [COMPARATIVO, { resumo: COMPARATIVO.resumo }]) {
+      const m = justificativa(comparativo);
+      // Fora dos marcadores (que descrevem o que o órgão deve escrever), o texto não afirma nada disso.
+      const semMarcadores = m.paragrafos
+        .flatMap((p) => dividirMarcadores(p))
+        .filter((t) => !t.marcador)
+        .map((t) => t.texto)
+        .join("");
+      expect(semMarcadores).not.toMatch(/vantajos|comprov|garant|asseg|certeza|econom|melhor pre/i);
+      expect(referenciaDe(m)).not.toMatch(/vantajos|comprov|garant|econom/i);
+    }
+  });
+
+  it("não altera a entrada", () => {
+    const dados = dadosCompletos({ comparativo: COMPARATIVO });
+    const copia = structuredClone(dados);
+    montarMinutas(dados);
+    expect(dados).toEqual(copia);
   });
 });
 
