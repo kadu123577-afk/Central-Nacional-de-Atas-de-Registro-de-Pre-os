@@ -1,30 +1,16 @@
-"use client";
+import { redirect } from "next/navigation";
+import { caminhoEntrar } from "@/lib/destino-login";
 
-import Link from "next/link";
-import { useActionState } from "react";
-import { loginOrgao, type EstadoFormularioOrgao } from "../actions";
-import { FormularioLogin } from "@/components/ui/formulario-login";
-
-const estadoInicial: EstadoFormularioOrgao = {};
-
-export default function LoginOrgaoPage() {
-  const [estado, formAction, pendente] = useActionState(loginOrgao, estadoInicial);
-
-  return (
-    <FormularioLogin
-      titulo="Painel do órgão comprador"
-      subtitulo="Entre para pedir adesão e acompanhar seus pedidos."
-      formAction={formAction}
-      erro={estado.erro}
-      pendente={pendente}
-      rodape={
-        <p className="text-sm" style={{ color: "var(--cor-texto-2)" }}>
-          Ainda não tem conta?{" "}
-          <Link href="/orgao/cadastro" className="botao-atas link">
-            Cadastre seu órgão →
-          </Link>
-        </p>
-      }
-    />
-  );
+/**
+ * A entrada é única e fica em /entrar (descobre o perfil pelo e-mail e leva à
+ * área certa). Esta rota só continua existindo para os links, favoritos e
+ * redirecionamentos de "sem sessão" que ainda apontam para cá: redireciona
+ * (temporário) levando junto apenas um destino válido, se houver.
+ */
+export default async function PaginaLoginAntiga({
+  searchParams,
+}: {
+  searchParams: Promise<{ ata?: string; destino?: string }>;
+}) {
+  redirect(caminhoEntrar(await searchParams));
 }

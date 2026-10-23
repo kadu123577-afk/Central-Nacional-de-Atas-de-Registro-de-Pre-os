@@ -3,6 +3,7 @@ import Image from "next/image";
 import { redirect } from "next/navigation";
 import { fornecedorIdLogado, orgaoIdLogado } from "@/lib/auth";
 import { obterAta } from "@/lib/catalogo-publico";
+import { destinoOrgaoDaBusca } from "@/lib/destino-login";
 import { linkContato, SITE } from "@/lib/site/config";
 import { FormEntrar } from "@/components/site/form-entrar";
 
@@ -14,20 +15,27 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-type Busca = { perfil?: string; ata?: string };
+type Busca = { perfil?: string; ata?: string; destino?: string };
 
 export default async function PaginaEntrar({ searchParams }: { searchParams: Promise<Busca> }) {
-  const { perfil: p, ata } = await searchParams;
-  const perfil = p === "fornecedor" ? "fornecedor" : "orgao";
+  const busca = await searchParams;
+  const { perfil } = busca;
+  const destinoOrgao = destinoOrgaoDaBusca(busca);
+  const idAta = destinoOrgao.startsWith("/catalogo/") ? destinoOrgao.slice("/catalogo/".length) : null;
 
-  // Quem já está logado vai direto ao destino em vez de ver o formulário.
-  const destinoOrgao = ata && /^[A-Za-z0-9]{10,40}$/.test(ata) ? `/catalogo/${ata}` : "/orgao";
-  const [orgaoId, fornecedorId] = await Promise.all([orgaoIdLogado(), fornecedorIdLogado()]);
-  if (perfil === "orgao" && orgaoId) redirect(destinoOrgao);
-  if (perfil === "fornecedor" && fornecedorId) redirect("/fornecedor");
+  // Quem chegou por um link com intenção (pedir adesão numa ata, ?perfil=...) e
+  // já está logado vai direto ao destino em vez de ver o formulário. Em /entrar
+  // puro (menu do site, ou vindo das páginas de login antigas) o formulário
+  // sempre aparece: dá para trocar de perfil sem sair do outro antes.
+  const temIntencao = Boolean(perfil || busca.ata || busca.destino);
+  if (temIntencao) {
+    const [orgaoId, fornecedorId] = await Promise.all([orgaoIdLogado(), fornecedorIdLogado()]);
+    if (perfil !== "fornecedor" && orgaoId) redirect(destinoOrgao);
+    if (perfil === "fornecedor" && fornecedorId) redirect("/fornecedor");
+  }
 
   // O contexto do pedido mostra só dado público da ata (código e objeto).
-  const detalhe = ata ? await obterAta(ata, "publico") : null;
+  const detalhe = idAta ? await obterAta(idAta, "publico") : null;
   const contexto = detalhe ? { codigo: detalhe.codigo, titulo: detalhe.titulo } : null;
 
   return (
@@ -55,7 +63,6 @@ export default async function PaginaEntrar({ searchParams }: { searchParams: Pro
 
       <section className="entrar__form" aria-labelledby="t-login">
         <FormEntrar
-          perfilInicial={perfil}
           destinoOrgao={destinoOrgao}
           contexto={contexto}
           hrefCadastroOrgao={linkContato("Olá! Quero cadastrar meu órgão na Central Nacional de Atas.")}

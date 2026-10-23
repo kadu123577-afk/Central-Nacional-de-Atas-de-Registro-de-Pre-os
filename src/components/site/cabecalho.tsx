@@ -6,13 +6,14 @@ import { useEffect, useRef, useState } from "react";
 import { GRUPOS } from "@/lib/site/categorias";
 import { IconeBusca, IconeCategoria, IconeFechar, IconeMenu, IconeSetaBaixo } from "./icones";
 
-type MenuAberto = "categorias" | "entrar" | null;
+type MenuAberto = "categorias" | null;
 
 const GRUPOS_SO_COM_ATAS = new Set(["servicos", "outros"]);
 
 /**
- * Cabeçalho do site: busca, menu de categorias, menu "Entrar" e a gaveta do
- * celular. Recebe só as contagens de atas por grupo (dado público).
+ * Cabeçalho do site: busca, menu de categorias, link "Entrar" (entrada única,
+ * que descobre o perfil pelo e-mail) e a gaveta do celular. Recebe só as
+ * contagens de atas por grupo (dado público).
  */
 export function Cabecalho({ contagens }: { contagens: Record<string, number> }) {
   const [menu, setMenu] = useState<MenuAberto>(null);
@@ -126,26 +127,7 @@ export function Cabecalho({ contagens }: { contagens: Record<string, number> }) 
               </div>
             </div>
             <Link href="/#como-funciona">Como funciona</Link>
-            <div className="menu">
-              <button
-                className="menu-gatilho"
-                type="button"
-                aria-expanded={menu === "entrar"}
-                aria-controls="menu-entrar"
-                onClick={() => alternar("entrar")}
-              >
-                Entrar
-                <IconeSetaBaixo />
-              </button>
-              <div className="menu-painel" id="menu-entrar" hidden={menu !== "entrar"}>
-                <Link href="/entrar?perfil=orgao" onClick={() => setMenu(null)}>
-                  Sou órgão público<small>Prefeituras, consórcios e autarquias</small>
-                </Link>
-                <Link href="/entrar?perfil=fornecedor" onClick={() => setMenu(null)}>
-                  Sou fornecedor<small>Empresas com ata registrada</small>
-                </Link>
-              </div>
-            </div>
+            <Link href="/entrar">Entrar</Link>
           </nav>
 
           <button
@@ -198,12 +180,9 @@ export function Cabecalho({ contagens }: { contagens: Record<string, number> }) 
               </div>
             </form>
             <div>
-              <h2>Entrar</h2>
-              <Link className="linha" href="/entrar?perfil=orgao" onClick={fecharGaveta}>
-                Sou órgão público
-              </Link>
-              <Link className="linha" href="/entrar?perfil=fornecedor" onClick={fecharGaveta}>
-                Sou fornecedor
+              <h2>Acesso</h2>
+              <Link className="linha" href="/entrar" onClick={fecharGaveta}>
+                Entrar
               </Link>
               <Link className="linha" href="/#como-funciona" onClick={fecharGaveta}>
                 Como funciona a adesão

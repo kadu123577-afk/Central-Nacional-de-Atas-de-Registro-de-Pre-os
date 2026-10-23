@@ -1,21 +1,16 @@
-"use client";
+import { redirect } from "next/navigation";
+import { caminhoEntrar } from "@/lib/destino-login";
 
-import { useActionState } from "react";
-import { loginVendedor, type EstadoLoginVendedor } from "../actions";
-import { FormularioLogin } from "@/components/ui/formulario-login";
-
-const estadoInicial: EstadoLoginVendedor = {};
-
-export default function LoginVendedorPage() {
-  const [estado, formAction, pendente] = useActionState(loginVendedor, estadoInicial);
-
-  return (
-    <FormularioLogin
-      titulo="Painel do vendedor"
-      subtitulo="Acesso restrito ao time comercial da ARCA Capital."
-      formAction={formAction}
-      erro={estado.erro}
-      pendente={pendente}
-    />
-  );
+/**
+ * A entrada é única e fica em /entrar (descobre o perfil pelo e-mail e leva à
+ * área certa). Esta rota só continua existindo para os links, favoritos e
+ * redirecionamentos de "sem sessão" que ainda apontam para cá: redireciona
+ * (temporário) levando junto apenas um destino válido, se houver.
+ */
+export default async function PaginaLoginAntiga({
+  searchParams,
+}: {
+  searchParams: Promise<{ ata?: string; destino?: string }>;
+}) {
+  redirect(caminhoEntrar(await searchParams));
 }

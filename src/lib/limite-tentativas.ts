@@ -123,6 +123,37 @@ export async function registrarSucessoLogin(tipo: string, email: string): Promis
   await limparFalhas(chaveConta(tipo, email));
 }
 
+/**
+ * Versões para a entrada única (/entrar), quando o mesmo e-mail pode ter
+ * conta em mais de um perfil e a senha é conferida contra todas de uma vez.
+ * Cada conta mantém a SUA chave (a mesma que o login do perfil usa, então o
+ * limite de 5 falhas por conta não se multiplica por mais um caminho), e o IP
+ * conta uma falha só por envio, não uma por perfil.
+ */
+export async function checarBloqueioLoginContas(
+  tipos: string[],
+  email: string,
+): Promise<string | null> {
+  const ip = await ipDaRequisicao();
+  const bloqueios = await Promise.all([
+    ...tipos.map((tipo) => bloqueadoAte(chaveConta(tipo, email))),
+    bloqueadoAte(chaveIp(ip)),
+  ]);
+  const ate = bloqueios.reduce<Date | null>(
+    (maior, atual) => (atual && (!maior || atual > maior) ? atual : maior),
+    null,
+  );
+  return ate ? mensagemBloqueio(ate) : null;
+}
+
+export async function registrarFalhaLoginContas(tipos: string[], email: string): Promise<void> {
+  const ip = await ipDaRequisicao();
+  await Promise.all([
+    ...tipos.map((tipo) => registrarFalha(chaveConta(tipo, email), POLITICA_CONTA)),
+    registrarFalha(chaveIp(ip), POLITICA_IP),
+  ]);
+}
+
 /** Limite por IP para telas de cadastro público (freia criação em massa). */
 export async function checarLimiteCadastro(): Promise<string | null> {
   const ip = await ipDaRequisicao();

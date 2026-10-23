@@ -52,6 +52,12 @@ import { podeAtuar } from "@/lib/credenciamento";
 
 export interface EstadoLoginAdmin {
   erro?: string;
+  /**
+   * true quando o erro é sobre o código do autenticador. Só acontece DEPOIS de
+   * a senha conferir; a entrada única (/entrar) usa isto para saber que a
+   * mensagem pode ser mostrada (qualquer outro erro vira a mensagem genérica).
+   */
+  exigeCodigo?: boolean;
 }
 
 export async function loginAdmin(
@@ -88,13 +94,13 @@ export async function loginAdmin(
   // 2FA: com o autenticador ativado, a senha sozinha não basta.
   if (admin.totpAtivo && admin.totpSegredo) {
     if (!codigo.trim()) {
-      return { erro: "Informe o código de verificação do aplicativo autenticador." };
+      return { erro: "Informe o código de verificação do aplicativo autenticador.", exigeCodigo: true };
     }
     const passo = verificarTotp(decifrarSegredo(admin.totpSegredo), codigo, admin.totpUltimoPasso);
     if (passo === null) {
       await registrarFalhaLogin("admin", email);
       await registrarAuditoria({ ator: `admin:${admin.id}`, acao: "admin.login_2fa_falhou" });
-      return { erro: "Código de verificação inválido ou já utilizado." };
+      return { erro: "Código de verificação inválido ou já utilizado.", exigeCodigo: true };
     }
     await prisma.admin.update({ where: { id: admin.id }, data: { totpUltimoPasso: passo } });
   }
