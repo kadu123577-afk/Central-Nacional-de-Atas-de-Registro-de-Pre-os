@@ -190,6 +190,9 @@ model Vendedor {
   atas              Ata[]
   oportunidades     OportunidadeVenda[]
   pedidosNegociacao PedidoNegociacao[]
+  // Credenciamento do consultor (2026-10-23, Projeto RNA etapa 6): aceite do
+  // compromisso de integridade e liberação para atuar. Nulo = ainda não começou.
+  credenciamento    CredenciamentoConsultor?
 
   @@map("vendedores")
 }
@@ -932,4 +935,59 @@ model ProspeccaoFornecedor {
 
   @@index([estagio])
   @@map("prospeccao_fornecedores")
+}
+
+// Faixas de comissão SUGERIDA (2026-10-23, Projeto RNA etapa 6): o percentual
+// que a plataforma sugere ao montar o contrato de intermediação de uma ata,
+// conforme o valor total dela. A faixa vale a partir de `valorMinimo` (a de
+// maior valorMinimo que não passe do valor da ata é a escolhida — regra em
+// src/lib/comissao-sugerida.ts). Os números são do dono do produto e vivem só
+// aqui, configurados pelo administrador: nenhum percentual padrão no código.
+// É sugestão: o percentual que vale é o pactuado no contrato (ContratoIntermediacao).
+// `ativo` = false tira a faixa do cálculo sem apagar o histórico.
+model FaixaComissao {
+  id              String   @id @default(cuid())
+  // Valor total da ata, em reais, a partir do qual a faixa vale (único, mesmo
+  // com a faixa inativa: para mudar o percentual desse valor, edite a faixa).
+  valorMinimo     Decimal  @unique @db.Decimal(16, 2)
+  // Fração (0.0525 = 5,25%), mesma convenção de OportunidadeVenda.
+  percentual      Decimal  @db.Decimal(5, 4)
+  descricao       String?
+  ativo           Boolean  @default(true)
+  // Id do administrador que mexeu por último.
+  atualizadoPorId String?
+  criadoEm        DateTime @default(now())
+  atualizadoEm    DateTime @updatedAt
+
+  @@map("faixas_comissao")
+}
+
+// Credenciamento do consultor comercial (2026-10-23, Projeto RNA etapa 6):
+// um por vendedor. O consultor aceita o compromisso de integridade (texto
+// versionado em src/lib/credenciamento.ts) e o administrador libera para
+// atuar. status é texto, não enum, igual categorias/estágios: pendente →
+// aceito → credenciado, ou suspenso (volta a "aceito" só por novo aceite do
+// consultor). Só "credenciado" atua; as transições ficam em
+// src/lib/credenciamento.ts. Guarda quem credenciou e quando, nunca o texto
+// do aceite (a versão basta para reconstituí-lo).
+model CredenciamentoConsultor {
+  id                  String    @id @default(cuid())
+  vendedorId          String    @unique
+  status              String    @default("pendente")
+  // Quando o consultor aceitou e qual versão do compromisso ele leu.
+  integridadeAceitaEm DateTime?
+  integridadeVersao   Int?
+  credenciadoEm       DateTime?
+  // Id do administrador que credenciou.
+  credenciadoPorId    String?
+  suspensoEm          DateTime?
+  // Motivo da suspensão (ou observação do administrador).
+  motivo              String?
+  criadoEm            DateTime  @default(now())
+  atualizadoEm        DateTime  @updatedAt
+
+  vendedor Vendedor @relation(fields: [vendedorId], references: [id])
+
+  @@index([status])
+  @@map("credenciamentos_consultor")
 }

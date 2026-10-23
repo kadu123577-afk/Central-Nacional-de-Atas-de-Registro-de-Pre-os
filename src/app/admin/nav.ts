@@ -10,6 +10,7 @@ import type { ItemNav } from "@/components/ui/app-shell";
 export const NAV_ADMIN: ItemNav[] = [
   { rotulo: "Painel", href: "/admin", grupo: "Operação" },
   { rotulo: "Pipeline", href: "/admin/pipeline", grupo: "Operação" },
+  { rotulo: "Indicadores", href: "/admin/indicadores", grupo: "Operação" },
   { rotulo: "Atas", href: "/atas", grupo: "Operação", ativoEm: ["/admin/atas"] },
   { rotulo: "Negociações", href: "/admin/negociacoes", grupo: "Operação" },
   { rotulo: "Contratos detectados", href: "/admin/contratos-detectados", grupo: "Operação" },
@@ -18,6 +19,7 @@ export const NAV_ADMIN: ItemNav[] = [
   { rotulo: "Prospecção de fornecedores", href: "/admin/prospeccao-fornecedores", grupo: "Rede" },
   { rotulo: "Recebíveis — vendedores", href: "/admin/recebiveis-vendedores", grupo: "Financeiro" },
   { rotulo: "Contas a receber", href: "/admin/faturamento", grupo: "Financeiro" },
+  { rotulo: "Comissão", href: "/admin/comissao", grupo: "Financeiro" },
   { rotulo: "Municípios/Entidades", href: "/admin/entidades", grupo: "Cadastros" },
   { rotulo: "Revisão de contatos", href: "/admin/contatos-revisao", grupo: "Cadastros" },
   { rotulo: "Usuários", href: "/admin/usuarios", grupo: "Cadastros" },

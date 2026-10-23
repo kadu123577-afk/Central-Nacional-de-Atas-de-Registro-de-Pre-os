@@ -48,6 +48,7 @@ import {
 import { expirarOportunidadesVencidas } from "@/lib/negociacao-expiracao";
 import { ITENS_CONFORMIDADE, itensPendentes, type RespostasConformidade } from "@/lib/conformidade";
 import { MENSAGEM_CODIGO_CATALOGO_INVALIDO, interpretarCodigoCatalogo } from "@/lib/vantajosidade-db";
+import { podeAtuar } from "@/lib/credenciamento";
 
 export interface EstadoLoginAdmin {
   erro?: string;
@@ -565,7 +566,31 @@ export async function decidirPedidosNegociacao(formData: FormData): Promise<void
     where: { id: { in: pedidoIds }, ataId, vendedorId, status: "pendente" },
   });
 
+  // Credenciamento (RNA etapa 6): só consultor credenciado recebe município
+  // novo. Aprovar um pedido de quem não está credenciado furaria a trava de
+  // solicitarMunicipios/moverEstagioOportunidade; por isso o pedido é negado
+  // com o motivo visível ao consultor, que pede de novo depois de credenciado.
+  let consultorCredenciado = true;
+  if (decisao === "aprovar") {
+    const credenciamento = await prisma.credenciamentoConsultor.findUnique({
+      where: { vendedorId },
+      select: { status: true },
+    });
+    consultorCredenciado = podeAtuar(credenciamento?.status);
+  }
+
   for (const pedido of pedidos) {
+    if (decisao === "aprovar" && !consultorCredenciado) {
+      await prisma.pedidoNegociacao.update({
+        where: { id: pedido.id },
+        data: {
+          status: "negado",
+          motivo: "Consultor ainda não credenciado. Conclua o credenciamento e peça de novo.",
+          decididoEm: agora,
+        },
+      });
+      continue;
+    }
     if (decisao === "negar") {
       await prisma.pedidoNegociacao.update({
         where: { id: pedido.id },

@@ -11,6 +11,9 @@ import { FunilVendedor, KpisVendedor, TarefasHoje } from "@/components/vendedor/
 import { corDaCategoria, rotuloDaCategoria } from "@/lib/categorias";
 import { expirarOportunidadesVencidas } from "@/lib/negociacao-expiracao";
 import { carregarPainelVendedor } from "@/lib/painel-vendedor-db";
+import { carregarIndicadoresSemanais } from "@/lib/indicadores-db";
+import { fotoExata, semanaDe } from "@/lib/indicadores-semanais";
+import { BlocoIndicadoresSemana } from "@/app/admin/indicadores/bloco-semana-vendedor";
 import { logoutVendedor } from "../actions";
 import { NAV_VENDEDOR } from "../nav";
 
@@ -31,6 +34,14 @@ export default async function DashboardVendedorPage() {
 
   await expirarOportunidadesVencidas();
   const painel = await carregarPainelVendedor(vendedorId);
+
+  // Indicadores da semana: só deste consultor (id da sessão). Se a consulta falhar, o resto do painel segue.
+  const agora = new Date();
+  const semanaAtual = semanaDe(agora);
+  const indicadoresSemana = await carregarIndicadoresSemanais(semanaAtual, { vendedorId }).catch((erro: unknown) => {
+    console.error("Indicadores da semana do consultor indisponíveis:", erro);
+    return null;
+  });
 
   const primeiroNome = vendedor.nome.split(" ")[0];
 
@@ -55,6 +66,8 @@ export default async function DashboardVendedorPage() {
       />
 
       <KpisVendedor kpis={painel.kpis} />
+
+      <BlocoIndicadoresSemana resumo={indicadoresSemana} fotoExata={fotoExata(semanaAtual, agora)} />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <TarefasHoje tarefas={painel.tarefas} />

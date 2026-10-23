@@ -1,9 +1,11 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useRef } from "react";
 import { salvarContratoIntermediacao, type EstadoContratoIntermediacao } from "../../../actions";
 import { COMISSAO_MAXIMA_PERCENTUAL, COMISSAO_MINIMA_PERCENTUAL } from "@/lib/comissao";
 import { Aviso } from "@/components/ui/aviso";
+import type { SugestaoContrato } from "./sugestao";
+import { SugestaoComissao } from "./sugestao-comissao";
 
 interface Props {
   ataId: string;
@@ -11,6 +13,8 @@ interface Props {
   dataAssinaturaAtual: string;
   vigenciaFimAtual: string;
   observacoesAtuais: string;
+  /** Comissão sugerida para o valor total da ata (só leitura: nunca grava). */
+  sugestao: SugestaoContrato;
 }
 
 const estadoInicial: EstadoContratoIntermediacao = {};
@@ -21,14 +25,25 @@ export function FormularioContrato({
   dataAssinaturaAtual,
   vigenciaFimAtual,
   observacoesAtuais,
+  sugestao,
 }: Props) {
   const acaoComId = salvarContratoIntermediacao.bind(null, ataId);
   const [estado, formAction, pendente] = useActionState(acaoComId, estadoInicial);
   // Depois de um erro o React zera o formulário; repõe o que foi digitado.
   const v = estado.valores;
+  const campoPercentual = useRef<HTMLInputElement>(null);
+
+  // "Usar sugestão" só preenche o campo; o contrato continua sendo gravado só em "Salvar contrato".
+  function usarSugestao(percentualCampo: string) {
+    const campo = campoPercentual.current;
+    if (!campo) return;
+    campo.value = percentualCampo;
+    campo.focus();
+  }
 
   return (
     <form action={formAction} className="flex flex-col gap-5">
+      <SugestaoComissao sugestao={sugestao} aoUsar={usarSugestao} />
       <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-3">
         <Campo
           label={
@@ -43,6 +58,7 @@ export function FormularioContrato({
           defaultValue={v?.percentualComissao ?? percentualAtual}
           inputMode="decimal"
           required
+          inputRef={campoPercentual}
         />
         <Campo label="Data de assinatura" name="dataAssinatura" type="date" defaultValue={v?.dataAssinatura ?? dataAssinaturaAtual} required />
         <Campo
@@ -80,6 +96,7 @@ function Campo({
   type = "text",
   defaultValue,
   inputMode,
+  inputRef,
 }: {
   label: React.ReactNode;
   name: string;
@@ -87,6 +104,7 @@ function Campo({
   type?: string;
   defaultValue?: string;
   inputMode?: "decimal";
+  inputRef?: React.Ref<HTMLInputElement>;
 }) {
   return (
     <label className="block text-sm">
@@ -97,6 +115,7 @@ function Campo({
         required={required}
         defaultValue={defaultValue}
         inputMode={inputMode}
+        ref={inputRef}
         className="campo-atas"
       />
     </label>

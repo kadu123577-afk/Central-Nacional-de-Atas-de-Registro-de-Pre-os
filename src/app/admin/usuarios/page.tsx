@@ -14,8 +14,18 @@ import { CabecalhoPagina } from "@/components/ui/cabecalho-pagina";
 import { Secao } from "@/components/ui/secao";
 import { Badge } from "@/components/ui/badge";
 import { VazioComAcao } from "@/components/ui/vazio-com-acao";
+import { Aviso } from "@/components/ui/aviso";
 import { ROTULO_TIPO_VENDEDOR } from "@/lib/vendedores";
 import { moedaCurta } from "@/lib/formato";
+import {
+  AVISO_MINUTA_INTEGRIDADE,
+  acoesDisponiveis,
+  normalizarStatusCredenciamento,
+  rotuloStatusCredenciamento,
+  tomStatusCredenciamento,
+} from "@/lib/credenciamento";
+import { resumoParaAdmin } from "@/lib/credenciamento-view";
+import { AcoesCredenciamento } from "./acoes-credenciamento";
 import { FormularioNovoVendedor } from "./formulario-vendedor";
 import { NAV_ADMIN } from "@/app/admin/nav";
 
@@ -38,6 +48,7 @@ export default async function GestaoUsuariosPage() {
     prisma.orgao.findMany({ orderBy: { nome: "asc" } }),
     prisma.vendedor.findMany({
       include: {
+        credenciamento: true,
         oportunidades: {
           where: { expiradaEm: null },
           select: { estagio: true, valorAderido: true, ata: { select: { id: true, numero: true } } },
@@ -70,87 +81,114 @@ export default async function GestaoUsuariosPage() {
         {vendedores.length === 0 ? (
           <VazioComAcao titulo="Nenhum vendedor cadastrado" descricao="" />
         ) : (
-          <ul className="lista-linhas">
-            {vendedores.map((v) => {
-              const atas = atasDoVendedor(v);
-              return (
-                <li key={v.id} className="flex flex-col gap-3">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-[14px] font-bold" style={{ color: "var(--cor-texto)", letterSpacing: "-0.01em" }}>
-                        {v.nome}
-                      </p>
-                      <p className="mt-0.5 text-xs" style={{ color: "var(--cor-texto-3)" }}>
-                        {v.email} · {ROTULO_TIPO_VENDEDOR[v.tipo as keyof typeof ROTULO_TIPO_VENDEDOR] ?? v.tipo}
-                      </p>
-                      {v.oportunidades.length > 0 && (
-                        <p className="mt-1.5 text-[13px]" style={{ color: "var(--cor-texto-2)" }}>
-                          <span className="numero">
-                            {v.oportunidades.filter((o) => ["a_contatar", "em_negociacao"].includes(o.estagio)).length}
-                          </span>{" "}
-                          em aberto ·{" "}
-                          <span className="numero">{v.oportunidades.filter((o) => o.estagio === "aderiu").length}</span>{" "}
-                          aderido(s) ·{" "}
-                          <b className="numero font-bold" style={{ color: "var(--cor-texto)" }}>
-                            {moedaCurta(
-                              v.oportunidades
-                                .filter((o) => o.estagio === "aderiu")
-                                .reduce((soma, o) => soma + (o.valorAderido ? Number(o.valorAderido) : 0), 0),
-                            )}
-                          </b>{" "}
-                          aderido ·{" "}
-                          <Link
-                            href={`/admin/pipeline?vendedor=${v.id}`}
-                            className="font-bold hover:underline"
-                            style={{ color: "var(--cor-marca-clara)" }}
-                          >
-                            ver no pipeline →
-                          </Link>
+          <div className="flex flex-col gap-4">
+            <Aviso tom="atencao" titulo="Credenciamento do consultor.">
+              Só consultor credenciado pede municípios e leva uma negociação adiante. Quem credencia é você, depois do
+              aceite do compromisso de integridade. {AVISO_MINUTA_INTEGRIDADE}
+            </Aviso>
+            <ul className="lista-linhas">
+              {vendedores.map((v) => {
+                const atas = atasDoVendedor(v);
+                const statusCred = normalizarStatusCredenciamento(v.credenciamento?.status);
+                const acoesCred = acoesDisponiveis(statusCred, "admin");
+                return (
+                  <li key={v.id} className="flex flex-col gap-3">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-[14px] font-bold" style={{ color: "var(--cor-texto)", letterSpacing: "-0.01em" }}>
+                          {v.nome}
                         </p>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Badge tom={v.ativo ? "neutro" : "critico"}>{v.ativo ? "Ativo" : "Desativado"}</Badge>
-                      <form action={alternarStatusVendedor}>
-                        <input type="hidden" name="vendedorId" value={v.id} />
-                        <button
-                          type="submit"
-                          className={v.ativo ? "botao-atas critico" : "botao-atas secundario"}
-                        >
-                          {v.ativo ? "Desativar" : "Reativar"}
-                        </button>
-                      </form>
-                    </div>
-                  </div>
-                  {atas.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
-                      {atas.map((a) => (
-                        <form
-                          key={a.id}
-                          action={devolverAtaAoPool}
-                          className="inline-flex items-center gap-2 rounded-full border py-1 pl-3 pr-1.5 text-[12.5px]"
-                          style={{ borderColor: "var(--cor-borda)", background: "var(--cor-superficie-2)" }}
-                        >
-                          <input type="hidden" name="ataId" value={a.id} />
+                        <p className="mt-0.5 text-xs" style={{ color: "var(--cor-texto-3)" }}>
+                          {v.email} · {ROTULO_TIPO_VENDEDOR[v.tipo as keyof typeof ROTULO_TIPO_VENDEDOR] ?? v.tipo}
+                        </p>
+                        {v.oportunidades.length > 0 && (
+                          <p className="mt-1.5 text-[13px]" style={{ color: "var(--cor-texto-2)" }}>
+                            <span className="numero">
+                              {v.oportunidades.filter((o) => ["a_contatar", "em_negociacao"].includes(o.estagio)).length}
+                            </span>{" "}
+                            em aberto ·{" "}
+                            <span className="numero">{v.oportunidades.filter((o) => o.estagio === "aderiu").length}</span>{" "}
+                            aderido(s) ·{" "}
+                            <b className="numero font-bold" style={{ color: "var(--cor-texto)" }}>
+                              {moedaCurta(
+                                v.oportunidades
+                                  .filter((o) => o.estagio === "aderiu")
+                                  .reduce((soma, o) => soma + (o.valorAderido ? Number(o.valorAderido) : 0), 0),
+                              )}
+                            </b>{" "}
+                            aderido ·{" "}
+                            <Link
+                              href={`/admin/pipeline?vendedor=${v.id}`}
+                              className="font-bold hover:underline"
+                              style={{ color: "var(--cor-marca-clara)" }}
+                            >
+                              ver no pipeline →
+                            </Link>
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Badge tom={v.ativo ? "neutro" : "critico"}>{v.ativo ? "Ativo" : "Desativado"}</Badge>
+                        <form action={alternarStatusVendedor}>
                           <input type="hidden" name="vendedorId" value={v.id} />
-                          <span className="codigo font-semibold" style={{ color: "var(--cor-texto)" }}>
-                            Ata {a.numero}
-                          </span>
                           <button
                             type="submit"
-                            className="rounded-full px-2 py-0.5 text-[12px] font-semibold hover:underline"
-                            style={{ color: "var(--cor-alerta)" }}
+                            className={v.ativo ? "botao-atas critico" : "botao-atas secundario"}
                           >
-                            tirar da ata
+                            {v.ativo ? "Desativar" : "Reativar"}
                           </button>
                         </form>
-                      ))}
+                      </div>
                     </div>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
+                    {atas.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {atas.map((a) => (
+                          <form
+                            key={a.id}
+                            action={devolverAtaAoPool}
+                            className="inline-flex items-center gap-2 rounded-full border py-1 pl-3 pr-1.5 text-[12.5px]"
+                            style={{ borderColor: "var(--cor-borda)", background: "var(--cor-superficie-2)" }}
+                          >
+                            <input type="hidden" name="ataId" value={a.id} />
+                            <input type="hidden" name="vendedorId" value={v.id} />
+                            <span className="codigo font-semibold" style={{ color: "var(--cor-texto)" }}>
+                              Ata {a.numero}
+                            </span>
+                            <button
+                              type="submit"
+                              className="rounded-full px-2 py-0.5 text-[12px] font-semibold hover:underline"
+                              style={{ color: "var(--cor-alerta)" }}
+                            >
+                              tirar da ata
+                            </button>
+                          </form>
+                        ))}
+                      </div>
+                    )}
+                    <div
+                      className="flex flex-wrap items-start justify-between gap-3 rounded-[var(--raio)] border px-3 py-2.5"
+                      style={{ borderColor: "var(--cor-borda)", background: "var(--cor-superficie-2)" }}
+                    >
+                      <div className="min-w-0 max-w-xl">
+                        <p className="flex flex-wrap items-center gap-2">
+                          <span className="eyebrow">Credenciamento</span>
+                          <Badge tom={tomStatusCredenciamento(statusCred)}>{rotuloStatusCredenciamento(statusCred)}</Badge>
+                        </p>
+                        <p className="mt-1 text-xs leading-relaxed" style={{ color: "var(--cor-texto-3)" }}>
+                          {resumoParaAdmin(v.credenciamento)}
+                        </p>
+                      </div>
+                      <AcoesCredenciamento
+                        vendedorId={v.id}
+                        podeCredenciar={acoesCred.includes("credenciar")}
+                        podeSuspender={acoesCred.includes("suspender")}
+                      />
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
         )}
       </Secao>
 

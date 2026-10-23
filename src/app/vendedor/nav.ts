@@ -4,5 +4,6 @@ export const NAV_VENDEDOR: ItemNav[] = [
   { rotulo: "Atas", href: "/vendedor", ativoEm: ["/vendedor/atas"] },
   { rotulo: "Dashboard", href: "/vendedor/dashboard" },
   { rotulo: "Municípios", href: "/vendedor/municipios" },
+  { rotulo: "Credenciamento", href: "/vendedor/credenciamento" },
   { rotulo: "Perfil", href: "/vendedor/perfil" },
 ];
