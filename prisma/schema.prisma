@@ -45,23 +45,28 @@ enum EstagioAdesao {
 }
 
 model Admin {
-  id              String   @id @default(cuid())
-  nome            String
-  email           String   @unique
-  senhaHash       String
-  createdAt       DateTime @default(now())
+  id               String   @id @default(cuid())
+  nome             String
+  email            String   @unique
+  senhaHash        String
+  createdAt        DateTime @default(now())
   // Marca dados criados pelo seed de demonstração (prisma/seed.ts), pra
   // poder ser apagado seletivamente por prisma/seed-limpar.ts sem tocar
   // em admins reais criados por seed-admin.ts.
-  isSeed          Boolean  @default(false)
+  isSeed           Boolean  @default(false)
   // Segurança (2026-10-20): incrementa a cada troca de senha e derruba todas
   // as sessões já emitidas (o cookie carrega a versão).
-  sessaoVersao    Int      @default(0)
+  sessaoVersao     Int      @default(0)
   // 2FA por app autenticador (TOTP). O segredo fica cifrado (AES-256-GCM,
   // ver src/lib/totp.ts). totpUltimoPasso evita reuso do mesmo código.
-  totpSegredo     String?
-  totpAtivo       Boolean  @default(false)
-  totpUltimoPasso Int?
+  totpSegredo      String?
+  totpAtivo        Boolean  @default(false)
+  totpUltimoPasso  Int?
+  // Financeiro da SCP (2026-10-26, Projeto RNA etapa 7): quem pode ver e editar
+  // o financeiro da Sociedade em Conta de Participação. Ninguém tem por padrão;
+  // o acesso só é dado pelo script prisma/habilitar-financeiro.ts (npm run
+  // admin:financeiro), direto no servidor, com registro na auditoria.
+  acessoFinanceiro Boolean  @default(false)
 
   @@map("admins")
 }
@@ -990,4 +995,80 @@ model CredenciamentoConsultor {
 
   @@index([status])
   @@map("credenciamentos_consultor")
+}
+
+// Financeiro da SCP (2026-10-26, Projeto RNA etapa 7): a operação comercial é
+// organizada em Sociedade em Conta de Participação — uma sócia ostensiva e
+// sócios participantes, que partilham o resultado apurado segundo percentuais
+// de participação. REGRA DE OURO: nenhum dado real (nomes, percentuais, valores,
+// documentos) mora no código, nos testes, nos comentários, nas migrações ou em
+// arquivos de exemplo; tudo é cadastrado pelo administrador autorizado
+// (Admin.acessoFinanceiro) pela tela, direto no banco.
+// A receita não é cadastrada aqui: é a comissão efetivamente RECEBIDA, lida das
+// liquidações (Liquidacao.statusCobranca = "recebida"); as despesas são lançadas
+// à mão (DespesaScp). Regras puras em src/lib/financeiro-scp.ts.
+
+// Sócio da SCP. De propósito NÃO guarda CPF/CNPJ, endereço nem contato: seria
+// dado pessoal desnecessário para partilhar o resultado.
+model SocioScp {
+  id           String   @id @default(cuid())
+  nome         String
+  // "ostensivo" | "participante" (texto, não enum, igual categorias/estágios;
+  // vocabulário em src/lib/financeiro-scp.ts).
+  tipo         String
+  ativo        Boolean  @default(true)
+  observacoes  String?
+  // Posição na listagem da tela.
+  ordem        Int      @default(0)
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  participacoes ParticipacaoScp[]
+
+  @@map("socios_scp")
+}
+
+// Percentual de participação de um sócio no resultado, com vigência. Os
+// percentuais vigentes numa mesma data têm de somar exatamente 100% (regra
+// validada em src/lib/financeiro-scp.ts, não no banco). Mudar o percentual
+// = encerrar a linha atual (vigenteAte) e abrir outra; nada é apagado, para o
+// histórico de partilhas continuar reconstituível.
+model ParticipacaoScp {
+  id           String    @id @default(cuid())
+  socioId      String
+  // Fração: 0.6000 = 60% (mesma convenção de OportunidadeVenda.percentualComissao).
+  percentual   Decimal   @db.Decimal(7, 4)
+  // Dias só-data, à meia-noite UTC. vigenteAte nulo = em vigor.
+  vigenteDesde DateTime
+  vigenteAte   DateTime?
+  criadoEm     DateTime  @default(now())
+
+  socio SocioScp @relation(fields: [socioId], references: [id])
+
+  @@index([socioId])
+  @@index([vigenteDesde])
+  @@map("participacoes_scp")
+}
+
+// Despesa da SCP, lançada manualmente pelo administrador autorizado.
+// Dinheiro em Decimal(14,2); as contas do período são feitas em centavos
+// inteiros (src/lib/financeiro-scp.ts).
+model DespesaScp {
+  id             String   @id @default(cuid())
+  // Dia só-data, à meia-noite UTC.
+  data           DateTime
+  descricao      String
+  categoria      String?
+  valor          Decimal  @db.Decimal(14, 2)
+  // Id do sócio que desembolsou (SocioScp). Sem relação obrigatória: apagar ou
+  // desativar o sócio não pode bloquear nem apagar o histórico da despesa.
+  pagaPorSocioId String?
+  observacoes    String?
+  // Id do administrador que lançou.
+  criadoPorId    String?
+  criadoEm       DateTime @default(now())
+  atualizadoEm   DateTime @updatedAt
+
+  @@index([data])
+  @@map("despesas_scp")
 }

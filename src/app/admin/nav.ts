@@ -20,6 +20,9 @@ export const NAV_ADMIN: ItemNav[] = [
   { rotulo: "Recebíveis — vendedores", href: "/admin/recebiveis-vendedores", grupo: "Financeiro" },
   { rotulo: "Contas a receber", href: "/admin/faturamento", grupo: "Financeiro" },
   { rotulo: "Comissão", href: "/admin/comissao", grupo: "Financeiro" },
+  // O financeiro da SCP (/admin/financeiro-scp) NÃO entra neste menu de propósito: a lista é
+  // estática e vale para todo administrador, e a área é restrita (src/lib/acesso-financeiro.ts:
+  // flag acessoFinanceiro + 2FA). Quem tem acesso entra pelo endereço direto.
   { rotulo: "Municípios/Entidades", href: "/admin/entidades", grupo: "Cadastros" },
   { rotulo: "Revisão de contatos", href: "/admin/contatos-revisao", grupo: "Cadastros" },
   { rotulo: "Usuários", href: "/admin/usuarios", grupo: "Cadastros" },

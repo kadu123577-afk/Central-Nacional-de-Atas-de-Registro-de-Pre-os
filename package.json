@@ -11,6 +11,7 @@
     "test:watch": "vitest",
     "seed:admin": "tsx prisma/seed-admin.ts",
     "admin:resetar-2fa": "tsx prisma/reset-admin-2fa.ts",
+    "admin:financeiro": "tsx prisma/habilitar-financeiro.ts",
     "seed:vendedor": "tsx prisma/seed-vendedor.ts",
     "seed": "tsx prisma/seed.ts",
     "seed:limpar": "tsx prisma/seed-limpar.ts",
