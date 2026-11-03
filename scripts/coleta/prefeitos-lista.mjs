@@ -85,11 +85,22 @@ const lista = registros.map((g) => {
 const { alvos } = JSON.parse(fs.readFileSync(path.join(DADOS, "alvos.json"), "utf8"));
 const porNome = new Map();
 for (const a of alvos.filter((x) => x.uf === UF)) porNome.set(normalizarNome(a.nome), a);
+// Código IBGE de todos os municípios da UF (API pública de localidades), para os que não estão entre os alvos.
+const ibgeDaApi = new Map();
+try {
+  const resp = await fetch(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${UF}/municipios`);
+  for (const m of await resp.json()) ibgeDaApi.set(normalizarNome(m.nome), String(m.id));
+} catch (e) {
+  console.error("Aviso: não consegui o código IBGE pela API; só os alvos terão ibge.", e.message);
+}
 let casados = 0;
 const alvosSemPrefeito = new Set(porNome.keys());
+const divergenciasIbge = [];
 for (const p of lista) {
   const a = porNome.get(normalizarNome(p.municipio));
-  p.ibge = a?.ibge ?? null;
+  const daApi = ibgeDaApi.get(normalizarNome(p.municipio)) ?? null;
+  if (a && daApi && a.ibge !== daApi) divergenciasIbge.push(`${p.municipio}: alvos ${a.ibge} x API ${daApi}`);
+  p.ibge = a?.ibge ?? daApi;
   p.alvo = Boolean(a);
   if (a) {
     casados++;
@@ -125,6 +136,11 @@ console.log(
     casadosComAlvos: casados,
     alvosDaUf: porNome.size,
     alvosSemPrefeitoNaLista: [...alvosSemPrefeito],
+    comIbge: lista.filter((p) => p.ibge).length,
+    semIbge: lista.filter((p) => !p.ibge).map((p) => p.municipio),
+    divergenciasIbge,
+    municipiosDaUfNaApi: ibgeDaApi.size,
+    naApiSemPrefeitoNaLista: [...ibgeDaApi.keys()].filter((n) => !lista.some((p) => normalizarNome(p.municipio) === n)),
     semEmail: sem("email"),
     semCelular: sem("celular"),
     semTelefonePrefeitura: sem("telefonePrefeitura"),
