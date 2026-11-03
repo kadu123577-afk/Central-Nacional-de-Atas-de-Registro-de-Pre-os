@@ -15,7 +15,10 @@
  *    desatualizada, ou o contrário).
  *  - Contato novo entra com confiança 2 (fonte oficial, mas de 2024) e sem `verificadoEm`.
  *
- * Rodar com: npx tsx prisma/importar-prefeitos-lista.ts <caminho-do-json> [--aplicar]
+ *  - Com `--criar-municipios`, os municípios da lista que ainda não estão na base (fora dos
+ *    1.073 alvos por faixa de população) são cadastrados como `EntidadeAlvo` municipal.
+ *
+ * Rodar com: npx tsx --env-file=.env prisma/importar-prefeitos-lista.ts <caminho-do-json> [--criar-municipios] [--aplicar]
  */
 import fs from "fs";
 import { PrismaClient } from "../src/generated/prisma/client";
@@ -70,8 +73,9 @@ function mesmaPessoa(a: string, b: string): boolean {
 async function main() {
   const caminho = process.argv[2];
   const aplicar = process.argv.includes("--aplicar");
+  const criarMunicipios = process.argv.includes("--criar-municipios");
   if (!caminho) {
-    console.error("Uso: npx tsx prisma/importar-prefeitos-lista.ts <caminho-do-json> [--aplicar]");
+    console.error("Uso: npx tsx prisma/importar-prefeitos-lista.ts <caminho-do-json> [--criar-municipios] [--aplicar]");
     process.exit(1);
   }
   const arquivo = JSON.parse(fs.readFileSync(caminho, "utf8")) as ArquivoLista;
@@ -83,8 +87,10 @@ async function main() {
     where: { tipo: "municipal", codigoIbgeMunicipio: { in: doAlvo.map((p) => p.ibge as string) } },
     select: { id: true, codigoIbgeMunicipio: true, contatos: { where: { cargo: CARGO, ativo: true }, select: { id: true, nomeContato: true, telefone: true, email: true } } },
   });
-  const porIbge = new Map(entidades.map((e) => [e.codigoIbgeMunicipio as string, e]));
+  type EntidadeComContatos = (typeof entidades)[number];
+  const porIbge = new Map<string, EntidadeComContatos>(entidades.map((e) => [e.codigoIbgeMunicipio as string, e]));
 
+  let municipiosCriados = 0;
   let criados = 0;
   let completados = 0;
   let iguaisSemMudanca = 0;
@@ -93,11 +99,30 @@ async function main() {
 
   for (const p of doAlvo) {
     const nome = p.nomeCompleto ?? p.nomeUrna;
-    const ent = porIbge.get(p.ibge as string);
+    let ent = porIbge.get(p.ibge as string);
     if (!nome) continue;
     if (!ent) {
-      semEntidade.push(`${p.uf}/${p.municipio}`);
-      continue;
+      if (!criarMunicipios) {
+        semEntidade.push(`${p.uf}/${p.municipio}`);
+        continue;
+      }
+      // Município fora dos 1.073 alvos: entra na base como os demais (ver seed-municipios-alvo.ts),
+      // sem contato além do prefeito, sem CNPJ e sem raio-X (o enriquecimento de CNPJ roda depois).
+      const nova = aplicar
+        ? await prisma.entidadeAlvo.create({
+            data: {
+              nome: `Prefeitura de ${p.municipio}`,
+              tipo: "municipal",
+              esfera: "municipal",
+              uf: p.uf,
+              municipio: p.municipio,
+              codigoIbgeMunicipio: p.ibge as string,
+            },
+            select: { id: true },
+          })
+        : { id: "(novo)" };
+      ent = { id: nova.id, codigoIbgeMunicipio: p.ibge as string, contatos: [] };
+      municipiosCriados += 1;
     }
 
     const telefone = p.telefonePrefeitura;
@@ -149,6 +174,7 @@ async function main() {
   }
 
   console.log("\n=== Resumo ===");
+  console.log(`Municípios novos na base ${aplicar ? "criados" : "a criar"}: ${municipiosCriados}${criarMunicipios ? "" : " (use --criar-municipios para cadastrar os que não estão na base)"}`);
   console.log(`Prefeitos novos ${aplicar ? "criados" : "a criar"}: ${criados}`);
   console.log(`Prefeitos já cadastrados, telefone/e-mail ${aplicar ? "completados" : "a completar"}: ${completados}`);
   console.log(`Já cadastrados e completos (sem mudança): ${iguaisSemMudanca}`);
