@@ -108,3 +108,9 @@ que interessa nos pontos parcialmente corretos. Um commit + push por etapa.
 - **Páginas de erro:** `src/app/error.tsx` e `global-error.tsx` em português, sem pilha, com o código do erro (nesta versão do Next o botão usa `retry`, não `reset`).
 - **Guia para quem publica:** `IMPLANTACAO.md` (mapa de endereços, variáveis, passo a passo, primeiro administrador, contas e perfis, rotinas automáticas, segurança, o que a infraestrutura precisa providenciar, problemas comuns). `.env.example` completo.
 - **Testado na tela:** os quatro perfis entram pela mesma tela e caem na área certa; raiz, logins antigos, `/api/saude`, catálogo, termos, privacidade e 404 respondem como esperado.
+
+## Equipe inicial da implantação (14/11/2026)
+- **Pedido de Carlos:** criar as contas do workflow (nada de contas de teste), todas com a mesma senha inicial, e entregar a lista ao SERPRO.
+- **`npm run seed:equipe`** (`prisma/seed-equipe.ts`, validação em `src/lib/equipe-inicial.ts`): cria as pessoas da equipe interna (permissões por atividade) e os consultores a partir de um JSON que fica **fora do repositório** (e-mails reais), todas com a **senha provisória** informada em `SENHA_PROVISORIA` (troca obrigatória, 12+ caracteres, no primeiro acesso). Repetível; `REDEFINIR=sim` refaz a senha de quem já existe. O formato está em `prisma/equipe-inicial.exemplo.json`. A senha e a lista real **não** estão no código.
+- **Contas criadas (8):** estagiário, Dr. Almério Leão, Dr. Marcelo (captação), Dr. Rui (aprova e instrui), jurídico, administração, Jorge (cobrança, que está no workflow) e Leide (consultora; credenciamento pendente). O primeiro administrador continua sendo criado por `npm run seed:admin`.
+- **Ajuste:** na lista de atas aguardando moderação do painel, cada botão (Completar, Contrato, Analisar e aprovar) só aparece para quem tem a permissão da tela para onde leva.
