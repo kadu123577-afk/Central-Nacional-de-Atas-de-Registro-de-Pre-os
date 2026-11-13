@@ -118,18 +118,18 @@ describe("sessão e permissão primeiro", () => {
 });
 
 describe("criarMembroEquipe", () => {
-  const base = { nome: "Rui Aprovador", email: "Rui@Exemplo.com.br", senha: SENHA_BOA, cargo: "Aprovador de atas" };
+  const base = { nome: "Rui Analista", email: "Rui@Exemplo.com.br", senha: SENHA_BOA, cargo: "Analista de adesão" };
 
   it("cria com as permissões marcadas, e-mail em minúsculas, e audita sem a senha", async () => {
-    const r = await criarMembroEquipe({}, formulario({ ...base, permissao: ["atas.aprovar", "adesao.instruir", "lixo"] }));
+    const r = await criarMembroEquipe({}, formulario({ ...base, permissao: ["adesao.instruir", "adesao.acompanhar", "lixo"] }));
     expect(r).toEqual({ ok: true });
     expect(dobles.adminCreate).toHaveBeenCalledWith({
       data: {
-        nome: "Rui Aprovador",
+        nome: "Rui Analista",
         email: "rui@exemplo.com.br",
         senhaHash: "hash-da-senha",
-        cargo: "Aprovador de atas",
-        permissoes: ["atas.aprovar", "adesao.instruir"],
+        cargo: "Analista de adesão",
+        permissoes: ["adesao.instruir", "adesao.acompanhar"],
         senhaProvisoria: true,
       },
       select: { id: true },
@@ -137,14 +137,14 @@ describe("criarMembroEquipe", () => {
     expect(dobles.registrarAuditoria).toHaveBeenCalledTimes(1);
     const evento = dobles.registrarAuditoria.mock.calls[0][0];
     expect(evento).toMatchObject({ ator: "admin:adm1", acao: "admin.criarMembroEquipe", alvo: "novo1" });
-    expect(evento.detalhe).toContain("atas.aprovar, adesao.instruir");
+    expect(evento.detalhe).toContain("adesao.instruir, adesao.acompanhar");
     expect(JSON.stringify(evento)).not.toContain(SENHA_BOA);
     expect(dobles.revalidatePath).toHaveBeenCalledWith("/admin/usuarios");
   });
 
   it("sem nenhuma caixa marcada, usa as permissões do perfil pronto", async () => {
-    await criarMembroEquipe({}, formulario({ ...base, perfil: "aprovador" }));
-    expect(dobles.adminCreate.mock.calls[0][0].data.permissoes).toEqual(["atas.aprovar", "adesao.instruir"]);
+    await criarMembroEquipe({}, formulario({ ...base, perfil: "analista" }));
+    expect(dobles.adminCreate.mock.calls[0][0].data.permissoes).toEqual(["adesao.instruir", "adesao.acompanhar"]);
   });
 
   it("sem caixa e sem perfil, a conta nasce sem permissão nenhuma", async () => {

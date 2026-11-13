@@ -28,16 +28,20 @@ function ata(extra: Partial<DadosDoCiclo> = {}): DadosDoCiclo {
 }
 
 describe("tabela das etapas", () => {
-  it("são as atividades 1 a 7, com os prazos do documento do workflow (dias úteis)", () => {
+  it("são as atividades 1 a 5 e 7 (a 6, aprovar a ata, foi retirada), com os prazos do documento do workflow (dias úteis)", () => {
     expect(ETAPAS_DO_CICLO.map((e) => [e.numero, e.prazoDiasUteis])).toEqual([
       [1, 2],
       [2, 5],
       [3, 1],
       [4, 5],
       [5, 3],
-      [6, 2],
       [7, 1],
     ]);
+  });
+
+  it("ninguém aprova ou rejeita ata: nenhuma etapa pede a permissão antiga de aprovação", () => {
+    expect(ETAPAS_DO_CICLO.map((e) => e.permissao)).not.toContain("atas.aprovar");
+    expect(etapaPorNumero(6)).toBeUndefined();
   });
 
   it("cada etapa aponta para uma permissão que existe", () => {
@@ -48,7 +52,7 @@ describe("tabela das etapas", () => {
   it("os caminhos levam à tela da ata certa", () => {
     expect(etapaPorNumero(3)?.caminho("a1")).toBe("/admin/atas/a1/itens");
     expect(etapaPorNumero(4)?.caminho("a1")).toBe("/admin/atas/a1/contrato");
-    expect(etapaPorNumero(6)?.caminho("a1")).toBe("/admin/atas/a1/analise");
+    expect(etapaPorNumero(5)?.caminho("a1")).toBe("/admin/atas/a1/analise");
   });
 });
 
@@ -72,17 +76,12 @@ describe("situacaoDoCiclo: a primeira etapa não cumprida é a atual", () => {
     expect(situacaoDoCiclo(ata({ totalItens: 5, contratoEm: d("2026-11-05") })).etapaAtual).toBe(5);
   });
 
-  it("com conformidade registrada, espera a aprovação (6)", () => {
-    const s = situacaoDoCiclo(ata({ totalItens: 5, contratoEm: d("2026-11-05"), conformidadeEm: d("2026-11-06") }));
-    expect(s.etapaAtual).toBe(6);
-  });
-
-  it("aprovada sem categoria espera a publicação (7)", () => {
+  it("conformidade concluída (ata liberada) sem categoria espera a publicação (7)", () => {
     const s = situacaoDoCiclo(ata({ status: "APROVADA", totalItens: 5, contratoEm: d("2026-11-05"), conformidadeEm: d("2026-11-06") }));
     expect(s.etapaAtual).toBe(7);
   });
 
-  it("aprovada com categoria está concluída: liberada para a equipe de vendas", () => {
+  it("liberada com categoria está concluída: disponível para a equipe de vendas", () => {
     const s = situacaoDoCiclo(
       ata({ status: "APROVADA", totalItens: 5, contratoEm: d("2026-11-05"), conformidadeEm: d("2026-11-06"), categoria: "material-escritorio" }),
     );
@@ -111,7 +110,7 @@ describe("situacaoDoCiclo: a primeira etapa não cumprida é a atual", () => {
     expect(s.etapas.filter((e) => e.desde !== null)).toHaveLength(1);
   });
 
-  it("ata aprovada antes desta regra, sem contrato: espera o contrato e NÃO tem 6 nem 7 como feitas", () => {
+  it("ata liberada antes desta regra, sem contrato: espera o contrato e NÃO tem 5 nem 7 como feitas", () => {
     const s = situacaoDoCiclo(ata({ status: "APROVADA", totalItens: 5, conformidadeEm: d("2026-11-06"), categoria: "material-escritorio" }));
     expect(s.etapaAtual).toBe(4);
     expect(s.etapas.filter((e) => e.feita).map((e) => e.numero)).toEqual([1, 2, 3]);
@@ -139,8 +138,7 @@ describe("desdeDaEtapa", () => {
 
   it("usa a data em que a etapa anterior ficou pronta, quando o banco a guarda", () => {
     expect(desdeDaEtapa(5, dados)).toEqual(d("2026-11-05"));
-    expect(desdeDaEtapa(6, dados)).toEqual(d("2026-11-06"));
-    expect(desdeDaEtapa(7, dados)).toEqual(d("2026-11-09"));
+    expect(desdeDaEtapa(7, dados)).toEqual(d("2026-11-06"));
   });
 
   it("nas demais, a data de cadastro da ata", () => {
@@ -151,7 +149,7 @@ describe("desdeDaEtapa", () => {
 
   it("sem a data da etapa anterior, cai para o cadastro", () => {
     expect(desdeDaEtapa(5, ata())).toEqual(d("2026-11-02"));
-    expect(desdeDaEtapa(6, ata())).toEqual(d("2026-11-02"));
+    expect(desdeDaEtapa(7, ata())).toEqual(d("2026-11-02"));
   });
 });
 
@@ -192,8 +190,7 @@ describe("situacaoDoPrazo (dias úteis)", () => {
 describe("bloqueioDaAcao: cada etapa só abre depois da anterior", () => {
   const COMPLETA_ATE_ITENS = { totalItens: 3 };
   const COM_CONTRATO = { totalItens: 3, contratoEm: d("2026-11-05") };
-  const COM_CONFORMIDADE = { ...COM_CONTRATO, conformidadeEm: d("2026-11-06") };
-  const APROVADA = { ...COM_CONFORMIDADE, status: "APROVADA" as const };
+  const LIBERADA = { ...COM_CONTRATO, conformidadeEm: d("2026-11-06"), status: "APROVADA" as const };
 
   it("o contrato (4) abre com a empresa fechada (2) e os itens cadastrados (3)", () => {
     expect(bloqueioDaAcao("contrato", ata(COMPLETA_ATE_ITENS))).toBeNull();
@@ -209,31 +206,25 @@ describe("bloqueioDaAcao: cada etapa só abre depois da anterior", () => {
     expect(bloqueioDaAcao("contrato", ata({ fornecedorAConfirmar: true, totalItens: 3 }))?.etapa.numero).toBe(2);
   });
 
-  it("sem contrato não dá para conferir a conformidade, nem aprovar, nem publicar (o caso do 3 para o 5, 6 ou 7)", () => {
-    for (const acao of ["conformidade", "aprovar", "publicar"] as const) {
+  it("sem contrato não dá para concluir a conformidade nem publicar (o caso do 3 para o 5 ou 7)", () => {
+    for (const acao of ["conformidade", "publicar"] as const) {
       const b = bloqueioDaAcao(acao, ata(COMPLETA_ATE_ITENS));
       expect(b?.etapa.numero, acao).toBe(4);
       expect(b?.mensagem, acao).toContain("falta a etapa 4 (Contrato de intermediação");
     }
   });
 
-  it("com o contrato, a conformidade abre; aprovar ainda espera a conformidade", () => {
+  it("com o contrato, a conformidade abre; publicar ainda espera a conformidade", () => {
     expect(bloqueioDaAcao("conformidade", ata(COM_CONTRATO))).toBeNull();
-    expect(bloqueioDaAcao("aprovar", ata(COM_CONTRATO))?.etapa.numero).toBe(5);
     expect(bloqueioDaAcao("publicar", ata(COM_CONTRATO))?.etapa.numero).toBe(5);
   });
 
-  it("com a conformidade registrada, aprovar abre; publicar ainda espera a aprovação", () => {
-    expect(bloqueioDaAcao("aprovar", ata(COM_CONFORMIDADE))).toBeNull();
-    expect(bloqueioDaAcao("publicar", ata(COM_CONFORMIDADE))?.etapa.numero).toBe(6);
-  });
-
-  it("depois de aprovada, publicar abre", () => {
-    expect(bloqueioDaAcao("publicar", ata(APROVADA))).toBeNull();
+  it("depois de a conformidade ser concluída (ata liberada), publicar abre", () => {
+    expect(bloqueioDaAcao("publicar", ata(LIBERADA))).toBeNull();
   });
 
   it("a mensagem diz quem faz a etapa que falta", () => {
-    expect(bloqueioDaAcao("aprovar", ata(COMPLETA_ATE_ITENS))?.mensagem).toContain("a cargo de jurídico");
+    expect(bloqueioDaAcao("conformidade", ata(COMPLETA_ATE_ITENS))?.mensagem).toContain("a cargo de jurídico");
   });
 
   it("ata rejeitada não trava a regra por ter sido rejeitada: vale o que falta de fato", () => {

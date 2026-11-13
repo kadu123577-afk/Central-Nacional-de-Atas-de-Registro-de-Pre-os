@@ -17,17 +17,17 @@ export const NAV_ADMIN: ItemNav[] = [
   { rotulo: "Painel", href: "/admin" },
   { rotulo: "Pipeline", href: "/admin/pipeline", permissoes: ["visao.geral"] },
 
-  // Atividades 1 a 7 (a ata) e 8 a 17 (a adesão do município).
+  // Atividades 1 a 5 e 7 (a ata; a 6, aprovar, foi retirada) e 8 a 17 (a adesão do município).
   {
     rotulo: "Ciclos",
     href: "/admin/ciclo",
     abas: [
-      { rotulo: "Atas (1 a 7)", href: "/admin/ciclo", permissoes: ["visao.geral"] },
+      { rotulo: "Atas (1 a 5 e 7)", href: "/admin/ciclo", permissoes: ["visao.geral"] },
       { rotulo: "Adesões (8 a 17)", href: "/admin/ciclo-adesao", permissoes: ["visao.geral"] },
     ],
   },
 
-  // Captação e aprovação: o catálogo e o que traz ata e fornecedor novos.
+  // Captação e conformidade: o catálogo e o que traz ata e fornecedor novos.
   {
     rotulo: "Atas",
     href: "/atas",

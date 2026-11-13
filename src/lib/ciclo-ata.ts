@@ -2,17 +2,21 @@ import { diasUteisEntre, somarDiasUteis, type Feriados } from "@/lib/dias-uteis"
 import type { Permissao } from "@/lib/permissoes";
 
 /**
- * Ciclo da ata, atividades 1 a 7 do workflow (2026-11-14, passo 5 do plano): da captação até a
- * ata liberada para a equipe de vendas. Regras puras, sem banco e sem relógio. Em que etapa a
- * ata está é DERIVADO dos dados que o sistema já guarda (nada novo para a equipe preencher):
- * a primeira etapa ainda não cumprida é a atual.
+ * Ciclo da ata, atividades 1 a 5 e 7 do workflow (2026-11-14, passo 5 do plano): da captação até a
+ * ata liberada para a equipe de vendas. A atividade 6 (aprovar a ata) foi RETIRADA por decisão de
+ * Carlos (14/11/2026): ninguém aprova nem rejeita ata; concluída a conformidade (5), a ata fica
+ * disponível. Os demais números ficam como no documento do workflow.
+ *
+ * Regras puras, sem banco e sem relógio. Em que etapa a ata está é DERIVADO dos dados que o
+ * sistema já guarda (nada novo para a equipe preencher): a primeira etapa ainda não cumprida é
+ * a atual.
  *
  * Os prazos (dias úteis) são os do documento "Workflow principal da Central de Atas" e contam a
  * partir de quando a etapa anterior ficou pronta, o mais próximo que os dados permitem (ver
  * `desdeDaEtapa`). A contagem é aproximada: serve para cobrar, não para multar ninguém.
  */
 
-export type NumeroEtapa = 1 | 2 | 3 | 4 | 5 | 6 | 7;
+export type NumeroEtapa = 1 | 2 | 3 | 4 | 5 | 7;
 
 export interface EtapaDoCiclo {
   numero: NumeroEtapa;
@@ -71,16 +75,7 @@ export const ETAPAS_DO_CICLO: readonly EtapaDoCiclo[] = [
     papel: "Jurídico",
     prazoDiasUteis: 3,
     permissao: "atas.conformidade",
-    acao: "Conferir o checklist e escrever o parecer",
-    caminho: (id) => `/admin/atas/${id}/analise`,
-  },
-  {
-    numero: 6,
-    titulo: "Aprovar a ata",
-    papel: "Aprovador",
-    prazoDiasUteis: 2,
-    permissao: "atas.aprovar",
-    acao: "Aprovar ou rejeitar",
+    acao: "Conferir o checklist, escrever o parecer e concluir (a ata fica disponível para a venda)",
     caminho: (id) => `/admin/atas/${id}/analise`,
   },
   {
@@ -129,9 +124,9 @@ export interface SituacaoDoCiclo {
 
 /**
  * Etapa 1 (mapear) está feita se a ata existe. As demais, pelos dados:
- * 2 fornecedor confirmado · 3 ao menos um item · 4 contrato · 5 conformidade registrada ·
- * 6 ata aprovada · 7 aprovada e com categoria definida. Uma etapa só conta como feita se todas
- * as anteriores estão feitas.
+ * 2 fornecedor confirmado · 3 ao menos um item · 4 contrato · 5 conformidade CONCLUÍDA (a conclusão
+ * é o que libera a ata: status disponível) · 7 ata liberada e com categoria definida. Uma etapa só
+ * conta como feita se todas as anteriores estão feitas.
  */
 export function situacaoDoCiclo(dados: DadosDoCiclo): SituacaoDoCiclo {
   const rejeitada = dados.status === "REJEITADA";
@@ -142,11 +137,10 @@ export function situacaoDoCiclo(dados: DadosDoCiclo): SituacaoDoCiclo {
     3: dados.totalItens > 0,
     4: dados.contratoEm !== null,
     5: dados.conformidadeEm !== null,
-    6: aprovada,
     7: aprovada && dados.categoria !== null && dados.categoria !== "",
   };
-  // Cada etapa só vale se todas as anteriores valem (a ordem é regra). Uma ata aprovada antes desta
-  // regra, sem o contrato, NÃO tem a aprovação nem a publicação como feitas: espera o contrato.
+  // Cada etapa só vale se todas as anteriores valem (a ordem é regra). Uma ata liberada antes desta
+  // regra, sem o contrato, NÃO tem a publicação como feita: espera o contrato.
   const feitas = {} as Record<NumeroEtapa, boolean>;
   let anterioresFeitas = true;
   for (const e of ETAPAS_DO_CICLO) {
@@ -172,16 +166,14 @@ export function situacaoDoCiclo(dados: DadosDoCiclo): SituacaoDoCiclo {
 
 /**
  * Desde quando a etapa espera: a data em que a etapa anterior ficou pronta, quando o banco a
- * registra (contrato, conformidade, aprovação); nas demais, a data de cadastro da ata.
+ * registra (contrato, conformidade); nas demais, a data de cadastro da ata.
  */
 export function desdeDaEtapa(numero: NumeroEtapa, dados: DadosDoCiclo): Date {
   switch (numero) {
     case 5:
       return dados.contratoEm ?? dados.criadaEm;
-    case 6:
-      return dados.conformidadeEm ?? dados.contratoEm ?? dados.criadaEm;
     case 7:
-      return dados.atualizadaEm;
+      return dados.conformidadeEm ?? dados.contratoEm ?? dados.criadaEm;
     default:
       return dados.criadaEm;
   }
@@ -221,12 +213,11 @@ export function textoDoPrazo(p: SituacaoDoPrazo): string {
 // ---------------------------------------------------------------------------------------------
 
 /** As ações do ciclo que só valem na sua vez. Cada uma corresponde a uma etapa. */
-export type AcaoDoCiclo = "contrato" | "conformidade" | "aprovar" | "publicar";
+export type AcaoDoCiclo = "contrato" | "conformidade" | "publicar";
 
 const ETAPA_DA_ACAO: Record<AcaoDoCiclo, NumeroEtapa> = {
   contrato: 4,
   conformidade: 5,
-  aprovar: 6,
   publicar: 7,
 };
 
@@ -238,9 +229,10 @@ export interface BloqueioDoCiclo {
 
 /**
  * Decisão de Carlos (14/11/2026): o captador mapeia a ata e fecha com a empresa, o estagiário
- * cadastra os itens e o saldo, o jurídico faz o contrato, depois a conformidade, a aprovação e a
- * publicação. Não se pula etapa. Devolve o que falta antes de a ação poder acontecer, ou null se
- * a ata já está na vez dela (ou além). Rejeitar uma ata nunca é bloqueado por esta regra.
+ * cadastra os itens e o saldo, o jurídico faz o contrato e depois a conformidade (que, concluída,
+ * libera a ata), e a administração publica. Não se pula etapa. Devolve o que falta antes de a ação
+ * poder acontecer, ou null se a ata já está na vez dela (ou além). Ata rejeitada (só existe como
+ * legado) é tratada como pendente.
  */
 export function bloqueioDaAcao(acao: AcaoDoCiclo, dados: DadosDoCiclo): BloqueioDoCiclo | null {
   const numero = ETAPA_DA_ACAO[acao];

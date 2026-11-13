@@ -16,7 +16,7 @@ import { tomStatusAta } from "@/lib/severidade";
 export const dynamic = "force-dynamic";
 
 // O status vem do banco em caixa alta; o selo do site é pílula sem caixa alta.
-const ROTULO_STATUS = { PENDENTE: "Pendente", APROVADA: "Aprovada", REJEITADA: "Rejeitada" } as const;
+const ROTULO_STATUS = { PENDENTE: "Em andamento", APROVADA: "Liberada", REJEITADA: "Rejeitada (antiga)" } as const;
 
 function IconeAnexo() {
   return (

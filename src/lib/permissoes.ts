@@ -38,13 +38,7 @@ export const PERMISSOES = [
     chave: "atas.conformidade",
     rotulo: "Conformidade da ata",
     atividades: [5],
-    descricao: "Marcar o checklist de conformidade da ata e escrever o parecer.",
-  },
-  {
-    chave: "atas.aprovar",
-    rotulo: "Aprovar ata",
-    atividades: [6],
-    descricao: "Aprovar ou rejeitar a ata antes de ela ir para a venda.",
+    descricao: "Marcar o checklist de conformidade da ata, escrever o parecer e concluir: concluída a conformidade, a ata fica disponível para a equipe de vendas (não há aprovação à parte).",
   },
   {
     chave: "atas.publicar",
@@ -145,9 +139,11 @@ export const PERFIS = [
     permissoes: TODAS_AS_PERMISSOES,
   },
   {
-    chave: "aprovador",
-    rotulo: "Aprovador de atas",
-    permissoes: ["atas.aprovar", "adesao.instruir"],
+    // Dr. Rui (decisão de Carlos, 14/11/2026): não aprova ata (a aprovação saiu do workflow); instrui a adesão
+    // e acompanha contrato e aditivos.
+    chave: "analista",
+    rotulo: "Analista de adesão",
+    permissoes: ["adesao.instruir", "adesao.acompanhar"],
   },
   {
     chave: "captacao",
@@ -177,12 +173,10 @@ export function perfilPorChave(chave: unknown) {
  * que vai para a trilha de auditoria. Ação fora desta tabela é recusada: quem
  * cria ação nova precisa decidir a permissão dela.
  *
- * "admin.analisarAta" aceita quem tem conformidade OU aprovar; dentro da ação,
- * salvar o checklist exige conformidade e aprovar exige "atas.aprovar".
+ * "admin.analisarAta" (salvar o rascunho da conformidade ou concluí-la) exige "atas.conformidade".
  */
 export const PERMISSAO_POR_ACAO: Record<string, Permissao | readonly Permissao[]> = {
-  "admin.rejeitarAta": "atas.aprovar",
-  "admin.analisarAta": ["atas.conformidade", "atas.aprovar"],
+  "admin.analisarAta": "atas.conformidade",
   "admin.salvarContratoIntermediacao": "atas.contrato",
   "admin.devolverAtaAoPool": "atas.publicar",
   "admin.definirCategoriaAta": "atas.publicar",

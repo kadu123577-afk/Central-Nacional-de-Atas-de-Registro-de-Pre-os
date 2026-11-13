@@ -7,6 +7,7 @@ import { CabecalhoPagina } from "@/components/ui/cabecalho-pagina";
 import { Secao } from "@/components/ui/secao";
 import { buscarMunicipiosCompativeis } from "@/lib/match-ata-municipio";
 import { expirarOportunidadesVencidas } from "@/lib/negociacao-expiracao";
+import { mensagemDeAtaReservada, reservaDaAta } from "@/lib/reserva-ata";
 import { logoutVendedor } from "../../../actions";
 import { NAV_VENDEDOR } from "../../../nav";
 import { FormularioSolicitar, type MunicipioOpcao } from "./formulario";
@@ -17,7 +18,7 @@ export const dynamic = "force-dynamic";
  * Pedido de negociação (2026-10-04) — o vendedor escolhe os municípios em
  * que quer negociar a ata; o administrador libera (ou nega) cada pedido.
  * Município já em negociação por outro vendedor aparece desabilitado, sem
- * revelar quem é.
+ * revelar quem é. Ata reservada por outro consultor (14/11/2026) não aceita pedido.
  */
 export default async function SolicitarMunicipiosPage({ params }: { params: Promise<{ ataId: string }> }) {
   const vendedorId = await vendedorIdLogado();
@@ -36,7 +37,7 @@ export default async function SolicitarMunicipiosPage({ params }: { params: Prom
   const [ocupadas, meusPendentes, compativeis] = await Promise.all([
     prisma.oportunidadeVenda.findMany({
       where: { ataId, expiradaEm: null },
-      select: { entidadeAlvoId: true },
+      select: { entidadeAlvoId: true, vendedorId: true, estagio: true, expiradaEm: true, prazoEm: true },
     }),
     prisma.pedidoNegociacao.findMany({
       where: { ataId, vendedorId, status: "pendente" },
@@ -46,6 +47,8 @@ export default async function SolicitarMunicipiosPage({ params }: { params: Prom
       ? buscarMunicipiosCompativeis(ata.categoria)
       : Promise.resolve({ jaContrataram: [], nuncaContrataram: [] }),
   ]);
+  // Reserva (14/11/2026): enquanto outro consultor negocia nesta ata, ela fica suspensa para os demais.
+  const reserva = reservaDaAta(ocupadas, vendedorId);
   const idsOcupados = new Set(ocupadas.map((o) => o.entidadeAlvoId));
   const idsAguardando = new Set(meusPendentes.map((p) => p.entidadeAlvoId));
 
@@ -93,7 +96,11 @@ export default async function SolicitarMunicipiosPage({ params }: { params: Prom
           O administrador analisa cada pedido e libera os municípios. Depois de liberado, você tem 10 dias úteis para avançar a
           negociação — cada movimento no Kanban renova o prazo; sem avanço, o município volta a ficar livre.
         </Aviso>
-        {!ata.categoria ? (
+        {reserva ? (
+          <Aviso tom="atencao" titulo="Ata reservada">
+            {mensagemDeAtaReservada(reserva)}
+          </Aviso>
+        ) : !ata.categoria ? (
           <Aviso tom="atencao">
             Esta ata ainda não tem categoria definida, então não há municípios sugeridos. Fale com o administrador.
           </Aviso>

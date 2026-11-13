@@ -226,15 +226,20 @@ describe("próximo passo depois do contrato", () => {
     expect(html).toContain("Fazer a conformidade da ata");
   });
 
-  it("conformidade já feita (etapa 6): o botão passa a abrir a análise para aprovar", async () => {
+  it("conformidade já concluída (ata liberada): o botão abre a análise, sem falar em aprovação", async () => {
     dobles.ataFindUnique.mockResolvedValue(ata({ contrato }));
     dobles.carregarAtaNoCiclo.mockResolvedValue(
-      noCiclo({ contratoEm: new Date("2026-11-14T12:00:00Z"), conformidadeEm: new Date("2026-11-14T13:00:00Z") }),
+      noCiclo({
+        status: "APROVADA",
+        contratoEm: new Date("2026-11-14T12:00:00Z"),
+        conformidadeEm: new Date("2026-11-14T13:00:00Z"),
+      }),
     );
-    vi.mocked(permissoesDoAdmin).mockResolvedValueOnce(["atas.contrato", "atas.aprovar"]);
+    vi.mocked(permissoesDoAdmin).mockResolvedValueOnce(["atas.contrato", "atas.conformidade"]);
     const html = await paginaHtml();
-    expect(html).toContain("Falta a aprovação da ata");
+    expect(html).toContain("A ata já passou das etapas seguintes");
     expect(html).toContain("Abrir a análise da ata");
+    expect(html).not.toContain("aprovação");
   });
 
   it("quem só faz o contrato não recebe o botão: a ata segue para quem faz a conformidade", async () => {
@@ -244,7 +249,7 @@ describe("próximo passo depois do contrato", () => {
     const html = await paginaHtml();
     expect(html).toContain("Próximo passo");
     expect(html).not.toContain("/admin/atas/ata1/analise");
-    expect(html).toContain("A ata segue para quem faz a conformidade e a aprovação");
+    expect(html).toContain("A ata segue para quem faz a conformidade");
   });
 
   it("sem contrato cadastrado, ou com o contrato bloqueado, não há próximo passo", async () => {

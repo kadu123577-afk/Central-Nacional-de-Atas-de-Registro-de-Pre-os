@@ -21,7 +21,7 @@ import { NAV_ADMIN } from "@/app/admin/nav";
 // Depende sempre de dados atuais do banco — nunca pré-renderizar em build.
 export const dynamic = "force-dynamic";
 
-const ROTULO_STATUS = { PENDENTE: "Pendente", APROVADA: "Aprovada", REJEITADA: "Rejeitada" } as const;
+const ROTULO_STATUS = { PENDENTE: "Em andamento", APROVADA: "Liberada", REJEITADA: "Rejeitada (antiga)" } as const;
 
 interface FiltrosAtas {
   objeto?: string;

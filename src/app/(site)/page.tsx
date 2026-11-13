@@ -140,7 +140,7 @@ export default async function PaginaInicial({ searchParams }: Parametros) {
           ) : (
             <div className="vazio" role="status">
               <h2>O catálogo ainda está sendo montado</h2>
-              <p>Assim que as primeiras atas forem aprovadas, elas aparecem aqui.</p>
+              <p>Assim que as primeiras atas forem liberadas, elas aparecem aqui.</p>
             </div>
           )}
         </div>

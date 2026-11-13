@@ -53,7 +53,7 @@ export default async function FornecedoresPage() {
       <CabecalhoPagina
         rotulo="Cadastros"
         titulo="Fornecedores"
-        descricao="O que cada fornecedor realmente tem pra oferecer — categorias, atas aprovadas e UFs onde ele já tem ata gerenciadora."
+        descricao="O que cada fornecedor realmente tem pra oferecer — categorias, atas liberadas e UFs onde ele já tem ata gerenciadora."
         voltar={{ href: "/admin", rotulo: "Painel" }}
       />
 
@@ -82,7 +82,7 @@ export default async function FornecedoresPage() {
                       <p className="mt-0.5 text-xs" style={{ color: "var(--cor-texto-3)" }}>
                         <span className="codigo">{f.cnpj}</span> · {f.email} ·{" "}
                         <span className="numero">{f.atas.length}</span>{" "}
-                        {f.atas.length === 1 ? "ata aprovada" : "atas aprovadas"} ·{" "}
+                        {f.atas.length === 1 ? "ata liberada" : "atas liberadas"} ·{" "}
                         <span className="numero">{totalItens}</span> {totalItens === 1 ? "item" : "itens"}
                       </p>
                     </div>

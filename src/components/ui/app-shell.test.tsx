@@ -43,7 +43,7 @@ const de = (chave: string): readonly Permissao[] => PERFIS.find((p) => p.chave =
 const GESTAO = de("gestao");
 const ESTAGIARIO = de("estagiario");
 const CAPTADOR = de("captacao");
-const APROVADOR = de("aprovador");
+const ANALISTA = de("analista");
 const COBRANCA = de("cobranca");
 
 describe("casca do admin: cada função só vê o que é dela", () => {
@@ -77,8 +77,8 @@ describe("casca do admin: cada função só vê o que é dela", () => {
     ]);
   });
 
-  it("o Dr. Rui (aprova e instrui) vê o Painel, as Adesões e o Perfil: a ata chega pela tarefa, não pelo menu", () => {
-    expect(menu(desenhar("/admin", APROVADOR))).toEqual(["Painel", "Adesões", "Perfil"]);
+  it("o Dr. Rui (analista de adesão) vê o Painel, as Negociações e adesões (Adesões e Contratos detectados) e o Perfil", () => {
+    expect(menu(desenhar("/admin", ANALISTA))).toEqual(["Painel", "Negociações e adesões", "Perfil"]);
   });
 
   it("o Jorge (cobrança) vê o Painel, o Financeiro (contas e recebíveis) e o Perfil", () => {
@@ -107,7 +107,7 @@ describe("casca do admin: cada função só vê o que é dela", () => {
   });
 
   it("quem não vê nenhuma aba de uma entrada não vê a entrada", () => {
-    const itens = menu(desenhar("/admin", ["atas.aprovar"]));
+    const itens = menu(desenhar("/admin", ["atas.conformidade"]));
     expect(itens).toEqual(["Painel", "Perfil"]);
   });
 
@@ -182,8 +182,8 @@ describe("casca do admin: cada função só vê o que é dela", () => {
   });
 
   it("o ciclo da ata e o da adesão são abas da mesma entrada e não se confundem pelo prefixo", () => {
-    expect(abas(desenhar("/admin/ciclo", GESTAO))).toEqual(["Atas (1 a 7)", "Adesões (8 a 17)"]);
-    expect(desenhar("/admin/ciclo", GESTAO)).toMatch(/aria-current="page"[^>]*>Atas \(1 a 7\)</);
+    expect(abas(desenhar("/admin/ciclo", GESTAO))).toEqual(["Atas (1 a 5 e 7)", "Adesões (8 a 17)"]);
+    expect(desenhar("/admin/ciclo", GESTAO)).toMatch(/aria-current="page"[^>]*>Atas \(1 a 5 e 7\)</);
     expect(desenhar("/admin/ciclo-adesao", GESTAO)).toMatch(/aria-current="page"[^>]*>Adesões \(8 a 17\)</);
   });
 

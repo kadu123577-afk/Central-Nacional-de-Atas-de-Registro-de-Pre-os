@@ -12,6 +12,10 @@ import { KpisVendedor, TarefasHoje } from "@/components/vendedor/painel-resumo";
 import { carregarPainelVendedor } from "@/lib/painel-vendedor-db";
 import { corDaCategoria, rotuloDaCategoria } from "@/lib/categorias";
 import { expirarOportunidadesVencidas } from "@/lib/negociacao-expiracao";
+import { ESTAGIOS_COM_PRAZO } from "@/lib/negociacao";
+import { situacaoDoVencimento, textoDoPrazo } from "@/lib/ciclo-ata";
+import { carregarFeriadosExtras } from "@/lib/feriados-db";
+import { diaDaReserva, reservaDaAta } from "@/lib/reserva-ata";
 import { mensagemBloqueio, podeAtuar } from "@/lib/credenciamento";
 import { statusCredenciamentoDoVendedor } from "@/lib/credenciamento-db";
 import { CAMINHO_CREDENCIAMENTO, tituloAvisoCredenciamento } from "@/lib/credenciamento-view";
@@ -34,11 +38,11 @@ function CategoriaDaAta({ categoria }: { categoria: string | null }) {
 }
 
 /**
- * Painel de fluxo do vendedor (2026-10-01, revisto em 2026-10-04) — duas
- * listas: as atas em que já tenho municípios liberados (levam pro Kanban)
- * e as atas disponíveis. Uma ata disponível NÃO some pros outros quando
- * alguém negocia nela: aparece "em negociação" e cada vendedor pede os
- * municípios que quer, com liberação do admin.
+ * Painel de fluxo do vendedor (2026-10-01, revisto em 14/11/2026) — as atas em que já tenho
+ * municípios liberados (levam pro Kanban, com o meu prazo), as atas disponíveis e as atas
+ * reservadas. Qualquer consultor pode pedir qualquer ata disponível; enquanto um consultor negocia
+ * nela, a ata fica suspensa para os outros (reservada até o prazo dele) e volta a ficar disponível
+ * quando a negociação termina ou o prazo vence sem avanço.
  */
 export default async function PainelVendedorPage() {
   const vendedorId = await vendedorIdLogado();
@@ -56,7 +60,7 @@ export default async function PainelVendedorPage() {
   const limiteNegados = new Date();
   limiteNegados.setDate(limiteNegados.getDate() - DIAS_MOSTRAR_NEGADOS);
 
-  const [painel, statusCredenciamento, minhasAtas, disponiveis, pedidosPendentes, pedidosNegados] = await Promise.all([
+  const [painel, statusCredenciamento, minhasAtas, disponiveis, pedidosPendentes, pedidosNegados, feriados] = await Promise.all([
     carregarPainelVendedor(vendedorId),
     statusCredenciamentoDoVendedor(vendedorId),
     prisma.ata.findMany({
@@ -68,7 +72,7 @@ export default async function PainelVendedorPage() {
       },
       orderBy: { createdAt: "desc" },
     }),
-    // Portão: só ata aprovada pelo gestor E com contrato de intermediação.
+    // Portão: só ata liberada (conformidade concluída) E com contrato de intermediação.
     prisma.ata.findMany({
       where: {
         status: "APROVADA",
@@ -78,7 +82,11 @@ export default async function PainelVendedorPage() {
       include: {
         fornecedor: true,
         orgaoGerenciador: true,
-        _count: { select: { oportunidades: { where: { expiradaEm: null } } } },
+        // Como a ata exclui as minhas, todas estas oportunidades são de outros consultores.
+        oportunidades: {
+          where: { expiradaEm: null },
+          select: { vendedorId: true, estagio: true, expiradaEm: true, prazoEm: true },
+        },
       },
       orderBy: { createdAt: "desc" },
     }),
@@ -92,7 +100,24 @@ export default async function PainelVendedorPage() {
       include: { ata: true, entidadeAlvo: true },
       orderBy: { decididoEm: "desc" },
     }),
+    carregarFeriadosExtras(),
   ]);
+
+  // Atas reservadas por outro consultor ficam fora dos pedidos, com a data em que podem voltar.
+  const agora = new Date();
+  const analisadas = disponiveis.map((ata) => ({ ata, reserva: reservaDaAta(ata.oportunidades, vendedorId, agora) }));
+  const livres = analisadas.filter((a) => a.reserva === null).map((a) => a.ata);
+  const reservadas = analisadas.flatMap((a) => (a.reserva ? [{ ata: a.ata, reserva: a.reserva }] : []));
+
+  /** O prazo que mais cedo vence entre os municípios que tenho na ata (o que eu seguro por mais tempo é o último). */
+  function prazoDaMinhaAta(oportunidades: { estagio: string; prazoEm: Date | null }[]) {
+    const prazos = oportunidades
+      .filter((o) => (ESTAGIOS_COM_PRAZO as readonly string[]).includes(o.estagio) && o.prazoEm)
+      .map((o) => o.prazoEm as Date);
+    if (prazos.length === 0) return null;
+    const vencimento = new Date(Math.min(...prazos.map((p) => p.getTime())));
+    return { vencimento, situacao: situacaoDoVencimento(vencimento, agora, feriados) };
+  }
 
   return (
     <AppShell
@@ -111,7 +136,7 @@ export default async function PainelVendedorPage() {
         rotulo="Atas"
         titulo="Painel"
         destaque="do vendedor"
-        descricao="As atas em que você já tem municípios liberados e as atas disponíveis para pedir municípios."
+        descricao="As atas em que você já tem municípios liberados, com o seu prazo, e as atas disponíveis para pedir municípios."
       />
 
       {!podeAtuar(statusCredenciamento) && (
@@ -131,7 +156,7 @@ export default async function PainelVendedorPage() {
 
       <Secao
         titulo={`Minhas atas ${minhasAtas.length > 0 ? `(${minhasAtas.length})` : ""}`}
-        descricao="Atas em que você já tem municípios liberados. Abra uma para ver o Kanban."
+        descricao="Atas em que você já tem municípios liberados. Enquanto você negocia, ninguém mais pega a ata; o prazo é renovado a cada movimento no Kanban e, sem avanço, a ata volta a ficar disponível."
         destaque
       >
         {minhasAtas.length === 0 ? (
@@ -148,6 +173,7 @@ export default async function PainelVendedorPage() {
                   <th>Objeto da ata</th>
                   <th className="w-[170px]">Categoria</th>
                   <th className="w-[170px]">Adesões</th>
+                  <th className="w-[190px]">Meu prazo</th>
                   <th className="w-[1%]" aria-label="Ações" />
                 </tr>
               </thead>
@@ -155,6 +181,7 @@ export default async function PainelVendedorPage() {
                 {minhasAtas.map((ata) => {
                   const total = ata.oportunidades.length;
                   const aderiu = ata.oportunidades.filter((o) => o.estagio === "aderiu").length;
+                  const prazo = prazoDaMinhaAta(ata.oportunidades);
                   return (
                     <tr key={ata.id}>
                       <td className="codigo whitespace-nowrap text-xs" style={{ color: "var(--cor-texto-3)" }}>
@@ -181,6 +208,22 @@ export default async function PainelVendedorPage() {
                         <div className="barra-saldo mt-2">
                           <div style={{ width: total > 0 ? `${(aderiu / total) * 100}%` : "0%" }} />
                         </div>
+                      </td>
+                      <td>
+                        {prazo ? (
+                          <>
+                            <Badge tom={prazo.situacao.tom === "atrasado" ? "critico" : prazo.situacao.tom === "hoje" ? "alerta" : "neutro"}>
+                              até {diaDaReserva(prazo.vencimento)}
+                            </Badge>
+                            <span className="mt-1 block text-xs" style={{ color: "var(--cor-texto-3)" }}>
+                              {textoDoPrazo(prazo.situacao)}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="text-xs" style={{ color: "var(--cor-texto-3)" }}>
+                            sem prazo (negociação encerrada)
+                          </span>
+                        )}
                       </td>
                       <td className="whitespace-nowrap text-right">
                         <Link href={`/vendedor/atas/${ata.id}`} className="botao-atas link">
@@ -252,13 +295,13 @@ export default async function PainelVendedorPage() {
       )}
 
       <Secao
-        titulo={`Atas disponíveis ${disponiveis.length > 0 ? `(${disponiveis.length})` : ""}`}
-        descricao="Aprovadas pelo administrador e com contrato de intermediação. Peça os municípios em que quer negociar; o administrador libera."
+        titulo={`Atas disponíveis ${livres.length > 0 ? `(${livres.length})` : ""}`}
+        descricao="Atas com contrato de intermediação e conformidade concluída. Peça os municípios em que quer negociar; o administrador libera."
       >
-        {disponiveis.length === 0 ? (
+        {livres.length === 0 ? (
           <VazioComAcao
             titulo="Nenhuma ata disponível no momento"
-            descricao="Só aparecem atas aprovadas pelo administrador e com contrato de intermediação cadastrado."
+            descricao="Só aparecem atas com contrato de intermediação cadastrado e conformidade concluída."
           />
         ) : (
           <div className="overflow-x-auto">
@@ -273,7 +316,7 @@ export default async function PainelVendedorPage() {
                 </tr>
               </thead>
               <tbody>
-                {disponiveis.map((ata) => (
+                {livres.map((ata) => (
                   <tr key={ata.id}>
                     <td className="codigo whitespace-nowrap text-xs" style={{ color: "var(--cor-texto-3)" }}>
                       Nº {ata.numero}
@@ -298,7 +341,6 @@ export default async function PainelVendedorPage() {
                     </td>
                     <td>
                       <div className="flex items-center justify-end gap-2 whitespace-nowrap">
-                        {ata._count.oportunidades > 0 && <Badge tom="neutro">Em negociação</Badge>}
                         <Link href={`/vendedor/atas/${ata.id}/solicitar`} className="botao-atas">
                           Pedir municípios
                         </Link>
@@ -311,6 +353,47 @@ export default async function PainelVendedorPage() {
           </div>
         )}
       </Secao>
+
+      {reservadas.length > 0 && (
+        <Secao
+          titulo={`Reservadas por outro consultor (${reservadas.length})`}
+          descricao="Ficam suspensas enquanto outro consultor negocia nelas. Voltam a ficar disponíveis quando a negociação termina ou o prazo vence sem avanço."
+        >
+          <div className="overflow-x-auto">
+            <table className="tabela-atas min-w-[700px]">
+              <thead>
+                <tr>
+                  <th className="w-[1%]">Nº</th>
+                  <th>Objeto da ata</th>
+                  <th className="w-[170px]">Categoria</th>
+                  <th className="w-[200px]">Pode voltar a ficar disponível</th>
+                </tr>
+              </thead>
+              <tbody>
+                {reservadas.map(({ ata, reserva }) => (
+                  <tr key={ata.id}>
+                    <td className="codigo whitespace-nowrap text-xs" style={{ color: "var(--cor-texto-3)" }}>
+                      Nº {ata.numero}
+                    </td>
+                    <td>
+                      <span className="titulo-linha block">{ata.objeto}</span>
+                      <span className="mt-0.5 block text-xs" style={{ color: "var(--cor-texto-3)" }}>
+                        {ata.fornecedor.razaoSocial}
+                      </span>
+                    </td>
+                    <td>
+                      <CategoriaDaAta categoria={ata.categoria} />
+                    </td>
+                    <td>
+                      <Badge tom="atencao">{`a partir de ${diaDaReserva(reserva.ate)}`}</Badge>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Secao>
+      )}
     </AppShell>
   );
 }

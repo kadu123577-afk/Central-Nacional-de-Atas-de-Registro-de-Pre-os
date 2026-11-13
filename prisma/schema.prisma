@@ -71,7 +71,7 @@ model Admin {
   // lista de permissões (chaves de src/lib/permissoes.ts). Lista vazia = só
   // olha o painel. Contas anteriores receberam todas as permissões na migração.
   // `ativo` falso bloqueia o login e derruba a sessão na hora; `cargo` é só
-  // o rótulo que aparece na tela (ex.: "Aprovador de atas").
+  // o rótulo que aparece na tela (ex.: "Analista de adesão").
   permissoes       String[] @default([])
   ativo            Boolean  @default(true)
   cargo            String?

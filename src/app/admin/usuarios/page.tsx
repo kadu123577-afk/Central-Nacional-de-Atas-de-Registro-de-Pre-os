@@ -19,7 +19,6 @@ import { Aviso } from "@/components/ui/aviso";
 import { ROTULO_TIPO_VENDEDOR } from "@/lib/vendedores";
 import { moedaCurta } from "@/lib/formato";
 import {
-  AVISO_MINUTA_INTEGRIDADE,
   acoesDisponiveis,
   normalizarStatusCredenciamento,
   rotuloStatusCredenciamento,
@@ -96,7 +95,7 @@ export default async function GestaoUsuariosPage() {
           <div className="flex flex-col gap-4">
             <Aviso tom="atencao" titulo="Credenciamento do consultor.">
               Só consultor credenciado pede municípios e leva uma negociação adiante. Quem credencia é você, depois do
-              aceite do compromisso de integridade. {AVISO_MINUTA_INTEGRIDADE}
+              aceite do compromisso de integridade.
             </Aviso>
             <ul className="lista-linhas">
               {vendedores.map((v) => {

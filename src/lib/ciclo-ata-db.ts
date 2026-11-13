@@ -55,7 +55,10 @@ function montar(ata: AtaLida): AtaNoCiclo {
     fornecedorAConfirmar: ata.fornecedor.cnpj === CNPJ_FORNECEDOR_A_CONFIRMAR,
     totalItens: ata._count.itens,
     contratoEm: ata.contrato?.criadoEm ?? null,
-    conformidadeEm: ata.conformidade?.atualizadoEm ?? null,
+    // A conformidade só conta como cumprida quando foi CONCLUÍDA, o que libera a ata (APROVADA).
+    // Rascunho salvo não conta. Ata liberada antes desta regra, sem registro de conformidade,
+    // conta como cumprida pela data da última atualização (não fica presa numa etapa que já passou).
+    conformidadeEm: ata.status === "APROVADA" ? (ata.conformidade?.atualizadoEm ?? ata.updatedAt) : null,
     categoria: ata.categoria,
   };
   return {
@@ -152,7 +155,10 @@ export async function carregarHistoriaDaAta(ataId: string): Promise<EventoDoHist
   if (ata.status !== "PENDENTE") {
     eventos.push({
       em: ata.updatedAt,
-      texto: `Ata ${ata.status === "APROVADA" ? "aprovada" : "rejeitada"} (data da última atualização da ata).`,
+      texto:
+        ata.status === "APROVADA"
+          ? "Ata liberada para a equipe de vendas (data da última atualização da ata)."
+          : "Ata marcada como rejeitada (registro antigo; a rejeição não existe mais no fluxo).",
     });
   }
   for (const o of ata.oportunidades) {

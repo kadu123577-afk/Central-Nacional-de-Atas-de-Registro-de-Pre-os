@@ -6,7 +6,7 @@ import { MENSAGEM_SEM_PERMISSAO, temAlguma, temPermissao, type Permissao } from 
 import { permissoesDoAdmin } from "@/lib/permissoes-db";
 import { prisma } from "@/lib/prisma";
 import { saldoAgregadoDisponivel } from "@/lib/saldo";
-import { logoutAdmin, rejeitarAta } from "./actions";
+import { logoutAdmin } from "./actions";
 import { AppShell } from "@/components/ui/app-shell";
 import { Secao } from "@/components/ui/secao";
 import { Aviso } from "@/components/ui/aviso";
@@ -121,14 +121,13 @@ export default async function PainelAdminPage({
   const { acesso } = await searchParams;
   const permissoes = await permissoesDoAdmin(adminId);
   if (permissoes === null) redirect("/admin/login");
-  const podeAprovar = temPermissao(permissoes, "atas.aprovar");
   // A página inicial é a fila de tarefas de cada perfil: cada pessoa vê só o que as permissões dela resolvem.
   // Engessado por função (14/11/2026): quem executa uma etapa vê só o que está na vez dele; os painéis
   // de números e a visão geral são da Gestão ("visao.geral").
   const ehGestor = temPermissao(permissoes, "visao.geral");
   const verCanalVendedores = ehGestor;
-  // A lista de atas esperando análise é de quem age sobre elas: contrato, conformidade ou aprovação.
-  const verModeracao = temAlguma(permissoes, ["atas.contrato", "atas.conformidade", "atas.aprovar"]);
+  // A lista de atas esperando análise é de quem age sobre elas: contrato ou conformidade.
+  const verModeracao = temAlguma(permissoes, ["atas.contrato", "atas.conformidade"]);
   // Os painéis de números (atas aprovadas, saldo, conversão, valores) são visão geral. Quem cobra a
   // comissão trabalha na aba Financeiro, não neste painel.
   const verFinanceiro = ehGestor;
@@ -284,15 +283,14 @@ export default async function PainelAdminPage({
     .filter((f) => f.pago)
     .reduce((total, f) => total + Number(f.valorTaxaIntermediacao), 0);
 
-  // A ata só aparece para quem age sobre ela NESTA etapa (14/11/2026): contrato (4), conformidade (5)
-  // ou aprovação (6). Antes a lista mostrava toda ata pendente, até as que ainda não estavam na vez.
+  // A ata só aparece para quem age sobre ela NESTA etapa (14/11/2026): contrato (4) ou conformidade (5).
+  // Antes a lista mostrava toda ata pendente, até as que ainda não estavam na vez. Não há mais etapa de aprovação.
   const etapaDaAta = new Map(atasEmAndamento.map((a) => [a.id, a.situacao.etapaAtual]));
-  const etapaDaVez = (id: string): 4 | 5 | 6 | null => {
+  const etapaDaVez = (id: string): 4 | 5 | null => {
     const n = etapaDaAta.get(id);
-    return n === 4 || n === 5 || n === 6 ? n : null;
+    return n === 4 || n === 5 ? n : null;
   };
-  const podeAgirNaEtapa = (n: 4 | 5 | 6) =>
-    temPermissao(permissoes, n === 4 ? "atas.contrato" : n === 5 ? "atas.conformidade" : "atas.aprovar");
+  const podeAgirNaEtapa = (n: 4 | 5) => temPermissao(permissoes, n === 4 ? "atas.contrato" : "atas.conformidade");
   const atasNaMinhaVez = atasPendentes.filter((ata) => {
     const n = etapaDaVez(ata.id);
     return n !== null && podeAgirNaEtapa(n);
@@ -373,8 +371,8 @@ export default async function PainelAdminPage({
     },
     {
       rotulo: "Atas na sua vez",
-      permissao: ["atas.contrato", "atas.conformidade", "atas.aprovar"],
-      descricao: "Contrato, conformidade ou aprovação: cada ata aparece aqui quando chega à etapa que é sua.",
+      permissao: ["atas.contrato", "atas.conformidade"],
+      descricao: "Contrato ou conformidade: cada ata aparece aqui quando chega à etapa que é sua.",
       n: atasNaMinhaVez.length,
       href: "#moderacao",
       tom: "atencao",
@@ -388,7 +386,7 @@ export default async function PainelAdminPage({
       tom: "atencao",
     },
     {
-      rotulo: "Atas aprovadas sem contrato de intermediação",
+      rotulo: "Atas liberadas sem contrato de intermediação",
       permissao: ["atas.contrato"],
       descricao: "Ficam invisíveis para os vendedores até o contrato ser cadastrado.",
       n: totalAtasSemContrato,
@@ -680,13 +678,13 @@ export default async function PainelAdminPage({
           titulo={`Atas na sua vez (${atasNaMinhaVez.length})`}
           descricao={
             <>
-              Uma ata só aparece no catálogo público depois de aprovada aqui — e só chega ao vendedor com contrato de
-              intermediação cadastrado.
+              Uma ata só aparece no catálogo e na equipe de vendas depois de ter o contrato de intermediação e a
+              conformidade concluída: não há aprovação à parte.
             </>
           }
         >
           {atasNaMinhaVez.length === 0 ? (
-            <VazioComAcao titulo="Nada na sua vez" descricao="Quando uma ata chegar à etapa que é sua (contrato, conformidade ou aprovação), ela aparece aqui." />
+            <VazioComAcao titulo="Nada na sua vez" descricao="Quando uma ata chegar à etapa que é sua (contrato ou conformidade), ela aparece aqui." />
           ) : (
             <ul className="lista-linhas">
               {atasNaMinhaVez.map((ata) => {
@@ -779,19 +777,6 @@ export default async function PainelAdminPage({
                           Conferir a conformidade
                         </Link>
                       )}
-                      {etapaDaVez(ata.id) === 6 && (
-                        <Link href={`/admin/atas/${ata.id}/analise`} className="botao-atas">
-                          Analisar e aprovar
-                        </Link>
-                      )}
-                      {podeAprovar && (
-                        <form action={rejeitarAta}>
-                          <input type="hidden" name="ataId" value={ata.id} />
-                          <button type="submit" className="botao-atas critico">
-                            Rejeitar
-                          </button>
-                        </form>
-                      )}
                     </div>
                   </li>
                 );
@@ -812,13 +797,13 @@ export default async function PainelAdminPage({
         </h2>
         <FaixaNumeros
           itens={[
-            { valor: totalAtas, rotulo: "Atas aprovadas" },
+            { valor: totalAtas, rotulo: "Atas liberadas" },
             { valor: saldoTotalDisponivel.toLocaleString("pt-BR"), rotulo: "Saldo total disponível" },
-            { valor: atasComAdesao, rotulo: "Atas com adesão", nota: `de ${totalAtas} aprovadas` },
+            { valor: atasComAdesao, rotulo: "Atas com adesão", nota: `de ${totalAtas} liberadas` },
             {
               valor: taxaConversao === null ? "—" : `${taxaConversao}%`,
               rotulo: "Taxa de conversão",
-              nota: "atas aprovadas que já fecharam ao menos 1 adesão",
+              nota: "atas liberadas que já fecharam ao menos 1 adesão",
               tom: taxaConversao !== null && taxaConversao > 0 ? "marca" : undefined,
             },
           ]}

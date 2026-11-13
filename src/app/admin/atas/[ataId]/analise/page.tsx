@@ -6,7 +6,7 @@ import { carregarAtaNoCiclo } from "@/lib/ciclo-ata-db";
 import { temPermissao } from "@/lib/permissoes";
 import { exigirPermissaoDe, permissoesDoAdmin } from "@/lib/permissoes-db";
 import { prisma } from "@/lib/prisma";
-import { logoutAdmin, rejeitarAta } from "../../../actions";
+import { logoutAdmin } from "../../../actions";
 import { NAV_ADMIN } from "../../../nav";
 import { AppShell } from "@/components/ui/app-shell";
 import { Aviso } from "@/components/ui/aviso";
@@ -24,21 +24,20 @@ import { FormularioCodigoCatalogo } from "./formulario-codigo-catalogo";
 
 export const dynamic = "force-dynamic";
 
-const ROTULO_STATUS = { PENDENTE: "Pendente", APROVADA: "Aprovada", REJEITADA: "Rejeitada" } as const;
+const ROTULO_STATUS = { PENDENTE: "Em conformidade", APROVADA: "Liberada", REJEITADA: "Rejeitada (registro antigo)" } as const;
 
 /**
- * Análise interna da ata (2026-10-04) — o gestor confere o checklist de
- * conformidade (SCP cl. 8), confirma o contrato de intermediação e só
- * então aprova. A ata só chega ao vendedor se estiver aprovada E com
- * contrato cadastrado.
+ * Conformidade da ata (2026-10-04, revista em 14/11/2026) — o jurídico confere o checklist
+ * (SCP cl. 8) depois do contrato de intermediação e conclui. Não há aprovação nem rejeição à
+ * parte: concluída a conformidade, a ata fica disponível para a equipe de vendas. A ata só chega
+ * ao vendedor se estiver liberada E com contrato cadastrado.
  */
 export default async function AnaliseAtaPage({ params }: { params: Promise<{ ataId: string }> }) {
   const adminId = await adminIdLogado();
   if (!adminId) redirect("/admin/login");
-  await exigirPermissaoDe(adminId, ["atas.conformidade", "atas.aprovar"]);
+  await exigirPermissaoDe(adminId, "atas.conformidade");
   const permissoes = await permissoesDoAdmin(adminId);
   const podeConferir = temPermissao(permissoes, "atas.conformidade");
-  const podeAprovar = temPermissao(permissoes, "atas.aprovar");
   const podeCaptar = temPermissao(permissoes, "atas.captar");
 
   const { ataId } = await params;
@@ -65,14 +64,9 @@ export default async function AnaliseAtaPage({ params }: { params: Promise<{ ata
     alertas.push("Sem contrato de intermediação — a ata não é vendida nem aparece no catálogo até o contrato ser cadastrado.");
   }
 
-  // Cada etapa só abre depois da anterior: conformidade (5) espera o contrato (4); aprovar (6)
-  // espera a conformidade. Quem tem as duas permissões registra e aprova na mesma ação.
+  // Cada etapa só abre depois da anterior: a conformidade (5) espera o contrato (4).
   const noCiclo = await carregarAtaNoCiclo(ata.id);
-  const bloqueioSalvar = noCiclo ? bloqueioDaAcao("conformidade", noCiclo.dados) : null;
-  const dadosParaAprovar =
-    noCiclo && podeConferir ? { ...noCiclo.dados, conformidadeEm: noCiclo.dados.conformidadeEm ?? new Date() } : noCiclo?.dados;
-  const bloqueioAprovar = dadosParaAprovar ? bloqueioDaAcao("aprovar", dadosParaAprovar) : null;
-  const bloqueioDaTela = bloqueioSalvar ?? bloqueioAprovar;
+  const bloqueioDaTela = noCiclo ? bloqueioDaAcao("conformidade", noCiclo.dados) : null;
 
   // Comparativo auxiliar de preços (null se o banco falhar: o bloco avisa e o resto da página segue).
   const comparativo = await carregarComparativoOuNulo(ata.id);
@@ -90,8 +84,9 @@ export default async function AnaliseAtaPage({ params }: { params: Promise<{ ata
   const totalItens = ITENS_CONFORMIDADE.length;
   const confirmados = ITENS_CONFORMIDADE.filter((i) => respostasAtuais[i.campo]).length;
   const pctConformidade = Math.round((confirmados / totalItens) * 100);
-  // O vendedor só enxerga a ata aprovada E com contrato (portão do pool).
-  const visivelAoVendedor = ata.status === "APROVADA" && Boolean(ata.contrato);
+  // O vendedor só enxerga a ata liberada (conformidade concluída) E com contrato (portão do pool).
+  const liberada = ata.status === "APROVADA";
+  const visivelAoVendedor = liberada && Boolean(ata.contrato);
 
   return (
     <AppShell
@@ -135,50 +130,36 @@ export default async function AnaliseAtaPage({ params }: { params: Promise<{ ata
           <Etapa
             marcador={2}
             titulo="Conformidade"
-            concluida={confirmados === totalItens}
+            concluida={liberada}
             valor={`${confirmados}/${totalItens}`}
             corValor={
               confirmados === totalItens ? "var(--cor-marca-clara)" : confirmados > 0 ? "var(--cor-atencao)" : undefined
             }
-            nota={confirmados === totalItens ? "checklist completo" : `${totalItens - confirmados} item(ns) a confirmar`}
+            nota={
+              liberada
+                ? "conformidade concluída"
+                : confirmados === totalItens
+                  ? "checklist completo: falta concluir"
+                  : `${totalItens - confirmados} item(ns) a confirmar`
+            }
           >
             <div className="barra-saldo mx-auto mt-3 max-w-[140px]">
               <div style={{ width: `${pctConformidade}%` }} />
             </div>
           </Etapa>
           <Etapa
-            marcador={3}
-            titulo="Aprovação"
-            concluida={ata.status === "APROVADA" && Boolean(ata.contrato)}
-            valor={ROTULO_STATUS[ata.status]}
-            corValor={
-              ata.status === "APROVADA"
-                ? "var(--cor-marca-clara)"
-                : ata.status === "REJEITADA"
-                  ? "var(--cor-critico)"
-                  : undefined
-            }
-            nota={
-              ata.status === "APROVADA" && !ata.contrato
-                ? "aprovada antes do contrato: não está liberada"
-                : ata.status === "APROVADA"
-                  ? "liberada no catálogo público"
-                  : "só aparece no catálogo depois de aprovada, com contrato"
-            }
-          />
-          <Etapa
             marcador={<IconeOlho />}
             titulo="Visível ao vendedor"
             concluida={visivelAoVendedor}
             valor={visivelAoVendedor ? "Sim" : "Não"}
             corValor={visivelAoVendedor ? "var(--cor-marca-clara)" : "var(--cor-atencao)"}
-            nota={visivelAoVendedor ? "no pool de atas disponíveis" : "precisa estar aprovada e com contrato"}
+            nota={visivelAoVendedor ? "no pool de atas disponíveis" : "precisa ter a conformidade concluída e o contrato"}
           />
         </ol>
       </section>
 
       {bloqueioDaTela && (
-        <Aviso tom="atencao" titulo="A análise ainda não abre.">
+        <Aviso tom="atencao" titulo="A conformidade ainda não abre.">
           {bloqueioDaTela.mensagem}{" "}
           <Link href={bloqueioDaTela.etapa.caminho(ata.id)} className="font-semibold underline underline-offset-2">
             {bloqueioDaTela.etapa.acao}
@@ -198,7 +179,7 @@ export default async function AnaliseAtaPage({ params }: { params: Promise<{ ata
 
       <Secao
         titulo="Contrato de intermediação"
-        // Só quem faz o contrato (atas.contrato) vê o botão; o aprovador só lê o contrato.
+        // Só quem faz o contrato (atas.contrato) vê o botão; os demais só leem o contrato.
         acao={
           temPermissao(permissoes, "atas.contrato") ? (
             <Link href={`/admin/atas/${ata.id}/contrato`} className="botao-atas secundario">
@@ -254,18 +235,9 @@ export default async function AnaliseAtaPage({ params }: { params: Promise<{ ata
           respostasAtuais={respostasAtuais}
           parecerAtual={c?.parecer ?? ""}
           podeConferir={podeConferir}
-          podeAprovar={podeAprovar}
-          bloqueioSalvar={bloqueioSalvar?.mensagem ?? null}
-          bloqueioAprovar={bloqueioAprovar?.mensagem ?? null}
+          bloqueio={bloqueioDaTela?.mensagem ?? null}
+          liberada={liberada}
         />
-        {podeAprovar && ata.status !== "REJEITADA" && (
-          <form action={rejeitarAta} className="mt-6 border-t pt-5" style={{ borderColor: "var(--cor-borda)" }}>
-            <input type="hidden" name="ataId" value={ata.id} />
-            <button type="submit" className="botao-atas critico">
-              Rejeitar ata
-            </button>
-          </form>
-        )}
       </Secao>
     </AppShell>
   );

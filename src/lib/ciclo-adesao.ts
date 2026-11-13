@@ -32,7 +32,7 @@ export const ETAPAS_DA_ADESAO: readonly EtapaDaAdesao[] = [
   { numero: 8, titulo: "Pedir o município", papel: "Equipe de vendas", prazoDiasUteis: 2, permissao: null, acao: "Pedir o município" },
   { numero: 9, titulo: "Liberar o município", papel: "Administração", prazoDiasUteis: 1, permissao: "municipios.liberar", acao: "Liberar ou negar o pedido" },
   { numero: 10, titulo: "Abordar e negociar", papel: "Equipe de vendas", prazoDiasUteis: 10, permissao: null, acao: "Acompanhar a negociação" },
-  { numero: 11, titulo: "Instruir a adesão", papel: "Aprovador, com o órgão aderente", prazoDiasUteis: 15, permissao: "adesao.instruir", acao: "Marcar a instrução" },
+  { numero: 11, titulo: "Instruir a adesão", papel: "Analista de adesão, com o órgão aderente", prazoDiasUteis: 15, permissao: "adesao.instruir", acao: "Marcar a instrução" },
   { numero: 12, titulo: "Declarar a conformidade da adesão", papel: "Jurídico", prazoDiasUteis: 2, permissao: "adesao.declarar", acao: "Declarar a conformidade" },
   { numero: 13, titulo: "Registrar a adesão", papel: "Captação (estagiário)", prazoDiasUteis: 1, permissao: "adesao.registrar", acao: "Registrar a adesão" },
   { numero: 14, titulo: "Contrato ou empenho e publicação no PNCP", papel: "Órgão aderente, acompanhado pela equipe", prazoDiasUteis: 10, permissao: "adesao.acompanhar", acao: "Confirmar o contrato detectado" },

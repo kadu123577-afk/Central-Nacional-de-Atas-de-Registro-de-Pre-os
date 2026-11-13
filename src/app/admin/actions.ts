@@ -39,6 +39,7 @@ import { tipoVendedorValido } from "@/lib/vendedores";
 import { tipoSinalValido } from "@/lib/sinais";
 import { interpretarPercentualComissao } from "@/lib/comissao";
 import { bloqueioDaAcao } from "@/lib/ciclo-ata";
+import { motivoDePedidoNegadoPorReserva, reservaDaAta } from "@/lib/reserva-ata";
 import { carregarAtaNoCiclo } from "@/lib/ciclo-ata-db";
 import { carregarFeriadosExtras } from "@/lib/feriados-db";
 import { calcularPrazo } from "@/lib/negociacao";
@@ -56,7 +57,7 @@ import { podeAtuar } from "@/lib/credenciamento";
 import { PERMISSAO_POR_ACAO } from "@/lib/permissoes";
 import { vincularAtaACaptacao } from "@/lib/captacao-db";
 import { lerLinkPncp } from "@/lib/link-pncp";
-import { ACAO_PERMISSAO_NEGADA, CAMINHO_SEM_PERMISSAO, adminTemPermissao, exigirPermissaoDe } from "@/lib/permissoes-db";
+import { ACAO_PERMISSAO_NEGADA, CAMINHO_SEM_PERMISSAO, exigirPermissaoDe } from "@/lib/permissoes-db";
 
 export interface EstadoLoginAdmin {
   erro?: string;
@@ -461,16 +462,6 @@ async function exigirAdmin(acao: string): Promise<string> {
   return adminId;
 }
 
-export async function rejeitarAta(formData: FormData): Promise<void> {
-  await exigirAdmin("admin.rejeitarAta");
-  const ataId = String(formData.get("ataId") ?? "");
-  if (!ataId) return;
-
-  await prisma.ata.update({ where: { id: ataId }, data: { status: "REJEITADA" } });
-  revalidatePath("/admin");
-  revalidatePath("/catalogo");
-}
-
 /**
  * Gestão de usuários (2026-09-04) — desativar bloqueia login (checado em
  * loginFornecedor/loginOrgao), sem apagar nada: atas, adesões e
@@ -618,7 +609,27 @@ export async function decidirPedidosNegociacao(formData: FormData): Promise<void
     consultorCredenciado = podeAtuar(credenciamento?.status);
   }
 
+  // Reserva da ata (14/11/2026): se outro consultor já negocia nela, liberar municípios a este
+  // furaria a regra. Dois consultores podem ter pedido ao mesmo tempo; o primeiro liberado fica
+  // com a ata, e o pedido do outro é negado com o motivo à vista.
+  let reservaDaAtaParaOutro: ReturnType<typeof reservaDaAta> = null;
+  if (decisao === "aprovar") {
+    const ativasDaAta = await prisma.oportunidadeVenda.findMany({
+      where: { ataId, expiradaEm: null },
+      select: { vendedorId: true, estagio: true, expiradaEm: true, prazoEm: true },
+    });
+    reservaDaAtaParaOutro = reservaDaAta(ativasDaAta, vendedorId, agora);
+  }
+
+  let liberados = 0;
   for (const pedido of pedidos) {
+    if (decisao === "aprovar" && reservaDaAtaParaOutro) {
+      await prisma.pedidoNegociacao.update({
+        where: { id: pedido.id },
+        data: { status: "negado", motivo: motivoDePedidoNegadoPorReserva(reservaDaAtaParaOutro), decididoEm: agora },
+      });
+      continue;
+    }
     if (decisao === "aprovar" && !consultorCredenciado) {
       await prisma.pedidoNegociacao.update({
         where: { id: pedido.id },
@@ -687,9 +698,11 @@ export async function decidirPedidosNegociacao(formData: FormData): Promise<void
       where: { id: pedido.id },
       data: { status: "aprovado", decididoEm: agora },
     });
+    liberados += 1;
   }
 
-  if (decisao === "aprovar") {
+  // Só marca o consultor como "dono" legado da ata se algum pedido foi mesmo liberado.
+  if (decisao === "aprovar" && liberados > 0) {
     await prisma.ata.updateMany({ where: { id: ataId, vendedorId: null }, data: { vendedorId } });
   }
 
@@ -728,10 +741,11 @@ export interface EstadoAnaliseAta {
 }
 
 /**
- * Análise de conformidade da ata (2026-10-04, SCP cl. 8): o gestor marca o
- * checklist, escreve o parecer e salva ou aprova. Itens desmarcados não
- * impedem a aprovação — exigem parecer justificando (aprovação com
- * ressalva); a decisão jurídica é do gestor, o sistema só alerta.
+ * Conformidade da ata (2026-10-04, SCP cl. 8; revista em 14/11/2026): o jurídico marca o checklist,
+ * escreve o parecer e salva como rascunho ("rascunho") ou conclui ("concluir"). Não existe mais
+ * aprovação nem rejeição da ata (decisão de Carlos): concluir a conformidade é o que deixa a ata
+ * disponível para a equipe de vendas. Itens desmarcados não impedem a conclusão, exigem parecer
+ * justificando (conclusão com ressalva); a decisão jurídica é de quem conclui, o sistema só alerta.
  */
 export async function analisarAta(
   ataId: string,
@@ -740,68 +754,42 @@ export async function analisarAta(
 ): Promise<EstadoAnaliseAta> {
   const adminId = await exigirAdmin("admin.analisarAta");
 
-  // Salvar o checklist é do jurídico (atas.conformidade); aprovar é do aprovador (atas.aprovar).
-  // Quem só aprova não mexe no checklist: aprova com base no que o jurídico já registrou.
-  const decisao = String(formData.get("decisao") ?? "salvar");
-  const [podeConformidade, podeAprovar] = await Promise.all([
-    adminTemPermissao(adminId, "atas.conformidade"),
-    adminTemPermissao(adminId, "atas.aprovar"),
-  ]);
-  if (decisao === "aprovar" ? !podeAprovar : !podeConformidade) {
-    return { erro: decisao === "aprovar" ? "Você não tem permissão para aprovar atas." : "Você não tem permissão para salvar a conformidade da ata." };
-  }
+  // Aceita "salvar"/"aprovar" (nomes antigos do botão) como sinônimos, para formulário aberto antes da troca.
+  const valorDecisao = String(formData.get("decisao") ?? "rascunho");
+  const concluir = valorDecisao === "concluir" || valorDecisao === "aprovar";
 
   const ata = await prisma.ata.findUnique({ where: { id: ataId } });
   if (!ata) return { erro: "Ata não encontrada." };
 
-  let respostas: RespostasConformidade;
-  let parecer: string | null;
-  if (podeConformidade) {
-    respostas = Object.fromEntries(
-      ITENS_CONFORMIDADE.map((i) => [i.campo, formData.get(i.campo) === "on"]),
-    ) as RespostasConformidade;
-    parecer = String(formData.get("parecer") ?? "").trim() || null;
-  } else {
-    const registrada = await prisma.conformidadeAta.findUnique({ where: { ataId } });
-    respostas = Object.fromEntries(
-      ITENS_CONFORMIDADE.map((i) => [i.campo, registrada?.[i.campo] === true]),
-    ) as RespostasConformidade;
-    parecer = registrada?.parecer ?? null;
-  }
+  const respostas = Object.fromEntries(
+    ITENS_CONFORMIDADE.map((i) => [i.campo, formData.get(i.campo) === "on"]),
+  ) as RespostasConformidade;
+  const parecer = String(formData.get("parecer") ?? "").trim() || null;
   const valores = { respostas, parecer: parecer ?? "" };
 
-  // Cada etapa só abre depois da anterior (ver bloqueioDaAcao em src/lib/ciclo-ata.ts): salvar a
-  // conformidade (5) espera o contrato (4); aprovar (6) espera a conformidade. Quem tem as duas
-  // permissões e aprova na mesma ação está registrando a conformidade agora, então ela conta.
+  // Cada etapa só abre depois da anterior (ver bloqueioDaAcao em src/lib/ciclo-ata.ts): a
+  // conformidade (5) espera o contrato (4), tanto para salvar o rascunho quanto para concluir.
   const noCiclo = await carregarAtaNoCiclo(ataId);
   if (!noCiclo) return { erro: "Ata não encontrada." };
-  const dadosDoCiclo =
-    decisao === "aprovar" && podeConformidade
-      ? { ...noCiclo.dados, conformidadeEm: noCiclo.dados.conformidadeEm ?? new Date() }
-      : noCiclo.dados;
-  const bloqueio = bloqueioDaAcao(decisao === "aprovar" ? "aprovar" : "conformidade", dadosDoCiclo);
+  const bloqueio = bloqueioDaAcao("conformidade", noCiclo.dados);
   if (bloqueio) return { erro: bloqueio.mensagem, valores };
 
   const pendentes = itensPendentes(respostas);
-  if (decisao === "aprovar" && pendentes.length > 0 && !parecer) {
+  if (concluir && pendentes.length > 0 && !parecer) {
     return {
-      erro: podeConformidade
-        ? `Há ${pendentes.length} item(ns) do checklist não confirmado(s). Para aprovar com ressalva, escreva o parecer justificando.`
-        : `Há ${pendentes.length} item(ns) do checklist não confirmado(s) e o jurídico ainda não registrou parecer. Peça a revisão do jurídico antes de aprovar.`,
+      erro: `Há ${pendentes.length} item(ns) do checklist não confirmado(s). Para concluir com ressalva, escreva o parecer justificando.`,
       valores,
     };
   }
 
-  if (podeConformidade) {
-    const dados = { ...respostas, parecer, responsavelId: adminId };
-    await prisma.conformidadeAta.upsert({
-      where: { ataId },
-      update: dados,
-      create: { ataId, ...dados },
-    });
-  }
+  const dados = { ...respostas, parecer, responsavelId: adminId };
+  await prisma.conformidadeAta.upsert({
+    where: { ataId },
+    update: dados,
+    create: { ataId, ...dados },
+  });
 
-  if (decisao === "aprovar") {
+  if (concluir) {
     await prisma.ata.update({ where: { id: ataId }, data: { status: "APROVADA" } });
   }
 
@@ -810,12 +798,11 @@ export async function analisarAta(
   revalidatePath("/catalogo");
   revalidatePath("/vendedor");
   return {
-    mensagem:
-      decisao === "aprovar"
-        ? pendentes.length > 0
-          ? "Ata aprovada com ressalva."
-          : "Ata aprovada."
-        : "Análise salva.",
+    mensagem: concluir
+      ? pendentes.length > 0
+        ? "Conformidade concluída com ressalva. A ata já está disponível para a equipe de vendas."
+        : "Conformidade concluída. A ata já está disponível para a equipe de vendas."
+      : "Rascunho salvo. A ata só fica disponível quando a conformidade for concluída.",
   };
 }
 

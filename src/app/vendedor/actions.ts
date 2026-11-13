@@ -19,6 +19,7 @@ import {
 import { registrarAuditoria } from "@/lib/auditoria";
 import { validarSenhaNova } from "@/lib/senha";
 import { prisma } from "@/lib/prisma";
+import { mensagemDeAtaReservada, reservaDaAta } from "@/lib/reserva-ata";
 import { carregarFeriadosExtras } from "@/lib/feriados-db";
 import { prazoParaEstagio } from "@/lib/negociacao";
 import { resultadoInteracaoValido } from "@/lib/pontos-focais";
@@ -121,11 +122,11 @@ export interface EstadoSolicitarMunicipios {
 }
 
 /**
- * Pedido de negociação (2026-10-04): a ata não é mais "pega" de forma
- * exclusiva — o vendedor pede os municípios em que quer negociar e o admin
- * libera (inclusive dois vendedores na mesma ata em municípios diferentes).
- * Só atas aprovadas e com contrato de intermediação aceitam pedido. Um
- * município que já está em negociação (por qualquer vendedor) ou que já
+ * Pedido de negociação (2026-10-04, revisto em 14/11/2026): o vendedor pede os municípios em que
+ * quer negociar e o admin libera. Qualquer consultor pode pedir qualquer ata liberada, MAS, enquanto
+ * outro consultor negocia nela, a ata fica reservada: o pedido é recusado até a negociação terminar
+ * ou o prazo vencer sem avanço (src/lib/reserva-ata.ts). Só atas liberadas (conformidade concluída)
+ * e com contrato de intermediação aceitam pedido. Um município que já está em negociação ou que já
  * tem pedido meu aguardando liberação é ignorado.
  */
 export async function solicitarMunicipios(
@@ -153,19 +154,24 @@ export async function solicitarMunicipios(
   const ids = [...new Set(formData.getAll("entidadeAlvoId").map(String).filter(Boolean))];
   if (ids.length === 0) return { erro: "Escolha ao menos um município." };
 
-  const [existentes, ocupados, meusPendentes] = await Promise.all([
+  const [existentes, ativasDaAta, meusPendentes] = await Promise.all([
     prisma.entidadeAlvo.findMany({ where: { id: { in: ids } }, select: { id: true } }),
+    // Todas as oportunidades ativas da ata (não só dos municípios pedidos): a reserva vale para a ata inteira.
     prisma.oportunidadeVenda.findMany({
-      where: { ataId, entidadeAlvoId: { in: ids }, expiradaEm: null },
-      select: { entidadeAlvoId: true },
+      where: { ataId, expiradaEm: null },
+      select: { entidadeAlvoId: true, vendedorId: true, estagio: true, expiradaEm: true, prazoEm: true },
     }),
     prisma.pedidoNegociacao.findMany({
       where: { ataId, vendedorId, entidadeAlvoId: { in: ids }, status: "pendente" },
       select: { entidadeAlvoId: true },
     }),
   ]);
+  const reserva = reservaDaAta(ativasDaAta, vendedorId);
+  if (reserva) return { erro: mensagemDeAtaReservada(reserva) };
+
+  const idsPedidos = new Set(ids);
   const bloqueados = new Set([
-    ...ocupados.map((o) => o.entidadeAlvoId),
+    ...ativasDaAta.map((o) => o.entidadeAlvoId).filter((id) => idsPedidos.has(id)),
     ...meusPendentes.map((p) => p.entidadeAlvoId),
   ]);
   const livres = existentes.map((e) => e.id).filter((id) => !bloqueados.has(id));

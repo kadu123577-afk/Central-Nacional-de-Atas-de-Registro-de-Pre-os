@@ -1,8 +1,8 @@
 # Implantação da Central de Atas de Registro de Preços
 
-Guia para quem vai **publicar o sistema na internet** (equipe de infraestrutura do grupo Rett e do SERPRO). Serve para qualquer hospedagem com Node.js e PostgreSQL. Para o caminho Vercel + Supabase, veja também [DEPLOY-PRODUCAO.md](DEPLOY-PRODUCAO.md).
+Guia para quem vai **publicar o sistema na internet** (equipe de infraestrutura da ARCA). Serve para qualquer hospedagem com Node.js e PostgreSQL. Para o caminho Vercel + Supabase, veja também [DEPLOY-PRODUCAO.md](DEPLOY-PRODUCAO.md).
 
-> **Confidencialidade.** O código e o acesso ao sistema estão sob o NDA do Projeto RNA. Quem recebe este guia recebeu autorização por escrito da ARCA, e a conta de nuvem onde o sistema roda deve ficar sob controle da ARCA.
+> **Confidencialidade.** O código e o acesso ao sistema são da ARCA e confidenciais. Quem recebe este guia recebeu autorização da ARCA, e a conta de nuvem onde o sistema roda deve ficar sob controle da ARCA.
 
 ## 1. O que o sistema é
 
@@ -83,11 +83,11 @@ O arquivo da equipe (passo 5) tem os e-mails reais e **não fica no repositório
 ## 5. Primeiro acesso e contas
 
 1. Entre em `/entrar` com a conta do primeiro administrador e, em **Equipe e conta → Perfil**, ative o **2FA** (aplicativo autenticador).
-2. Em **Equipe e conta → Usuários**, crie, edite (nome, e-mail, cargo, permissões), desative e exclua as contas da equipe e dos consultores (quem tem a permissão de gerir usuários, como o perfil de Gestão). Cada pessoa recebe permissões por atividade do workflow (captação, contrato, conformidade, aprovação, publicação, liberação de municípios, instrução, declaração, registro de adesão, acompanhamento, cobrança, base de municípios, gestão de usuários).
+2. Em **Equipe e conta → Usuários**, crie, edite (nome, e-mail, cargo, permissões), desative e exclua as contas da equipe e dos consultores (quem tem a permissão de gerir usuários, como o perfil de Gestão). Cada pessoa recebe permissões por atividade do workflow (captação, contrato, conformidade, publicação, liberação de municípios, instrução, declaração, registro de adesão, acompanhamento, cobrança, base de municípios, gestão de usuários).
 3. A conta nasce com uma **senha provisória**; a pessoa é obrigada a trocá-la no primeiro acesso (12 caracteres ou mais). Pela tela, a senha provisória é gerada e mostrada uma única vez; pelo `seed:equipe`, todas recebem a senha inicial combinada. **Enquanto a senha inicial for compartilhada, não abra o sistema ao público antes de todos trocarem a senha** (ou restrinja o acesso por rede até lá). Para quem esquecer a senha: **Redefinir senha** gera outra provisória.
 4. **Consultores de vendas:** criados na mesma tela (aba de consultores). Antes de atuar, cada um aceita o compromisso de integridade e a gestão o libera (credenciamento).
 5. **Cadastro público de órgão e fornecedor:** quem se cadastra sozinho **não entra na hora**. O CNPJ é conferido (dígitos verificadores), a conta nasce **inativa e "aguardando liberação"**, e a tela de entrada responde "e-mail ou senha inválidos" até a liberação (de propósito, para não revelar quais contas existem). A equipe vê o aviso "Cadastros aguardando liberação" na página inicial da Gestão, confere os dados e clica em **Liberar** em **Equipe e conta → Usuários**.
-6. **Cada função só vê o que é dela** (o sistema é "engessado" de propósito): o menu mostra só as telas da função, a página inicial lista só o que está na vez da pessoa, e cada tela confere a permissão de novo no servidor (digitar o endereço de uma tela alheia é recusado). Perfis prontos: **Gestão** (administração, jurídico, gestão e cobrança num perfil só, todas as permissões e a visão geral; é o de Carlos Eduardo e do Jorge), **Aprovador**, **Captador**, **Estagiário** e **Cobrança**. A permissão "Visão geral da operação" (ciclos, pipeline, desempenho, catálogo completo, painéis de números) é só da Gestão. Dá para ajustar as permissões de cada pessoa.
+6. **Cada função só vê o que é dela** (o sistema é "engessado" de propósito): o menu mostra só as telas da função, a página inicial lista só o que está na vez da pessoa, e cada tela confere a permissão de novo no servidor (digitar o endereço de uma tela alheia é recusado). Perfis prontos: **Gestão** (administração, jurídico, gestão e cobrança num perfil só, todas as permissões e a visão geral; é o de Carlos Eduardo e do Jorge), **Analista de adesão**, **Captador**, **Estagiário** e **Cobrança**. A permissão "Visão geral da operação" (ciclos, pipeline, desempenho, catálogo completo, painéis de números) é só da Gestão. Dá para ajustar as permissões de cada pessoa.
 
 ## 6. Rotinas automáticas (agendador)
 

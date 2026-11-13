@@ -43,28 +43,30 @@ describe("tabela de permissões", () => {
 
 describe("regras puras", () => {
   it("permissaoValida só aceita chave conhecida", () => {
-    expect(permissaoValida("atas.aprovar")).toBe(true);
+    expect(permissaoValida("atas.conformidade")).toBe(true);
     expect(permissaoValida("atas.apagar")).toBe(false);
+    // A aprovação da ata foi retirada (14/11/2026): a chave antiga não vale mais.
+    expect(permissaoValida("atas.aprovar")).toBe(false);
     expect(permissaoValida(42)).toBe(false);
     expect(permissaoValida(null)).toBe(false);
   });
 
   it("normalizarPermissoes tira o que é desconhecido e repetido e segue a ordem da tabela", () => {
-    expect(normalizarPermissoes(["base.editar", "atas.aprovar", "lixo", "atas.aprovar", 7])).toEqual([
-      "atas.aprovar",
+    expect(normalizarPermissoes(["base.editar", "atas.contrato", "lixo", "atas.contrato", "atas.aprovar", 7])).toEqual([
+      "atas.contrato",
       "base.editar",
     ]);
-    expect(normalizarPermissoes("atas.aprovar")).toEqual([]);
+    expect(normalizarPermissoes("atas.contrato")).toEqual([]);
     expect(normalizarPermissoes(undefined)).toEqual([]);
   });
 
   it("temPermissao e temAlguma tratam lista ausente como sem permissão", () => {
-    expect(temPermissao(["atas.aprovar"], "atas.aprovar")).toBe(true);
-    expect(temPermissao(["atas.aprovar"], "atas.contrato")).toBe(false);
-    expect(temPermissao(null, "atas.aprovar")).toBe(false);
-    expect(temPermissao(undefined, "atas.aprovar")).toBe(false);
-    expect(temAlguma(["atas.contrato"], ["atas.aprovar", "atas.contrato"])).toBe(true);
-    expect(temAlguma([], ["atas.aprovar"])).toBe(false);
+    expect(temPermissao(["atas.conformidade"], "atas.conformidade")).toBe(true);
+    expect(temPermissao(["atas.conformidade"], "atas.contrato")).toBe(false);
+    expect(temPermissao(null, "atas.conformidade")).toBe(false);
+    expect(temPermissao(undefined, "atas.conformidade")).toBe(false);
+    expect(temAlguma(["atas.contrato"], ["atas.conformidade", "atas.contrato"])).toBe(true);
+    expect(temAlguma([], ["atas.conformidade"])).toBe(false);
   });
 });
 
@@ -89,10 +91,12 @@ describe("perfis prontos", () => {
     }
   });
 
-  it("o aprovador aprova e instrui a adesão, mas não confere a própria conformidade", () => {
-    const aprovador = perfilPorChave("aprovador")?.permissoes ?? [];
-    expect(aprovador).toEqual(["atas.aprovar", "adesao.instruir"]);
-    expect(aprovador).not.toContain("atas.conformidade");
+  it("o analista de adesão (Dr. Rui) instrui e acompanha a adesão: não mexe nas atas", () => {
+    const analista = perfilPorChave("analista")?.permissoes ?? [];
+    expect(analista).toEqual(["adesao.instruir", "adesao.acompanhar"]);
+    expect(analista).not.toContain("atas.conformidade");
+    expect(analista).not.toContain("atas.contrato");
+    expect(perfilPorChave("aprovador")).toBeNull();
   });
 
   it("o captador mapeia a ata e cadastra itens, mas não aprova, não declara e não cobra", () => {
@@ -105,7 +109,7 @@ describe("perfis prontos", () => {
     expect(estagiario).toEqual(["atas.itens", "adesao.registrar"]);
     expect(estagiario).not.toContain("atas.captar");
     expect(estagiario).not.toContain("adesao.declarar");
-    expect(estagiario).not.toContain("atas.aprovar");
+    expect(estagiario).not.toContain("atas.conformidade");
     expect(estagiario).not.toContain("visao.geral");
   });
 
@@ -125,8 +129,8 @@ describe("permissão exigida por ação do admin", () => {
     }
   });
 
-  it("aprovar e rejeitar ata são do aprovador; contrato é do jurídico; cobrança é de quem cobra", () => {
-    expect(PERMISSAO_POR_ACAO["admin.rejeitarAta"]).toBe("atas.aprovar");
+  it("não existe aprovar nem rejeitar ata; contrato é do jurídico; cobrança é de quem cobra", () => {
+    expect(PERMISSAO_POR_ACAO["admin.rejeitarAta"]).toBeUndefined();
     expect(PERMISSAO_POR_ACAO["admin.salvarContratoIntermediacao"]).toBe("atas.contrato");
     expect(PERMISSAO_POR_ACAO["admin.lancarLiquidacao"]).toBe("comissao.cobrar");
     expect(PERMISSAO_POR_ACAO["admin.decidirPedidosNegociacao"]).toBe("municipios.liberar");
@@ -137,7 +141,7 @@ describe("permissão exigida por ação do admin", () => {
     expect(PERMISSAO_POR_ACAO["admin.alternarStatusVendedor"]).toBe("usuarios.gerir");
   });
 
-  it("a análise da ata aceita quem confere (jurídico) ou quem aprova", () => {
-    expect(PERMISSAO_POR_ACAO["admin.analisarAta"]).toEqual(["atas.conformidade", "atas.aprovar"]);
+  it("a conformidade da ata (rascunho e conclusão) é de quem confere: o jurídico", () => {
+    expect(PERMISSAO_POR_ACAO["admin.analisarAta"]).toBe("atas.conformidade");
   });
 });

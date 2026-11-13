@@ -199,6 +199,58 @@ describe("consultor credenciado", () => {
   });
 });
 
+describe("ata reservada: qualquer consultor pega, mas só um negocia por vez", () => {
+  const daqui = (dias: number) => new Date(Date.now() + dias * 24 * 3600 * 1000);
+
+  it("outro consultor negociando na ata: o pedido é recusado, com o dia até quando, e nada é gravado", async () => {
+    dobles.oportunidadeFindMany.mockResolvedValue([
+      { entidadeAlvoId: "entX", vendedorId: "outro", estagio: "em_negociacao", expiradaEm: null, prazoEm: daqui(6) },
+    ]);
+    const estado = await pedir(["ent1"]);
+
+    expect(estado.erro).toMatch(/Esta ata está reservada até \d{2}\/\d{2}\/\d{4}: outro consultor está negociando nela/);
+    expect(dobles.pedidoCreateMany).not.toHaveBeenCalled();
+    expect(dobles.redirect).not.toHaveBeenCalled();
+  });
+
+  it("a reserva vale para a ata inteira, também para município que ninguém pegou", async () => {
+    dobles.oportunidadeFindMany.mockResolvedValue([
+      { entidadeAlvoId: "entX", vendedorId: "outro", estagio: "a_contatar", expiradaEm: null, prazoEm: daqui(3) },
+    ]);
+    const estado = await pedir(["entLivre"]);
+    expect(estado.erro).toContain("reservada");
+    expect(dobles.pedidoCreateMany).not.toHaveBeenCalled();
+  });
+
+  it("quando a negociação do outro termina (aderiu ou recusado), a ata volta a ficar disponível", async () => {
+    dobles.oportunidadeFindMany.mockResolvedValue([
+      { entidadeAlvoId: "entX", vendedorId: "outro", estagio: "aderiu", expiradaEm: null, prazoEm: null },
+    ]);
+    await expect(pedir(["ent1"])).rejects.toThrow("NEXT_REDIRECT:/vendedor");
+    expect(dobles.pedidoCreateMany).toHaveBeenCalledTimes(1);
+  });
+
+  it("prazo do outro já vencido (a expiração é preguiçosa): a ata está livre", async () => {
+    dobles.oportunidadeFindMany.mockResolvedValue([
+      { entidadeAlvoId: "entX", vendedorId: "outro", estagio: "em_negociacao", expiradaEm: null, prazoEm: daqui(-2) },
+    ]);
+    await expect(pedir(["ent1"])).rejects.toThrow("NEXT_REDIRECT:/vendedor");
+  });
+
+  it("quem já negocia na ata pede mais municípios; o que já é dele fica de fora do pedido", async () => {
+    dobles.oportunidadeFindMany.mockResolvedValue([
+      { entidadeAlvoId: "ent1", vendedorId: "vend1", estagio: "em_negociacao", expiradaEm: null, prazoEm: daqui(6) },
+    ]);
+    await expect(pedir(["ent1", "ent2"])).rejects.toThrow("NEXT_REDIRECT:/vendedor");
+    expect(dobles.pedidoCreateMany).toHaveBeenCalledWith({ data: [{ ataId: "ata1", vendedorId: "vend1", entidadeAlvoId: "ent2" }] });
+  });
+
+  it("a consulta olha a ata inteira, e não só os municípios pedidos", async () => {
+    await pedir(["ent1"]).catch(() => undefined);
+    expect(dobles.oportunidadeFindMany.mock.calls[0][0].where).toEqual({ ataId: "ata1", expiradaEm: null });
+  });
+});
+
 describe("sessão", () => {
   it("sem sessão do vendedor, vai para o login sem consultar o credenciamento", async () => {
     dobles.vendedorIdLogado.mockResolvedValue(null);

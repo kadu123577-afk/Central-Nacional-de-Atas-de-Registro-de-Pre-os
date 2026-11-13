@@ -11,11 +11,10 @@ interface Props {
   parecerAtual: string;
   /** Quem tem "atas.conformidade" marca o checklist e escreve o parecer. */
   podeConferir: boolean;
-  /** Quem tem "atas.aprovar" vê o botão de aprovar. */
-  podeAprovar: boolean;
-  /** Motivo de a etapa ainda não abrir (a anterior não foi cumprida), ou null. Desativa o botão. */
-  bloqueioSalvar?: string | null;
-  bloqueioAprovar?: string | null;
+  /** Motivo de a etapa ainda não abrir (a anterior não foi cumprida), ou null. Desativa os botões. */
+  bloqueio?: string | null;
+  /** A conformidade já foi concluída e a ata está liberada para a venda. */
+  liberada?: boolean;
 }
 
 const estadoInicial: EstadoAnaliseAta = {};
@@ -25,9 +24,8 @@ export function FormularioAnalise({
   respostasAtuais,
   parecerAtual,
   podeConferir,
-  podeAprovar,
-  bloqueioSalvar = null,
-  bloqueioAprovar = null,
+  bloqueio = null,
+  liberada = false,
 }: Props) {
   const acaoComId = analisarAta.bind(null, ataId);
   const [estado, formAction, pendente] = useActionState(acaoComId, estadoInicial);
@@ -59,7 +57,7 @@ export function FormularioAnalise({
 
       <label className="block text-sm">
         <span className="rotulo-campo">
-          Parecer <small>(obrigatório para aprovar com itens não confirmados)</small>
+          Parecer <small>(obrigatório para concluir com itens não confirmados)</small>
         </span>
         <textarea
           name="parecer"
@@ -78,24 +76,24 @@ export function FormularioAnalise({
           <button
             type="submit"
             name="decisao"
-            value="salvar"
-            disabled={pendente || bloqueioSalvar !== null}
-            title={bloqueioSalvar ?? undefined}
+            value="rascunho"
+            disabled={pendente || bloqueio !== null}
+            title={bloqueio ?? undefined}
             className="botao-atas secundario"
           >
-            Salvar análise
+            {liberada ? "Salvar alterações" : "Salvar rascunho"}
           </button>
         )}
-        {podeAprovar && (
+        {podeConferir && !liberada && (
           <button
             type="submit"
             name="decisao"
-            value="aprovar"
-            disabled={pendente || bloqueioAprovar !== null}
-            title={bloqueioAprovar ?? undefined}
+            value="concluir"
+            disabled={pendente || bloqueio !== null}
+            title={bloqueio ?? undefined}
             className="botao-atas"
           >
-            Aprovar ata
+            Concluir e liberar a ata
           </button>
         )}
       </div>

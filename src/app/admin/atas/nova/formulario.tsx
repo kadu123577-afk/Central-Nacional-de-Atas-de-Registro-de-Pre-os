@@ -59,7 +59,7 @@ export function FormularioNovaAtaAdmin({ inicial }: { inicial?: InicialNovaAta }
         rotulo="Operação"
         titulo="Cadastrar"
         destaque="nova ata"
-        descricao="Fornecedor, órgão gerenciador, dados da ata e ao menos um item — a ata entra como PENDENTE até ser aprovada na fila de moderação."
+        descricao="Fornecedor, órgão gerenciador, dados da ata e ao menos um item — a ata fica em andamento até o jurídico concluir a conformidade; só então ela é liberada para a venda."
         voltar={{ href: "/admin/captacao", rotulo: "Captação" }}
       />
 
