@@ -14,7 +14,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   );
 
   const atas = await prisma.ata.findMany({
-    where: { status: "APROVADA", dataVigenciaFim: { gte: new Date() }, isSeed: false },
+    where: { status: "APROVADA", contrato: { isNot: null }, dataVigenciaFim: { gte: new Date() }, isSeed: false },
     select: { id: true, updatedAt: true },
     orderBy: { updatedAt: "desc" },
     take: 5000,

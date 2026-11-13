@@ -19,7 +19,7 @@ import {
 import { registrarAuditoria } from "@/lib/auditoria";
 import { validarSenhaNova } from "@/lib/senha";
 import { prisma } from "@/lib/prisma";
-import { condicaoParaAderiu } from "@/lib/instrucao-adesao";
+import { carregarFeriadosExtras } from "@/lib/feriados-db";
 import { prazoParaEstagio } from "@/lib/negociacao";
 import { resultadoInteracaoValido } from "@/lib/pontos-focais";
 import { bloqueioDeCredenciamento } from "@/lib/credenciamento-db";
@@ -187,19 +187,18 @@ export interface EstadoMoverEstagio {
   erro?: string;
   ok?: boolean;
   /** Devolvido junto do erro: o React zera o formulário após a action, e isso repõe o que foi digitado. */
-  valores?: { valorAderido: string; observacoes: string; nonce: string };
+  valores?: { observacoes: string; nonce: string };
 }
 
-/** Mensagem da trava do estágio "aderiu" (Projeto RNA, etapa 3). Não é exportada: arquivo "use server" só exporta funções. */
-const ERRO_DECLARACAO_PARA_ADERIU =
-  "Antes de marcar como Aderiu, registre a declaração de conformidade na aba Instrução do município.";
-
 /**
- * A declaração sumiu (foi revogada) entre a conferência e a gravação: nada foi salvo.
- * Três frases curtas: o que houve, o que isso significa e o que fazer.
+ * A adesão é registrada pela equipe da Central, com a quantidade de cada item (2026-11-14,
+ * atividade 13 do workflow): só assim o saldo da ata anda e os limites do art. 86 valem.
+ * O consultor acompanha o município e avisa a equipe; não marca "Aderiu" por conta própria.
  */
-const ERRO_DECLARACAO_REVOGADA_NO_MEIO =
-  "A declaração de conformidade foi revogada enquanto você salvava. Nada foi alterado. Atualize a página e confira a aba Instrução do município.";
+const ERRO_ADESAO_PELA_EQUIPE =
+  "A adesão é registrada pela equipe da Central de Atas, com a quantidade de cada item. Quando o município decidir aderir, avise a equipe para registrar.";
+const ERRO_ADESAO_COM_ITENS_NAO_SAI =
+  "Esta adesão foi registrada com as quantidades dos itens e não pode ser desfeita por aqui. Peça ao jurídico da Central.";
 
 /**
  * Move o card no Kanban — e espelha a mudança como uma
@@ -218,11 +217,7 @@ export async function moverEstagioOportunidade(
   const novoEstagio = String(formData.get("estagio") ?? "");
   const observacoes = String(formData.get("observacoes") ?? "");
   // nonce: muda a cada envio, pro cartão remontar o <select> (que o reset do form zera).
-  const valores = {
-    valorAderido: String(formData.get("valorAderido") ?? ""),
-    observacoes,
-    nonce: randomUUID(),
-  };
+  const valores = { observacoes, nonce: randomUUID() };
   if (!estagioOportunidadeValido(novoEstagio)) return { erro: "Estágio inválido.", valores };
 
   // Trava do credenciamento (Projeto RNA, etapa 6): levar a oportunidade para
@@ -246,26 +241,13 @@ export async function moverEstagioOportunidade(
     return { erro: "O prazo deste município venceu. Faça um novo pedido de negociação.", valores };
   }
 
-  // Trava da instrução por adesão (Projeto RNA, etapa 3): ENTRAR em "aderiu"
-  // exige a declaração de conformidade já registrada na aba Instrução do
-  // município. Vem logo depois das checagens de dono e de prazo e antes de
-  // qualquer escrita, e só depende do que está no banco (nenhum campo do
-  // formulário a contorna). Quem já está em "aderiu" e só corrige o valor
-  // aderido não passa por ela de novo; os demais estágios não são afetados.
-  // Como a declaração pode ser revogada em outra aba entre esta conferência
-  // e a gravação, a gravação lá embaixo repete a condição no próprio filtro
-  // (é a outra metade da checagem de apagarDeclaracao). Isso estreita a
-  // janela da corrida; não a elimina sem transação serializável.
-  const entrandoEmAderiu = novoEstagio === "aderiu" && oportunidade.estagio !== "aderiu";
-  if (entrandoEmAderiu) {
-    // Usa o id da oportunidade já conferida (do vendedor), não o argumento cru da action.
-    const instrucao = await prisma.instrucaoAdesao.findUnique({
-      where: { oportunidadeId: oportunidade.id },
-      select: { declaracaoEm: true },
-    });
-    if (!condicaoParaAderiu({ declaracaoEm: instrucao?.declaracaoEm }).permitido) {
-      return { erro: ERRO_DECLARACAO_PARA_ADERIU, valores };
-    }
+  // Registro da adesão é da equipe (2026-11-14): o consultor não entra em "aderiu" nem mexe no
+  // valor aderido. Quem já está em "aderiu" com quantidades registradas também não sai por aqui:
+  // o saldo da ata já andou, e desfazer é com o jurídico.
+  if (novoEstagio === "aderiu") return { erro: ERRO_ADESAO_PELA_EQUIPE, valores };
+  if (oportunidade.estagio === "aderiu") {
+    const comItens = await prisma.adesaoItem.count({ where: { oportunidadeId: oportunidade.id } });
+    if (comItens > 0) return { erro: ERRO_ADESAO_COM_ITENS_NAO_SAI, valores };
   }
 
   const observacoesLimpa = observacoes.trim() || null;
@@ -280,42 +262,11 @@ export async function moverEstagioOportunidade(
     }
   }
 
-  // Controle de recebíveis — "Aderiu" exige o valor que o ente aderiu e
-  // um contrato de intermediação cadastrado na ata (2026-10-04): o
-  // percentual de comissão vem do contrato pactuado com o fornecedor, não
-  // é digitado pelo vendedor. Fica copiado na oportunidade (não muda se o
-  // contrato for reeditado depois da adesão).
-  let valorAderido: string | undefined;
-  let percentualComissao: string | undefined;
-  if (novoEstagio === "aderiu") {
-    const valorBruto = String(formData.get("valorAderido") ?? "").trim().replace(",", ".");
-    const valorNumero = Number(valorBruto);
-    if (!valorBruto || !Number.isFinite(valorNumero) || valorNumero <= 0) {
-      return { erro: "Informe um valor aderido maior que zero.", valores };
-    }
-    valorAderido = valorBruto;
-
-    if (oportunidade.estagio === "aderiu" && oportunidade.percentualComissao) {
-      percentualComissao = oportunidade.percentualComissao.toString();
-    } else {
-      const contrato = await prisma.contratoIntermediacao.findUnique({
-        where: { ataId: oportunidade.ataId },
-      });
-      if (!contrato) {
-        return {
-          erro: "Esta ata ainda não tem contrato de intermediação cadastrado. Peça ao administrador antes de marcar como Aderiu.",
-          valores,
-        };
-      }
-      percentualComissao = contrato.percentualComissao.toString();
-    }
-  }
-
   // Saindo de "aderiu": os dados de recebível deixam de valer e são
   // limpos — mas só se nenhuma nota fiscal já foi liquidada em cima deles,
   // senão o admin perderia a base do que já foi (ou será) cobrado.
   let limparRecebivel = false;
-  if (oportunidade.estagio === "aderiu" && novoEstagio !== "aderiu") {
+  if (oportunidade.estagio === "aderiu") {
     const liquidacoes = await prisma.liquidacao.count({ where: { oportunidadeId } });
     if (liquidacoes > 0) {
       return {
@@ -326,24 +277,20 @@ export async function moverEstagioOportunidade(
     limparRecebivel = true;
   }
 
+  const feriados = await carregarFeriadosExtras();
   const gravou = await prisma.oportunidadeVenda.updateMany({
-    where: {
-      id: oportunidade.id,
-      // Entrar em "aderiu" só grava se a declaração ainda existe NESTE instante.
-      ...(entrandoEmAderiu ? { instrucao: { is: { declaracaoEm: { not: null } } } } : {}),
-    },
+    where: { id: oportunidade.id },
     data: {
       estagio: novoEstagio,
       observacoes: observacoesLimpa,
-      prazoEm: prazoParaEstagio(novoEstagio),
+      prazoEm: prazoParaEstagio(novoEstagio, new Date(), feriados),
       proximoContatoEm,
-      ...(valorAderido ? { valorAderido, percentualComissao } : {}),
       ...(limparRecebivel ? { valorAderido: null, percentualComissao: null } : {}),
     },
   });
   if (gravou.count === 0) {
-    // Sem a condição da declaração (outros estágios), zero linhas só acontece se o card sumiu.
-    return { erro: entrandoEmAderiu ? ERRO_DECLARACAO_REVOGADA_NO_MEIO : "Oportunidade não encontrada.", valores };
+    // Zero linhas só acontece se o card sumiu.
+    return { erro: "Oportunidade não encontrada.", valores };
   }
 
   const contatoPrincipal = await prisma.pontoFocal.findFirst({
@@ -415,7 +362,7 @@ export async function registrarContatoVendedor(
   }
   await prisma.oportunidadeVenda.update({
     where: { id: oportunidadeId },
-    data: { prazoEm: prazoParaEstagio(oportunidade.estagio) },
+    data: { prazoEm: prazoParaEstagio(oportunidade.estagio, new Date(), await carregarFeriadosExtras()) },
   });
 
   revalidatePath(`/vendedor/atas/${oportunidade.ataId}`);

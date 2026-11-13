@@ -24,6 +24,9 @@ async function main() {
   const saldos = await prisma.saldo.deleteMany({ where: { item: { isSeed: true } } });
   const itens = await prisma.item.deleteMany({ where: { isSeed: true } });
   const documentos = await prisma.documentoAta.deleteMany({ where: { ata: { isSeed: true } } });
+  // Contrato e conformidade das atas de demonstração saem antes das atas (chave estrangeira).
+  await prisma.contratoIntermediacao.deleteMany({ where: { ata: { isSeed: true } } });
+  await prisma.conformidadeAta.deleteMany({ where: { ata: { isSeed: true } } });
   const atas = await prisma.ata.deleteMany({ where: { isSeed: true } });
   const fornecedores = await prisma.fornecedor.deleteMany({ where: { isSeed: true } });
   const orgaos = await prisma.orgao.deleteMany({ where: { isSeed: true } });

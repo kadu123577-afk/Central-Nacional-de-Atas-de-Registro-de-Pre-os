@@ -19,6 +19,7 @@ const dobles = vi.hoisted(() => ({
   }),
   ataFindUnique: vi.fn(),
   faixaFindMany: vi.fn(),
+  carregarAtaNoCiclo: vi.fn(),
 }));
 
 vi.mock("@/lib/auth", () => ({ adminIdLogado: dobles.adminIdLogado }));
@@ -35,6 +36,7 @@ vi.mock("@/lib/permissoes-db", () => ({
   ACAO_PERMISSAO_NEGADA: "permissao.negada",
   CAMINHO_SEM_PERMISSAO: "/admin?acesso=negado",
 }));
+vi.mock("@/lib/ciclo-ata-db", () => ({ carregarAtaNoCiclo: dobles.carregarAtaNoCiclo }));
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     ata: { findUnique: dobles.ataFindUnique },
@@ -62,6 +64,24 @@ function ata(extra: Record<string, unknown> = {}) {
   };
 }
 
+/** O que o ciclo da ata sabe: por padrão, empresa fechada e itens cadastrados (o contrato já pode abrir). */
+function noCiclo(dados: Record<string, unknown> = {}) {
+  return {
+    id: "ata1",
+    dados: {
+      status: "PENDENTE",
+      criadaEm: new Date("2026-11-02T15:00:00Z"),
+      atualizadaEm: new Date("2026-11-02T15:00:00Z"),
+      fornecedorAConfirmar: false,
+      totalItens: 2,
+      contratoEm: null,
+      conformidadeEm: null,
+      categoria: null,
+      ...dados,
+    },
+  };
+}
+
 async function paginaHtml(): Promise<string> {
   return renderToStaticMarkup(await ContratoAtaPage({ params: Promise.resolve({ ataId: "ata1" }) }));
 }
@@ -71,6 +91,7 @@ beforeEach(() => {
   dobles.adminIdLogado.mockResolvedValue("admin1");
   dobles.ataFindUnique.mockResolvedValue(ata());
   dobles.faixaFindMany.mockResolvedValue([]);
+  dobles.carregarAtaNoCiclo.mockResolvedValue(noCiclo());
 });
 
 describe("página do contrato de intermediação", () => {
@@ -149,12 +170,31 @@ describe("página do contrato de intermediação", () => {
     expect(saida).not.toContain("Usar sugestão");
   });
 
-  it("ata sem itens: não sugere sobre R$ 0,00", async () => {
+  it("ata sem itens: o contrato não abre (etapa 3 antes da 4), explica e leva para os itens", async () => {
     dobles.ataFindUnique.mockResolvedValue(ata({ itens: [] }));
+    dobles.carregarAtaNoCiclo.mockResolvedValue(noCiclo({ totalItens: 0 }));
     dobles.faixaFindMany.mockResolvedValue([{ valorMinimo: "0.00", percentual: "0.0525" }]);
     const saida = await paginaHtml();
-    expect(saida).toContain("ainda não tem itens");
+    expect(saida).toContain("O contrato ainda não pode ser cadastrado.");
+    expect(saida).toContain("falta a etapa 3 (Cadastrar itens e saldos");
+    expect(saida).toContain('href="/admin/atas/ata1/itens"');
+    expect(saida).not.toContain('name="percentualComissao"');
+    expect(saida).not.toContain("Salvar contrato");
     expect(saida).not.toContain("Usar sugestão");
+  });
+
+  it("empresa ainda não fechada (etapa 2): o contrato também espera e leva para completar o fornecedor", async () => {
+    dobles.carregarAtaNoCiclo.mockResolvedValue(noCiclo({ fornecedorAConfirmar: true }));
+    const saida = await paginaHtml();
+    expect(saida).toContain("falta a etapa 2 (Fechar com a empresa prestadora");
+    expect(saida).toContain('href="/admin/atas/ata1/completar"');
+    expect(saida).not.toContain('name="percentualComissao"');
+  });
+
+  it("com empresa e itens, o formulário aparece e não há aviso de bloqueio", async () => {
+    const saida = await paginaHtml();
+    expect(saida).toContain('name="percentualComissao"');
+    expect(saida).not.toContain("O contrato ainda não pode ser cadastrado.");
   });
 
   it("falha na consulta das faixas: a tela do contrato continua inteira e avisa que a sugestão não está disponível", async () => {

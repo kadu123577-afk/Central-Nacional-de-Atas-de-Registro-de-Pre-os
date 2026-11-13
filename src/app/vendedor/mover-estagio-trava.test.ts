@@ -4,15 +4,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
  * Travas de moverEstagioOportunidade, testadas sem banco: o Prisma, a sessão
  * e o restante do que a action importa são trocados por dublês.
  *
- * 1) Estágio "aderiu" (Projeto RNA, etapa 3): ENTRAR em "aderiu" exige a
- *    declaração de conformidade já gravada em InstrucaoAdesao; a trava vem
- *    depois das checagens de dono e de prazo e antes de qualquer escrita, e
- *    nada que venha no formulário a contorna.
+ * 1) Estágio "aderiu" (2026-11-14, atividade 13 do workflow): a adesão é
+ *    registrada pela equipe da Central, com a quantidade de cada item
+ *    (src/app/admin/adesoes). O consultor não entra em "aderiu" nem corrige o
+ *    valor, e quem está em "aderiu" com quantidades registradas não sai por aqui.
  * 2) Credenciamento (etapa 6): levar a oportunidade para "em negociação" ou
  *    "aderiu" só vale para consultor credenciado; vem antes de qualquer leitura
  *    da oportunidade e de qualquer escrita. Os demais estágios seguem livres.
- *    Por padrão, aqui, o consultor está credenciado: os testes da trava da
- *    declaração continuam isolados dela.
+ *    Por padrão, aqui, o consultor está credenciado: os testes da trava do
+ *    registro continuam isolados dela.
  */
 const dobles = vi.hoisted(() => ({
   vendedorIdLogado: vi.fn(),
@@ -20,8 +20,7 @@ const dobles = vi.hoisted(() => ({
   revalidatePath: vi.fn(),
   oportunidadeFindUnique: vi.fn(),
   oportunidadeUpdateMany: vi.fn(),
-  instrucaoFindUnique: vi.fn(),
-  contratoFindUnique: vi.fn(),
+  adesaoItemCount: vi.fn(),
   liquidacaoCount: vi.fn(),
   pontoFocalFindFirst: vi.fn(),
   interacaoCreate: vi.fn(),
@@ -46,11 +45,12 @@ vi.mock("@/lib/limite-tentativas", () => ({
 vi.mock("@/lib/auditoria", () => ({ registrarAuditoria: vi.fn() }));
 vi.mock("@/lib/senha", () => ({ validarSenhaNova: vi.fn() }));
 vi.mock("@/lib/negociacao-expiracao", () => ({ expirarOportunidadesVencidas: vi.fn() }));
+vi.mock("@/lib/feriados-db", () => ({ carregarFeriadosExtras: async () => new Set<string>() }));
+vi.mock("@/lib/feriados-db", () => ({ carregarFeriadosExtras: async () => new Set<string>() }));
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     oportunidadeVenda: { findUnique: dobles.oportunidadeFindUnique, updateMany: dobles.oportunidadeUpdateMany },
-    instrucaoAdesao: { findUnique: dobles.instrucaoFindUnique },
-    contratoIntermediacao: { findUnique: dobles.contratoFindUnique },
+    adesaoItem: { count: dobles.adesaoItemCount },
     liquidacao: { count: dobles.liquidacaoCount },
     pontoFocal: { findFirst: dobles.pontoFocalFindFirst },
     interacaoPontoFocal: { create: dobles.interacaoCreate },
@@ -61,9 +61,10 @@ vi.mock("@/lib/prisma", () => ({
 import { mensagemBloqueio } from "@/lib/credenciamento";
 import { moverEstagioOportunidade, type EstadoMoverEstagio } from "./actions";
 
-const ERRO_TRAVA = "Antes de marcar como Aderiu, registre a declaração de conformidade na aba Instrução do município.";
-const ERRO_REVOGADA_NO_MEIO =
-  "A declaração de conformidade foi revogada enquanto você salvava. Nada foi alterado. Atualize a página e confira a aba Instrução do município.";
+const ERRO_PELA_EQUIPE =
+  "A adesão é registrada pela equipe da Central de Atas, com a quantidade de cada item. Quando o município decidir aderir, avise a equipe para registrar.";
+const ERRO_COM_ITENS =
+  "Esta adesão foi registrada com as quantidades dos itens e não pode ser desfeita por aqui. Peça ao jurídico da Central.";
 const ESTADO_INICIAL: EstadoMoverEstagio = {};
 
 function formulario(campos: Record<string, string>): FormData {
@@ -89,7 +90,7 @@ function mover(campos: Record<string, string>, id = "op1") {
   return moverEstagioOportunidade(id, ESTADO_INICIAL, formulario(campos));
 }
 
-/** Quando a trava (ou qualquer outra checagem) recusa, nada pode ter sido lido a mais nem gravado. */
+/** Quando uma trava (ou qualquer outra checagem) recusa, nada pode ter sido gravado. */
 function nadaGravado() {
   expect(dobles.oportunidadeUpdateMany).not.toHaveBeenCalled();
   expect(dobles.interacaoCreate).not.toHaveBeenCalled();
@@ -105,178 +106,53 @@ beforeEach(() => {
   });
   dobles.oportunidadeFindUnique.mockResolvedValue(oportunidade());
   dobles.oportunidadeUpdateMany.mockResolvedValue({ count: 1 });
-  dobles.instrucaoFindUnique.mockResolvedValue(null);
-  dobles.contratoFindUnique.mockResolvedValue({ percentualComissao: { toString: () => "0.05" } });
+  dobles.adesaoItemCount.mockResolvedValue(0);
   dobles.liquidacaoCount.mockResolvedValue(0);
   dobles.pontoFocalFindFirst.mockResolvedValue({ id: "pf1" });
   dobles.interacaoCreate.mockResolvedValue({});
   dobles.credenciamentoFindUnique.mockResolvedValue({ status: "credenciado" });
 });
 
-describe("entrar em Aderiu sem a declaração de conformidade", () => {
-  it("recusa quando a oportunidade ainda não tem instrução nenhuma", async () => {
-    dobles.instrucaoFindUnique.mockResolvedValue(null);
-    const estado = await mover({ estagio: "aderiu", valorAderido: "1000", observacoes: "fechado" });
+describe("o consultor não marca Aderiu: o registro é da equipe", () => {
+  it.each(["a_contatar", "em_negociacao", "recusado", "aderiu"])(
+    "recusa levar para aderiu quando o estágio atual é %s",
+    async (atual) => {
+      dobles.oportunidadeFindUnique.mockResolvedValue(oportunidade({ estagio: atual }));
+      const estado = await mover({ estagio: "aderiu", valorAderido: "1000", observacoes: "fechado" });
 
-    expect(estado.erro).toBe(ERRO_TRAVA);
-    expect(estado.ok).toBeUndefined();
-    nadaGravado();
-  });
+      expect(estado.ok).toBeUndefined();
+      expect(estado.erro).toBe(ERRO_PELA_EQUIPE);
+      nadaGravado();
+    },
+  );
 
-  it("recusa quando existe instrução, mas a declaração ainda não foi registrada", async () => {
-    dobles.instrucaoFindUnique.mockResolvedValue({ declaracaoEm: null });
-    const estado = await mover({ estagio: "aderiu", valorAderido: "1000" });
-
-    expect(estado.erro).toBe(ERRO_TRAVA);
-    nadaGravado();
-  });
-
-  it("recusa quando a data da declaração é inválida", async () => {
-    dobles.instrucaoFindUnique.mockResolvedValue({ declaracaoEm: new Date("não é data") });
-    const estado = await mover({ estagio: "aderiu", valorAderido: "1000" });
-
-    expect(estado.erro).toBe(ERRO_TRAVA);
-    nadaGravado();
-  });
-
-  it("consulta a instrução da própria oportunidade, lendo só a data da declaração", async () => {
-    await mover({ estagio: "aderiu", valorAderido: "1000" });
-
-    expect(dobles.instrucaoFindUnique).toHaveBeenCalledTimes(1);
-    expect(dobles.instrucaoFindUnique).toHaveBeenCalledWith({
-      where: { oportunidadeId: "op1" },
-      select: { declaracaoEm: true },
-    });
-  });
-
-  it("devolve o que a pessoa digitou, no mesmo formato dos outros erros", async () => {
-    const estado = await mover({ estagio: "aderiu", valorAderido: "1234,50", observacoes: "  conversa boa  " });
-
-    expect(estado.erro).toBe(ERRO_TRAVA);
-    expect(estado.valores).toEqual({
-      valorAderido: "1234,50",
-      observacoes: "  conversa boa  ",
-      nonce: expect.any(String),
-    });
-  });
-
-  it("recusa antes de cobrar o valor aderido: o bloqueio principal aparece primeiro", async () => {
-    const estado = await mover({ estagio: "aderiu" });
-    expect(estado.erro).toBe(ERRO_TRAVA);
-  });
-
-  it("recusa antes de procurar o contrato de intermediação e antes de qualquer escrita", async () => {
-    await mover({ estagio: "aderiu", valorAderido: "1000" });
-
-    expect(dobles.contratoFindUnique).not.toHaveBeenCalled();
-    expect(dobles.liquidacaoCount).not.toHaveBeenCalled();
-    expect(dobles.pontoFocalFindFirst).not.toHaveBeenCalled();
-    nadaGravado();
-  });
-
-  it("campos extras no formulário não substituem a declaração", async () => {
+  it("valor aderido, declaração e outros campos no formulário não contornam a regra", async () => {
     const estado = await mover({
       estagio: "aderiu",
-      valorAderido: "1000",
+      valorAderido: "2500,75",
       declaracaoEm: new Date().toISOString(),
       declaracao: "on",
       conformidade: "true",
-      confirmo: "sim",
       instrucaoCompleta: "1",
     });
 
-    expect(estado.erro).toBe(ERRO_TRAVA);
+    expect(estado.erro).toBe(ERRO_PELA_EQUIPE);
     nadaGravado();
   });
 
-  it("recusa de novo em tentativas seguidas, enquanto a declaração não existir", async () => {
-    const primeira = await mover({ estagio: "aderiu", valorAderido: "1000" });
-    const segunda = await mover({ estagio: "aderiu", valorAderido: "1000" });
+  it("devolve o que a pessoa digitou, no mesmo formato dos outros erros", async () => {
+    const estado = await mover({ estagio: "aderiu", observacoes: "  conversa boa  " });
 
-    expect(primeira.erro).toBe(ERRO_TRAVA);
-    expect(segunda.erro).toBe(ERRO_TRAVA);
-    nadaGravado();
+    expect(estado.erro).toBe(ERRO_PELA_EQUIPE);
+    expect(estado.valores).toEqual({ observacoes: "  conversa boa  ", nonce: expect.any(String) });
   });
 
-  it.each(["a_contatar", "em_negociacao", "recusado"])("vale também quando o estágio atual é %s", async (atual) => {
-    dobles.oportunidadeFindUnique.mockResolvedValue(oportunidade({ estagio: atual }));
-    const estado = await mover({ estagio: "aderiu", valorAderido: "1000" });
+  it("recusa de novo em tentativas seguidas", async () => {
+    const primeira = await mover({ estagio: "aderiu" });
+    const segunda = await mover({ estagio: "aderiu" });
 
-    expect(estado.erro).toBe(ERRO_TRAVA);
-    nadaGravado();
-  });
-});
-
-describe("entrar em Aderiu com a declaração registrada", () => {
-  beforeEach(() => {
-    dobles.instrucaoFindUnique.mockResolvedValue({ declaracaoEm: new Date("2026-10-21T15:00:00Z") });
-  });
-
-  it("permite e grava o estágio, o valor aderido e a comissão do contrato", async () => {
-    const estado = await mover({ estagio: "aderiu", valorAderido: "2500,75", observacoes: " pedido assinado " });
-
-    expect(estado).toEqual({ ok: true });
-    expect(dobles.oportunidadeUpdateMany).toHaveBeenCalledTimes(1);
-    const { where, data } = dobles.oportunidadeUpdateMany.mock.calls[0][0];
-    // A gravação repete a condição da declaração na própria consulta (ver o teste da revogação no meio).
-    expect(where).toEqual({ id: "op1", instrucao: { is: { declaracaoEm: { not: null } } } });
-    expect(data).toMatchObject({
-      estagio: "aderiu",
-      observacoes: "pedido assinado",
-      prazoEm: null,
-      valorAderido: "2500.75",
-      percentualComissao: "0.05",
-    });
-    expect(dobles.interacaoCreate).toHaveBeenCalledWith({
-      data: { pontoFocalId: "pf1", ataId: "ata1", resultado: "Converteu", observacao: "pedido assinado" },
-    });
-    expect(dobles.revalidatePath).toHaveBeenCalledWith("/vendedor/atas/ata1");
-  });
-
-  it("aceita a data da declaração vinda como texto ISO", async () => {
-    dobles.instrucaoFindUnique.mockResolvedValue({ declaracaoEm: "2026-10-21T15:00:00.000Z" });
-    const estado = await mover({ estagio: "aderiu", valorAderido: "100" });
-
-    expect(estado.ok).toBe(true);
-    expect(dobles.oportunidadeUpdateMany).toHaveBeenCalledTimes(1);
-  });
-
-  it("declaração revogada entre a conferência e a gravação: nada é salvo e a pessoa é avisada", async () => {
-    // A conferência viu a declaração, mas quando o update roda ela já foi apagada
-    // em outra aba: a condição dentro do update não casa nenhuma linha.
-    dobles.oportunidadeUpdateMany.mockResolvedValue({ count: 0 });
-    const estado = await mover({ estagio: "aderiu", valorAderido: "1000", observacoes: "fechado" });
-
-    expect(estado.ok).toBeUndefined();
-    expect(estado.erro).toBe(ERRO_REVOGADA_NO_MEIO);
-    expect(estado.valores).toEqual({ valorAderido: "1000", observacoes: "fechado", nonce: expect.any(String) });
-    // Sem a mudança, não vira histórico de contato nem atualiza a tela como se tivesse dado certo.
-    expect(dobles.interacaoCreate).not.toHaveBeenCalled();
-    expect(dobles.revalidatePath).not.toHaveBeenCalled();
-  });
-
-  it("usa o id da oportunidade já conferida, não o argumento cru da action, ao consultar a instrução", async () => {
-    await mover({ estagio: "aderiu", valorAderido: "1000" }, "id-vindo-do-navegador");
-
-    expect(dobles.instrucaoFindUnique).toHaveBeenCalledWith({
-      where: { oportunidadeId: "op1" },
-      select: { declaracaoEm: true },
-    });
-    expect(dobles.oportunidadeUpdateMany.mock.calls[0][0].where.id).toBe("op1");
-  });
-
-  it("com a declaração feita, as demais exigências continuam valendo: valor aderido", async () => {
-    const estado = await mover({ estagio: "aderiu", valorAderido: "0" });
-
-    expect(estado.erro).toBe("Informe um valor aderido maior que zero.");
-    nadaGravado();
-  });
-
-  it("com a declaração feita, as demais exigências continuam valendo: contrato de intermediação", async () => {
-    dobles.contratoFindUnique.mockResolvedValue(null);
-    const estado = await mover({ estagio: "aderiu", valorAderido: "1000" });
-
-    expect(estado.erro).toMatch(/contrato de intermediação/);
+    expect(primeira.erro).toBe(ERRO_PELA_EQUIPE);
+    expect(segunda.erro).toBe(ERRO_PELA_EQUIPE);
     nadaGravado();
   });
 });
@@ -288,28 +164,31 @@ describe("oportunidade que já está em Aderiu", () => {
     );
   });
 
-  it("corrigir o valor aderido não exige a declaração de novo nem consulta a instrução", async () => {
-    dobles.instrucaoFindUnique.mockResolvedValue(null);
-    const estado = await mover({ estagio: "aderiu", valorAderido: "9000" });
+  it("com as quantidades dos itens registradas, não sai de Aderiu por aqui", async () => {
+    dobles.adesaoItemCount.mockResolvedValue(3);
+    const estado = await mover({ estagio: "recusado" });
 
-    expect(estado).toEqual({ ok: true });
-    expect(dobles.instrucaoFindUnique).not.toHaveBeenCalled();
-    const { data } = dobles.oportunidadeUpdateMany.mock.calls[0][0];
-    // Mantém a comissão copiada na adesão, sem reler o contrato.
-    expect(data).toMatchObject({ estagio: "aderiu", valorAderido: "9000", percentualComissao: "0.03" });
-    expect(dobles.contratoFindUnique).not.toHaveBeenCalled();
-    // Já estava em Aderiu: a gravação não exige a declaração de novo.
-    expect(dobles.oportunidadeUpdateMany.mock.calls[0][0].where).toEqual({ id: "op1" });
+    expect(estado.erro).toBe(ERRO_COM_ITENS);
+    expect(dobles.adesaoItemCount).toHaveBeenCalledWith({ where: { oportunidadeId: "op1" } });
+    expect(dobles.liquidacaoCount).not.toHaveBeenCalled();
+    nadaGravado();
   });
 
-  it("sair de Aderiu também não passa pela trava", async () => {
+  it("adesão antiga, sem itens registrados, ainda pode sair e perde os dados de recebível", async () => {
     const estado = await mover({ estagio: "recusado" });
 
     expect(estado.ok).toBe(true);
-    expect(dobles.instrucaoFindUnique).not.toHaveBeenCalled();
     const { where, data } = dobles.oportunidadeUpdateMany.mock.calls[0][0];
     expect(where).toEqual({ id: "op1" });
     expect(data).toMatchObject({ estagio: "recusado", valorAderido: null, percentualComissao: null });
+  });
+
+  it("adesão antiga com liquidação registrada não sai", async () => {
+    dobles.liquidacaoCount.mockResolvedValue(2);
+    const estado = await mover({ estagio: "recusado" });
+
+    expect(estado.erro).toContain("2 liquidação(ões)");
+    nadaGravado();
   });
 });
 
@@ -318,21 +197,19 @@ describe("outros estágios não são afetados", () => {
     ["a_contatar", "Oferecida"],
     ["em_negociacao", "Em conversa"],
     ["recusado", "Recusou"],
-  ])("mover para %s funciona sem declaração e sem consultar a instrução", async (novo, resultado) => {
-    dobles.instrucaoFindUnique.mockResolvedValue(null);
+  ])("mover para %s funciona e não consulta os itens da adesão", async (novo, resultado) => {
     dobles.oportunidadeFindUnique.mockResolvedValue(oportunidade({ estagio: "a_contatar" }));
     const estado = await mover({ estagio: novo, observacoes: "anotação" });
 
     expect(estado).toEqual({ ok: true });
-    expect(dobles.instrucaoFindUnique).not.toHaveBeenCalled();
+    expect(dobles.adesaoItemCount).not.toHaveBeenCalled();
     expect(dobles.oportunidadeUpdateMany).toHaveBeenCalledTimes(1);
-    // Fora de "aderiu" a gravação não carrega condição de declaração.
     expect(dobles.oportunidadeUpdateMany.mock.calls[0][0].where).toEqual({ id: "op1" });
     expect(dobles.oportunidadeUpdateMany.mock.calls[0][0].data.estagio).toBe(novo);
     expect(dobles.interacaoCreate.mock.calls[0][0].data.resultado).toBe(resultado);
   });
 
-  it("zero linhas gravadas fora de Aderiu (card sumiu) devolve erro em vez de fingir sucesso", async () => {
+  it("zero linhas gravadas (card sumiu) devolve erro em vez de fingir sucesso", async () => {
     dobles.oportunidadeUpdateMany.mockResolvedValue({ count: 0 });
     const estado = await mover({ estagio: "em_negociacao" });
 
@@ -342,13 +219,12 @@ describe("outros estágios não são afetados", () => {
   });
 });
 
-describe("a trava vem depois das checagens que já existiam", () => {
+describe("a regra do registro vem depois das checagens que já existiam", () => {
   it("sem sessão do vendedor, vai para o login sem ler nada", async () => {
     dobles.vendedorIdLogado.mockResolvedValue(null);
-    await expect(mover({ estagio: "aderiu", valorAderido: "1000" })).rejects.toThrow("NEXT_REDIRECT:/vendedor/login");
+    await expect(mover({ estagio: "aderiu" })).rejects.toThrow("NEXT_REDIRECT:/vendedor/login");
 
     expect(dobles.oportunidadeFindUnique).not.toHaveBeenCalled();
-    expect(dobles.instrucaoFindUnique).not.toHaveBeenCalled();
     nadaGravado();
   });
 
@@ -357,36 +233,30 @@ describe("a trava vem depois das checagens que já existiam", () => {
 
     expect(estado.erro).toBe("Estágio inválido.");
     expect(dobles.oportunidadeFindUnique).not.toHaveBeenCalled();
-    expect(dobles.instrucaoFindUnique).not.toHaveBeenCalled();
     nadaGravado();
   });
 
-  it("oportunidade inexistente: mensagem de sempre, sem consultar a instrução", async () => {
+  it("oportunidade inexistente: mensagem de sempre", async () => {
     dobles.oportunidadeFindUnique.mockResolvedValue(null);
-    const estado = await mover({ estagio: "aderiu", valorAderido: "1000" });
+    const estado = await mover({ estagio: "aderiu" });
 
     expect(estado.erro).toBe("Oportunidade não encontrada.");
-    expect(dobles.instrucaoFindUnique).not.toHaveBeenCalled();
     nadaGravado();
   });
 
-  it("oportunidade de outro vendedor: mensagem de sempre, sem consultar a instrução", async () => {
+  it("oportunidade de outro vendedor: mensagem de sempre", async () => {
     dobles.oportunidadeFindUnique.mockResolvedValue(oportunidade({ vendedorId: "outro" }));
-    // Mesmo com declaração pronta, quem não é dono não passa — e a instrução nem é lida.
-    dobles.instrucaoFindUnique.mockResolvedValue({ declaracaoEm: new Date() });
-    const estado = await mover({ estagio: "aderiu", valorAderido: "1000" });
+    const estado = await mover({ estagio: "aderiu" });
 
     expect(estado.erro).toBe("Oportunidade não encontrada.");
-    expect(dobles.instrucaoFindUnique).not.toHaveBeenCalled();
     nadaGravado();
   });
 
-  it("prazo vencido: mensagem de sempre, sem consultar a instrução", async () => {
+  it("prazo vencido: mensagem de sempre", async () => {
     dobles.oportunidadeFindUnique.mockResolvedValue(oportunidade({ expiradaEm: new Date("2026-10-01") }));
-    const estado = await mover({ estagio: "aderiu", valorAderido: "1000" });
+    const estado = await mover({ estagio: "aderiu" });
 
     expect(estado.erro).toBe("O prazo deste município venceu. Faça um novo pedido de negociação.");
-    expect(dobles.instrucaoFindUnique).not.toHaveBeenCalled();
     nadaGravado();
   });
 });
@@ -397,8 +267,7 @@ describe("trava do credenciamento: levar para em negociação ou aderiu", () => 
   /** Sem credenciamento nada é lido da oportunidade nem gravado. */
   function recusadoSemTocarNaOportunidade() {
     expect(dobles.oportunidadeFindUnique).not.toHaveBeenCalled();
-    expect(dobles.instrucaoFindUnique).not.toHaveBeenCalled();
-    expect(dobles.contratoFindUnique).not.toHaveBeenCalled();
+    expect(dobles.adesaoItemCount).not.toHaveBeenCalled();
     expect(dobles.liquidacaoCount).not.toHaveBeenCalled();
     nadaGravado();
   }
@@ -413,18 +282,14 @@ describe("trava do credenciamento: levar para em negociação ou aderiu", () => 
     recusadoSemTocarNaOportunidade();
   });
 
-  it.each(["pendente", "aceito", "suspenso"])(
-    "consultor %s não leva para aderiu, mesmo com a declaração pronta",
-    async (status) => {
-      dobles.credenciamentoFindUnique.mockResolvedValue({ status });
-      dobles.instrucaoFindUnique.mockResolvedValue({ declaracaoEm: new Date("2026-10-21T15:00:00Z") });
-      const estado = await mover({ estagio: "aderiu", valorAderido: "1000" });
+  it.each(["pendente", "aceito", "suspenso"])("consultor %s que tenta aderiu recebe o aviso de credenciamento", async (status) => {
+    dobles.credenciamentoFindUnique.mockResolvedValue({ status });
+    const estado = await mover({ estagio: "aderiu" });
 
-      expect(estado.erro).toContain(mensagemBloqueio(status));
-      expect(estado.erro).toContain(CAMINHO);
-      recusadoSemTocarNaOportunidade();
-    },
-  );
+    expect(estado.erro).toContain(mensagemBloqueio(status));
+    expect(estado.erro).toContain(CAMINHO);
+    recusadoSemTocarNaOportunidade();
+  });
 
   it("sem registro de credenciamento conta como pendente e recusa", async () => {
     dobles.credenciamentoFindUnique.mockResolvedValue(null);
@@ -437,7 +302,7 @@ describe("trava do credenciamento: levar para em negociação ou aderiu", () => 
 
   it("status desconhecido no banco também recusa", async () => {
     dobles.credenciamentoFindUnique.mockResolvedValue({ status: "qualquer" });
-    const estado = await mover({ estagio: "aderiu", valorAderido: "1000" });
+    const estado = await mover({ estagio: "em_negociacao" });
 
     expect(estado.erro).toContain(mensagemBloqueio("pendente"));
     recusadoSemTocarNaOportunidade();
@@ -445,9 +310,9 @@ describe("trava do credenciamento: levar para em negociação ou aderiu", () => 
 
   it("devolve o que a pessoa digitou, no mesmo formato dos outros erros", async () => {
     dobles.credenciamentoFindUnique.mockResolvedValue({ status: "aceito" });
-    const estado = await mover({ estagio: "aderiu", valorAderido: "1234,50", observacoes: "  fechado  " });
+    const estado = await mover({ estagio: "em_negociacao", observacoes: "  fechado  " });
 
-    expect(estado.valores).toEqual({ valorAderido: "1234,50", observacoes: "  fechado  ", nonce: expect.any(String) });
+    expect(estado.valores).toEqual({ observacoes: "  fechado  ", nonce: expect.any(String) });
   });
 
   it("consulta o credenciamento do consultor logado, não de um id vindo do formulário", async () => {
@@ -468,16 +333,6 @@ describe("trava do credenciamento: levar para em negociação ou aderiu", () => 
     });
 
     expect(estado.erro).toContain(mensagemBloqueio("pendente"));
-    recusadoSemTocarNaOportunidade();
-  });
-
-  it("recusa de novo em tentativas seguidas, enquanto não estiver credenciado", async () => {
-    dobles.credenciamentoFindUnique.mockResolvedValue({ status: "suspenso" });
-    const primeira = await mover({ estagio: "em_negociacao" });
-    const segunda = await mover({ estagio: "aderiu", valorAderido: "1000" });
-
-    expect(primeira.erro).toContain(mensagemBloqueio("suspenso"));
-    expect(segunda.erro).toContain(mensagemBloqueio("suspenso"));
     recusadoSemTocarNaOportunidade();
   });
 
@@ -506,19 +361,11 @@ describe("trava do credenciamento: levar para em negociação ou aderiu", () => 
     expect(dobles.oportunidadeUpdateMany.mock.calls[0][0].data.estagio).toBe("em_negociacao");
   });
 
-  it("consultor credenciado leva para aderiu com a declaração registrada", async () => {
-    dobles.instrucaoFindUnique.mockResolvedValue({ declaracaoEm: new Date("2026-10-21T15:00:00Z") });
-    const estado = await mover({ estagio: "aderiu", valorAderido: "1000" });
+  it("consultor credenciado também não leva para aderiu: a regra do registro vale", async () => {
+    const estado = await mover({ estagio: "aderiu" });
 
-    expect(estado).toEqual({ ok: true });
-    expect(dobles.oportunidadeUpdateMany.mock.calls[0][0].data.estagio).toBe("aderiu");
-  });
-
-  it("credenciado sem declaração continua barrado pela trava da declaração, não pela do credenciamento", async () => {
-    dobles.instrucaoFindUnique.mockResolvedValue(null);
-    const estado = await mover({ estagio: "aderiu", valorAderido: "1000" });
-
-    expect(estado.erro).toBe(ERRO_TRAVA);
+    expect(estado.erro).toBe(ERRO_PELA_EQUIPE);
+    nadaGravado();
   });
 });
 

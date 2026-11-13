@@ -139,7 +139,7 @@ export default async function NegociacoesPage() {
       <CabecalhoPagina
         rotulo="Operação"
         titulo="Negociações"
-        descricao="Libere ou negue os municípios que os vendedores pediram. Cada município liberado tem 10 dias para avançar."
+        descricao="Libere ou negue os municípios que os vendedores pediram. Cada município liberado tem 10 dias úteis para avançar."
       />
 
       <FaixaNumeros

@@ -8,7 +8,7 @@ import { Icone } from "@/components/ui/icones";
 import { abordagemSugerida } from "@/lib/abordagem";
 import { ROTULO_CATEGORIA_CONSUMO } from "@/lib/classificador-objeto";
 import { linkEmail, linkTelefone, linkWhatsapp } from "@/lib/contato-links";
-import { dataCurtaUtc, iniciais, moedaCurta, percentualDeFracao } from "@/lib/formato";
+import { dataCurtaUtc, iniciais, moedaCurta } from "@/lib/formato";
 import {
   descreverVigencia,
   haQuantoTempo,
@@ -602,10 +602,22 @@ function PainelContato({ cartao: c, aoConcluir }: { cartao: CartaoView; aoConclu
   );
 }
 
-function PainelEstagio({ cartao: c }: { cartao: CartaoView }) {
+export function PainelEstagio({ cartao: c }: { cartao: CartaoView }) {
   const acao = moverEstagioOportunidade.bind(null, c.id);
   const [estado, formAction, pendente] = useActionState(acao, estadoMoverInicial);
-  const [selecionado, setSelecionado] = useState(c.estagio);
+
+  // A adesão é registrada pela equipe da Central, com a quantidade de cada item (2026-11-14):
+  // depois de registrada, o consultor só acompanha.
+  if (c.estagio === "aderiu") {
+    return (
+      <div className="kb-painel-acao">
+        <Aviso tom="sucesso" titulo="Adesão registrada pela equipe da Central">
+          O valor aderido{c.valorAderido != null ? ` (R$ ${Number(c.valorAderido).toLocaleString("pt-BR", { minimumFractionDigits: 2 })})` : ""} vem
+          das quantidades de cada item. Para corrigir algo, fale com o jurídico da Central.
+        </Aviso>
+      </div>
+    );
+  }
 
   return (
     <form action={formAction} className="kb-painel-acao">
@@ -616,52 +628,20 @@ function PainelEstagio({ cartao: c }: { cartao: CartaoView }) {
         <select
           name="estagio"
           key={estado.valores?.nonce ?? "inicial"}
-          defaultValue={selecionado}
-          onChange={(e) => setSelecionado(e.target.value)}
+          defaultValue={c.estagio}
           className="campo-atas"
         >
           {ESTAGIOS_OPORTUNIDADE.map((e) => (
-            <option key={e} value={e}>
+            <option key={e} value={e} disabled={e === "aderiu"}>
               {ROTULO_ESTAGIO_OPORTUNIDADE[e]}
+              {e === "aderiu" ? " (registrado pela equipe)" : ""}
             </option>
           ))}
         </select>
+        <span className="mt-1 block text-xs" style={{ color: "var(--cor-texto-3)" }}>
+          Quando o município decidir aderir, avise a equipe da Central: ela registra a adesão com a quantidade de cada item.
+        </span>
       </label>
-
-      {selecionado === "aderiu" && (
-        <div
-          className="flex flex-col gap-2.5 rounded-[12px] border p-3"
-          style={{ borderColor: "var(--cor-marca-borda)", background: "var(--cor-marca-fundo)" }}
-        >
-          <p className="text-xs" style={{ color: "var(--cor-texto-2)" }}>
-            Controle de recebíveis — obrigatório para marcar como aderiu.
-          </p>
-          <label className="block">
-            <span className="rotulo-campo">
-              Valor aderido (R$)
-            </span>
-            <input
-              name="valorAderido"
-              type="number"
-              step="0.01"
-              min="0"
-              required
-              defaultValue={estado.valores?.valorAderido ?? (c.valorAderido != null ? String(c.valorAderido) : "")}
-              className="campo-atas"
-            />
-          </label>
-          {c.percentualContrato != null ? (
-            <p className="text-xs" style={{ color: "var(--cor-texto-2)" }}>
-              Comissão pactuada no contrato: {percentualDeFracao(c.percentualContrato)}
-            </p>
-          ) : (
-            <Aviso tom="critico">
-              Esta ata ainda não tem contrato de intermediação — peça ao administrador para cadastrar antes de marcar
-              como Aderiu.
-            </Aviso>
-          )}
-        </div>
-      )}
 
       <label className="block">
         <span className="rotulo-campo">

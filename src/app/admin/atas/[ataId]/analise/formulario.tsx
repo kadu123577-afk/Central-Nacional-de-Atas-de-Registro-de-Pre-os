@@ -13,11 +13,22 @@ interface Props {
   podeConferir: boolean;
   /** Quem tem "atas.aprovar" vê o botão de aprovar. */
   podeAprovar: boolean;
+  /** Motivo de a etapa ainda não abrir (a anterior não foi cumprida), ou null. Desativa o botão. */
+  bloqueioSalvar?: string | null;
+  bloqueioAprovar?: string | null;
 }
 
 const estadoInicial: EstadoAnaliseAta = {};
 
-export function FormularioAnalise({ ataId, respostasAtuais, parecerAtual, podeConferir, podeAprovar }: Props) {
+export function FormularioAnalise({
+  ataId,
+  respostasAtuais,
+  parecerAtual,
+  podeConferir,
+  podeAprovar,
+  bloqueioSalvar = null,
+  bloqueioAprovar = null,
+}: Props) {
   const acaoComId = analisarAta.bind(null, ataId);
   const [estado, formAction, pendente] = useActionState(acaoComId, estadoInicial);
   // Depois de um erro o React zera o formulário; repõe o que foi marcado/digitado.
@@ -64,12 +75,26 @@ export function FormularioAnalise({ ataId, respostasAtuais, parecerAtual, podeCo
 
       <div className="flex flex-wrap gap-2">
         {podeConferir && (
-          <button type="submit" name="decisao" value="salvar" disabled={pendente} className="botao-atas secundario">
+          <button
+            type="submit"
+            name="decisao"
+            value="salvar"
+            disabled={pendente || bloqueioSalvar !== null}
+            title={bloqueioSalvar ?? undefined}
+            className="botao-atas secundario"
+          >
             Salvar análise
           </button>
         )}
         {podeAprovar && (
-          <button type="submit" name="decisao" value="aprovar" disabled={pendente} className="botao-atas">
+          <button
+            type="submit"
+            name="decisao"
+            value="aprovar"
+            disabled={pendente || bloqueioAprovar !== null}
+            title={bloqueioAprovar ?? undefined}
+            className="botao-atas"
+          >
             Aprovar ata
           </button>
         )}

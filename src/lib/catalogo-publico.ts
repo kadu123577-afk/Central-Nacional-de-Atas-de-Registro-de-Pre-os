@@ -50,9 +50,14 @@ function incluirDemonstracao(): boolean {
   return process.env.AMBIENTE_DEMONSTRACAO === "true";
 }
 
+/**
+ * A ata só aparece no catálogo e só aceita pedido se estiver aprovada, vigente e COM o contrato de
+ * intermediação: sem contrato não há como vender a ata nem receber a comissão (regra de 14/11/2026).
+ */
 function baseAtasVigentes(): Prisma.AtaWhereInput {
   return {
     status: "APROVADA",
+    contrato: { isNot: null },
     dataVigenciaFim: { gte: new Date() },
     ...(incluirDemonstracao() ? {} : { isSeed: false }),
   };

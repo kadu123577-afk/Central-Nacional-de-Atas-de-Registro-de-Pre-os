@@ -31,17 +31,18 @@ export async function solicitarAdesao(
   const [item, orgaoAderente] = await Promise.all([
     prisma.item.findUnique({
       where: { id: itemId },
-      include: { ata: { include: { orgaoGerenciador: true } } },
+      include: { ata: { include: { orgaoGerenciador: true, contrato: { select: { id: true } } } } },
     }),
     prisma.orgao.findUnique({ where: { id: orgaoId } }),
   ]);
-  if (!item || item.ata.status !== "APROVADA") {
+  // Sem contrato de intermediação a ata não está liberada: para o órgão é como se não existisse.
+  if (!item || item.ata.status !== "APROVADA" || !item.ata.contrato) {
     return { erro: "Item não encontrado." };
   }
   if (!orgaoAderente) {
     return { erro: "Órgão não encontrado." };
   }
-  if (!ataDisponivelParaAdesao(item.ata)) {
+  if (!ataDisponivelParaAdesao({ ...item.ata, temContrato: item.ata.contrato !== null })) {
     return {
       erro: `Recusado: a Ata ${item.ata.numero} está fora da vigência (venceu em ${item.ata.dataVigenciaFim.toLocaleDateString("pt-BR")}) e não aceita mais adesões.`,
     };

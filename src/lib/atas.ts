@@ -1,6 +1,8 @@
 /**
  * Regra de elegibilidade de uma ata pra aparecer no catálogo e aceitar
- * pedido de adesão: precisa estar aprovada E dentro da vigência.
+ * pedido de adesão: precisa estar aprovada, dentro da vigência e COM o
+ * contrato de intermediação (sem ele não há como vender a ata nem receber
+ * a comissão).
  *
  * Antes só o status era checado — uma ata aprovada cuja vigência já tinha
  * passado continuava aparecendo como disponível, o que não é só estética:
@@ -12,8 +14,9 @@
 export function ataDisponivelParaAdesao(ata: {
   status: string;
   dataVigenciaFim: Date;
+  temContrato: boolean;
 }): boolean {
-  return ata.status === "APROVADA" && ata.dataVigenciaFim.getTime() >= Date.now();
+  return ata.status === "APROVADA" && ata.temContrato && ata.dataVigenciaFim.getTime() >= Date.now();
 }
 
 /**

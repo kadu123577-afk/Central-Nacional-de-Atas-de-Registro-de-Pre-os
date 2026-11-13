@@ -90,7 +90,7 @@ export default async function SolicitarMunicipiosPage({ params }: { params: Prom
 
       <Secao titulo="Municípios" destaque>
         <Aviso tom="info" className="mb-5">
-          O administrador analisa cada pedido e libera os municípios. Depois de liberado, você tem 10 dias para avançar a
+          O administrador analisa cada pedido e libera os municípios. Depois de liberado, você tem 10 dias úteis para avançar a
           negociação — cada movimento no Kanban renova o prazo; sem avanço, o município volta a ficar livre.
         </Aviso>
         {!ata.categoria ? (

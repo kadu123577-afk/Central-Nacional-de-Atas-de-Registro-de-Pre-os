@@ -38,6 +38,9 @@ import { CATEGORIAS_ATAS } from "@/lib/categorias";
 import { tipoVendedorValido } from "@/lib/vendedores";
 import { tipoSinalValido } from "@/lib/sinais";
 import { interpretarPercentualComissao } from "@/lib/comissao";
+import { bloqueioDaAcao } from "@/lib/ciclo-ata";
+import { carregarAtaNoCiclo } from "@/lib/ciclo-ata-db";
+import { carregarFeriadosExtras } from "@/lib/feriados-db";
 import { calcularPrazo } from "@/lib/negociacao";
 import {
   interpretarDataLiquidacao,
@@ -165,6 +168,7 @@ export async function completarFornecedorDaAta(
 
   await prisma.ata.update({ where: { id: ataId }, data: { fornecedorId: fornecedorReal.id } });
   revalidatePath(`/admin/atas/${ataId}/completar`);
+  revalidatePath(`/admin/atas/${ataId}/itens`);
   revalidatePath("/admin");
   return {};
 }
@@ -222,6 +226,7 @@ export async function adicionarItemNaAta(
   });
 
   revalidatePath(`/admin/atas/${ataId}/completar`);
+  revalidatePath(`/admin/atas/${ataId}/itens`);
   revalidatePath("/admin");
   return {};
 }
@@ -576,7 +581,7 @@ export async function devolverAtaAoPool(formData: FormData): Promise<void> {
 /**
  * Decisão do admin sobre os pedidos de negociação de um vendedor numa ata
  * (2026-10-04): aprova ou nega os municípios marcados. Aprovar cria a
- * oportunidade (card do Kanban) com prazo de 10 dias — mas se outro
+ * oportunidade (card do Kanban) com prazo de 10 dias úteis — mas se outro
  * vendedor já negocia aquele município, o pedido é negado na hora (dois
  * vendedores na mesma ata só em municípios diferentes).
  */
@@ -591,6 +596,8 @@ export async function decidirPedidosNegociacao(formData: FormData): Promise<void
   if (decisao !== "aprovar" && decisao !== "negar") return;
 
   const agora = new Date();
+  // Prazo de 10 dias úteis: precisa dos feriados extras cadastrados pela equipe.
+  const feriados = await carregarFeriadosExtras();
   const pedidos = await prisma.pedidoNegociacao.findMany({
     where: { id: { in: pedidoIds }, ataId, vendedorId, status: "pendente" },
   });
@@ -649,7 +656,7 @@ export async function decidirPedidosNegociacao(formData: FormData): Promise<void
           ataId,
           entidadeAlvoId: pedido.entidadeAlvoId,
           vendedorId,
-          prazoEm: calcularPrazo(agora),
+          prazoEm: calcularPrazo(agora, feriados),
         },
       });
     } else if (ativa.expiradaEm) {
@@ -666,7 +673,7 @@ export async function decidirPedidosNegociacao(formData: FormData): Promise<void
             vendedorId,
             estagio: "a_contatar",
             expiradaEm: null,
-            prazoEm: calcularPrazo(agora),
+            prazoEm: calcularPrazo(agora, feriados),
             valorAderido: null,
             percentualComissao: null,
           },
@@ -760,6 +767,18 @@ export async function analisarAta(
   }
   const valores = { respostas, parecer: parecer ?? "" };
 
+  // Cada etapa só abre depois da anterior (ver bloqueioDaAcao em src/lib/ciclo-ata.ts): salvar a
+  // conformidade (5) espera o contrato (4); aprovar (6) espera a conformidade. Quem tem as duas
+  // permissões e aprova na mesma ação está registrando a conformidade agora, então ela conta.
+  const noCiclo = await carregarAtaNoCiclo(ataId);
+  if (!noCiclo) return { erro: "Ata não encontrada." };
+  const dadosDoCiclo =
+    decisao === "aprovar" && podeConformidade
+      ? { ...noCiclo.dados, conformidadeEm: noCiclo.dados.conformidadeEm ?? new Date() }
+      : noCiclo.dados;
+  const bloqueio = bloqueioDaAcao(decisao === "aprovar" ? "aprovar" : "conformidade", dadosDoCiclo);
+  if (bloqueio) return { erro: bloqueio.mensagem, valores };
+
   const pendentes = itensPendentes(respostas);
   if (decisao === "aprovar" && pendentes.length > 0 && !parecer) {
     return {
@@ -825,6 +844,11 @@ export async function salvarContratoIntermediacao(
 
   const ata = await prisma.ata.findUnique({ where: { id: ataId } });
   if (!ata) return { erro: "Ata não encontrada.", valores };
+
+  // O contrato (4) só abre depois da empresa fechada (2) e dos itens e saldos cadastrados (3).
+  const noCiclo = await carregarAtaNoCiclo(ataId);
+  const bloqueio = noCiclo ? bloqueioDaAcao("contrato", noCiclo.dados) : null;
+  if (bloqueio) return { erro: bloqueio.mensagem, valores };
 
   const percentual = interpretarPercentualComissao(String(formData.get("percentualComissao") ?? ""));
   if (!percentual.ok) return { erro: percentual.erro, valores };

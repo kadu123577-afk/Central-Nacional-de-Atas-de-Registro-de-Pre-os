@@ -72,8 +72,21 @@ function ListaDeItens({ itens }: { itens: string[] }) {
  * plataforma só organiza a informação e o pedido; quem decide é o órgão
  * aderente, o órgão gerenciador e o fornecedor. No Pipeline do gestor
  * (somenteLeitura) a aba só mostra, sem formulários nem botões.
+ *
+ * Quem marca os itens e quem declara não são a mesma pessoa (14/11/2026): o consultor e o Dr. Rui
+ * marcam (somenteLeitura = false); a declaração de conformidade é só do jurídico, que a faz na tela
+ * Adesões do painel (podeDeclarar = true). Sem podeDeclarar não há formulário nem botão de revogar.
  */
-export function Instrucao({ cartao: c, somenteLeitura }: { cartao: CartaoView; somenteLeitura: boolean }) {
+export function Instrucao({
+  cartao: c,
+  somenteLeitura,
+  podeDeclarar = false,
+}: {
+  cartao: CartaoView;
+  somenteLeitura: boolean;
+  /** O jurídico (permissão "adesao.declarar") registra e revoga a declaração; os demais só acompanham. */
+  podeDeclarar?: boolean;
+}) {
   const base = useId();
   const instrucao = c.instrucao;
   const mapa: MapaInstrucao = instrucao?.itens ?? {};
@@ -145,7 +158,7 @@ export function Instrucao({ cartao: c, somenteLeitura }: { cartao: CartaoView; s
         </section>
       ))}
 
-      <BlocoDeclaracao cartao={c} mapa={mapa} resumo={resumo} somenteLeitura={somenteLeitura} />
+      <BlocoDeclaracao cartao={c} mapa={mapa} resumo={resumo} somenteLeitura={somenteLeitura} podeDeclarar={podeDeclarar} />
     </>
   );
 }
@@ -276,11 +289,13 @@ function BlocoDeclaracao({
   mapa,
   resumo,
   somenteLeitura,
+  podeDeclarar,
 }: {
   cartao: CartaoView;
   mapa: MapaInstrucao;
   resumo: ResumoInstrucao;
   somenteLeitura: boolean;
+  podeDeclarar: boolean;
 }) {
   const titulo = useId();
   const instrucao = c.instrucao;
@@ -297,11 +312,20 @@ function BlocoDeclaracao({
       </p>
 
       {declaracaoEm && instrucao ? (
-        <DeclaracaoRegistrada cartao={c} resumo={resumo} somenteLeitura={somenteLeitura} />
+        <DeclaracaoRegistrada cartao={c} resumo={resumo} podeDeclarar={podeDeclarar} />
       ) : (
         <>
-          <Aviso tom="info">Sem a declaração registrada, o município não pode ser marcado como Aderiu.</Aviso>
-          {!somenteLeitura && <FormularioDeclaracao oportunidadeId={c.id} mapa={mapa} resumo={resumo} />}
+          <Aviso tom="info">Sem a declaração registrada, a equipe da Central não registra a adesão deste município.</Aviso>
+          {podeDeclarar ? (
+            <FormularioDeclaracao oportunidadeId={c.id} mapa={mapa} resumo={resumo} />
+          ) : (
+            !somenteLeitura && (
+              <p className="kb-sub">
+                A declaração de conformidade é feita pelo jurídico da Central. Quando os itens obrigatórios estiverem
+                feitos, avise o jurídico.
+              </p>
+            )
+          )}
         </>
       )}
     </section>
@@ -311,11 +335,11 @@ function BlocoDeclaracao({
 function DeclaracaoRegistrada({
   cartao: c,
   resumo,
-  somenteLeitura,
+  podeDeclarar,
 }: {
   cartao: CartaoView;
   resumo: ResumoInstrucao;
-  somenteLeitura: boolean;
+  podeDeclarar: boolean;
 }) {
   const instrucao = c.instrucao;
   if (!instrucao?.declaracaoEm) return null;
@@ -325,7 +349,7 @@ function DeclaracaoRegistrada({
     declaracaoPorTipo === "vendedor"
       ? (c.vendedorNome ?? "Vendedor")
       : declaracaoPorTipo === "admin"
-        ? "Administrador"
+        ? "jurídico da Central"
         : "Não informado";
   const aderiu = c.estagio === "aderiu";
   const pendentes = resumo.pendentesObrigatorios;
@@ -367,14 +391,14 @@ function DeclaracaoRegistrada({
           <ListaDeItens itens={pendentes} />
           <span className="mt-1 block">
             Ela continua registrada
-            {!somenteLeitura && !aderiu ? "; para refazê-la, revogue e registre de novo." : "."}
+            {podeDeclarar && !aderiu ? "; para refazê-la, revogue e registre de novo." : "."}
           </span>
         </Aviso>
       )}
 
-      {!somenteLeitura &&
+      {podeDeclarar &&
         (aderiu ? (
-          <p className="kb-sub">Com o município em Aderiu, a declaração não pode mais ser revogada.</p>
+          <p className="kb-sub">Com a adesão registrada, a declaração não pode mais ser revogada.</p>
         ) : (
           <RevogarDeclaracao oportunidadeId={c.id} />
         ))}

@@ -68,8 +68,7 @@ export const PERMISSOES = [
     chave: "adesao.registrar",
     rotulo: "Registrar a adesão",
     atividades: [13],
-    descricao: "Registrar a adesão e os valores aderidos. Reservada: hoje só o consultor dono da oportunidade registra; falta a tela do admin.",
-    reservada: true,
+    descricao: "Registrar a adesão do município com a quantidade de cada item (o saldo da ata anda e os limites do art. 86 valem).",
   },
   {
     chave: "adesao.acompanhar",
@@ -144,7 +143,7 @@ export const PERFIS = [
   {
     chave: "captacao",
     rotulo: "Captação (estagiário)",
-    permissoes: ["atas.captar"],
+    permissoes: ["atas.captar", "adesao.registrar"],
   },
   {
     chave: "cobranca",

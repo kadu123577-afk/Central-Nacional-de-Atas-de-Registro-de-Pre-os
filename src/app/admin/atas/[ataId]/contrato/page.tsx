@@ -1,10 +1,14 @@
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { adminIdLogado } from "@/lib/auth";
+import { bloqueioDaAcao } from "@/lib/ciclo-ata";
+import { carregarAtaNoCiclo } from "@/lib/ciclo-ata-db";
 import { exigirPermissaoDe } from "@/lib/permissoes-db";
 import { prisma } from "@/lib/prisma";
 import { logoutAdmin } from "../../../actions";
 import { NAV_ADMIN } from "../../../nav";
 import { AppShell } from "@/components/ui/app-shell";
+import { Aviso } from "@/components/ui/aviso";
 import { CabecalhoPagina } from "@/components/ui/cabecalho-pagina";
 import { Secao } from "@/components/ui/secao";
 import { FormularioContrato } from "./formulario";
@@ -59,6 +63,9 @@ export default async function ContratoAtaPage({ params }: { params: Promise<{ at
   if (!ata) notFound();
 
   const contrato = ata.contrato;
+  // O contrato (etapa 4) só abre depois da empresa fechada (2) e dos itens e saldos cadastrados (3).
+  const noCiclo = await carregarAtaNoCiclo(ata.id);
+  const bloqueio = noCiclo ? bloqueioDaAcao("contrato", noCiclo.dados) : null;
   const { faixas, falhou } = await carregarFaixasAtivas();
   const sugestao = montarSugestaoContrato({
     itens: ata.itens.map((i) => ({ quantidadeRegistrada: i.quantidadeRegistrada, valorUnitario: Number(i.valorUnitario) })),
@@ -93,6 +100,15 @@ export default async function ContratoAtaPage({ params }: { params: Promise<{ at
         voltar={{ href: "/admin", rotulo: "Painel" }}
       />
 
+      {bloqueio && (
+        <Aviso tom="atencao" titulo="O contrato ainda não pode ser cadastrado.">
+          {bloqueio.mensagem}{" "}
+          <Link href={bloqueio.etapa.caminho(ata.id)} className="font-semibold underline underline-offset-2">
+            {bloqueio.etapa.acao}
+          </Link>
+        </Aviso>
+      )}
+
       <Secao
         titulo={contrato ? "Contrato cadastrado" : "Cadastrar contrato"}
         destaque
@@ -103,14 +119,20 @@ export default async function ContratoAtaPage({ params }: { params: Promise<{ at
           </>
         }
       >
-        <FormularioContrato
-          ataId={ata.id}
-          percentualAtual={contrato ? String(Number((Number(contrato.percentualComissao) * 100).toFixed(2))).replace(".", ",") : ""}
-          dataAssinaturaAtual={paraInputData(contrato?.dataAssinatura ?? null)}
-          vigenciaFimAtual={paraInputData(contrato?.vigenciaFim ?? null)}
-          observacoesAtuais={contrato?.observacoes ?? ""}
-          sugestao={sugestao}
-        />
+        {bloqueio ? (
+          <p className="text-sm" style={{ color: "var(--cor-texto-2)" }}>
+            O formulário abre quando a etapa anterior estiver cumprida.
+          </p>
+        ) : (
+          <FormularioContrato
+            ataId={ata.id}
+            percentualAtual={contrato ? String(Number((Number(contrato.percentualComissao) * 100).toFixed(2))).replace(".", ",") : ""}
+            dataAssinaturaAtual={paraInputData(contrato?.dataAssinatura ?? null)}
+            vigenciaFimAtual={paraInputData(contrato?.vigenciaFim ?? null)}
+            observacoesAtuais={contrato?.observacoes ?? ""}
+            sugestao={sugestao}
+          />
+        )}
       </Secao>
     </AppShell>
   );

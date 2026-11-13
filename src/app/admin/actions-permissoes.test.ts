@@ -17,6 +17,8 @@ const dobles = vi.hoisted(() => ({
   ataUpdate: vi.fn(),
   conformidadeFindUnique: vi.fn(),
   conformidadeUpsert: vi.fn(),
+  contratoUpsert: vi.fn(),
+  carregarAtaNoCiclo: vi.fn(),
 }));
 
 vi.mock("next/cache", () => ({ revalidatePath: dobles.revalidatePath }));
@@ -33,8 +35,10 @@ vi.mock("@/lib/prisma", () => ({
   prisma: {
     ata: { findUnique: dobles.ataFindUnique, update: dobles.ataUpdate },
     conformidadeAta: { findUnique: dobles.conformidadeFindUnique, upsert: dobles.conformidadeUpsert },
+    contratoIntermediacao: { upsert: dobles.contratoUpsert },
   },
 }));
+vi.mock("@/lib/ciclo-ata-db", () => ({ carregarAtaNoCiclo: dobles.carregarAtaNoCiclo }));
 
 import {
   analisarAta,
@@ -46,6 +50,7 @@ import {
   definirTituloPublicoAta,
   lancarLiquidacao,
   rejeitarAta,
+  salvarContratoIntermediacao,
 } from "./actions";
 
 function formulario(campos: Record<string, string> = {}): FormData {
@@ -63,6 +68,27 @@ const CONFORMIDADE_COMPLETA = {
   estimativaQuantidades: "on",
 };
 
+/**
+ * O que o ciclo da ata sabe (src/lib/ciclo-ata.ts). Por padrão a ata está pronta para análise: empresa
+ * fechada, itens, contrato e conformidade registrados. Cada teste de ordem tira o que quer.
+ */
+function ataNoCiclo(dados: Record<string, unknown> = {}) {
+  return {
+    id: "ata1",
+    dados: {
+      status: "PENDENTE",
+      criadaEm: new Date("2026-11-02T15:00:00Z"),
+      atualizadaEm: new Date("2026-11-02T15:00:00Z"),
+      fornecedorAConfirmar: false,
+      totalItens: 3,
+      contratoEm: new Date("2026-11-05T15:00:00Z"),
+      conformidadeEm: new Date("2026-11-06T15:00:00Z"),
+      categoria: "material-escritorio",
+      ...dados,
+    },
+  };
+}
+
 function darPermissoes(permissoes: string[]) {
   dobles.adminTemPermissao.mockImplementation(async (_id: string, chave: string) => permissoes.includes(chave));
 }
@@ -79,6 +105,8 @@ beforeEach(() => {
   dobles.ataUpdate.mockResolvedValue({});
   dobles.conformidadeUpsert.mockResolvedValue({});
   dobles.conformidadeFindUnique.mockResolvedValue(null);
+  dobles.carregarAtaNoCiclo.mockResolvedValue(ataNoCiclo());
+  dobles.contratoUpsert.mockResolvedValue({});
 });
 
 describe("cada ação pede a permissão da sua atividade", () => {
@@ -110,6 +138,95 @@ describe("cada ação pede a permissão da sua atividade", () => {
     await rejeitarAta(formulario({ ataId: "ata1" }));
     expect(dobles.ataUpdate).toHaveBeenCalledWith({ where: { id: "ata1" }, data: { status: "REJEITADA" } });
     expect(dobles.registrarAuditoria).toHaveBeenCalledWith({ ator: "admin:adm1", acao: "admin.rejeitarAta" });
+  });
+});
+
+describe("a ordem das etapas vale no servidor: cada etapa só abre depois da anterior", () => {
+  const analisar = (campos: Record<string, string>) => analisarAta("ata1", {}, formulario(campos));
+  const contrato = (campos: Record<string, string> = {}) =>
+    salvarContratoIntermediacao(
+      "ata1",
+      {},
+      formulario({ percentualComissao: "5", dataAssinatura: "2026-11-10", ...campos }),
+    );
+
+  it.each([
+    ["salvar", ["atas.conformidade"]],
+    ["aprovar", ["atas.aprovar"]],
+    ["aprovar", ["atas.conformidade", "atas.aprovar"]],
+  ])("sem o contrato (etapa 4) não dá para %s a conformidade nem aprovar (%j)", async (decisao, permissoes) => {
+    darPermissoes(permissoes);
+    dobles.carregarAtaNoCiclo.mockResolvedValue(ataNoCiclo({ contratoEm: null, conformidadeEm: null }));
+    const r = await analisar({ ...CONFORMIDADE_COMPLETA, decisao });
+    expect(r.erro).toContain("falta a etapa 4 (Contrato de intermediação");
+    expect(dobles.conformidadeUpsert).not.toHaveBeenCalled();
+    expect(dobles.ataUpdate).not.toHaveBeenCalled();
+  });
+
+  it("o bloqueio devolve o que foi marcado, para o formulário repor", async () => {
+    darPermissoes(["atas.conformidade"]);
+    dobles.carregarAtaNoCiclo.mockResolvedValue(ataNoCiclo({ contratoEm: null, conformidadeEm: null }));
+    const r = await analisar({ fornecedorRegular: "on", parecer: "texto", decisao: "salvar" });
+    expect(r.valores?.parecer).toBe("texto");
+    expect(r.valores?.respostas.fornecedorRegular).toBe(true);
+  });
+
+  it("sem itens cadastrados (etapa 3) a conformidade também espera", async () => {
+    darPermissoes(["atas.conformidade"]);
+    dobles.carregarAtaNoCiclo.mockResolvedValue(ataNoCiclo({ totalItens: 0, contratoEm: null, conformidadeEm: null }));
+    const r = await analisar({ ...CONFORMIDADE_COMPLETA, decisao: "salvar" });
+    expect(r.erro).toContain("falta a etapa 3 (Cadastrar itens e saldos");
+    expect(dobles.conformidadeUpsert).not.toHaveBeenCalled();
+  });
+
+  it("aprovador sozinho não aprova enquanto o jurídico não registrou a conformidade (etapa 5)", async () => {
+    darPermissoes(["atas.aprovar"]);
+    dobles.carregarAtaNoCiclo.mockResolvedValue(ataNoCiclo({ conformidadeEm: null }));
+    const r = await analisar({ decisao: "aprovar" });
+    expect(r.erro).toContain("falta a etapa 5 (Conformidade da ata");
+    expect(dobles.ataUpdate).not.toHaveBeenCalled();
+  });
+
+  it("quem tem as duas permissões registra a conformidade e aprova na mesma ação, desde que o contrato exista", async () => {
+    darPermissoes(["atas.conformidade", "atas.aprovar"]);
+    dobles.carregarAtaNoCiclo.mockResolvedValue(ataNoCiclo({ conformidadeEm: null }));
+    const r = await analisar({ ...CONFORMIDADE_COMPLETA, decisao: "aprovar" });
+    expect(r).toMatchObject({ mensagem: "Ata aprovada." });
+    expect(dobles.conformidadeUpsert).toHaveBeenCalledTimes(1);
+    expect(dobles.ataUpdate).toHaveBeenCalledWith({ where: { id: "ata1" }, data: { status: "APROVADA" } });
+  });
+
+  it("rejeitar não depende da ordem", async () => {
+    darPermissoes(["atas.aprovar"]);
+    dobles.carregarAtaNoCiclo.mockResolvedValue(ataNoCiclo({ totalItens: 0, contratoEm: null, conformidadeEm: null }));
+    await rejeitarAta(formulario({ ataId: "ata1" }));
+    expect(dobles.ataUpdate).toHaveBeenCalled();
+  });
+
+  it("o contrato (etapa 4) espera os itens e o saldo cadastrados (etapa 3)", async () => {
+    dobles.carregarAtaNoCiclo.mockResolvedValue(ataNoCiclo({ totalItens: 0, contratoEm: null, conformidadeEm: null }));
+    const r = await contrato();
+    expect(r.erro).toContain("falta a etapa 3 (Cadastrar itens e saldos");
+    expect(dobles.contratoUpsert).not.toHaveBeenCalled();
+  });
+
+  it("o contrato espera a empresa prestadora estar fechada (etapa 2)", async () => {
+    dobles.carregarAtaNoCiclo.mockResolvedValue(ataNoCiclo({ fornecedorAConfirmar: true, contratoEm: null, conformidadeEm: null }));
+    const r = await contrato();
+    expect(r.erro).toContain("falta a etapa 2 (Fechar com a empresa prestadora");
+    expect(dobles.contratoUpsert).not.toHaveBeenCalled();
+  });
+
+  it("com empresa e itens, o contrato é gravado", async () => {
+    dobles.carregarAtaNoCiclo.mockResolvedValue(ataNoCiclo({ contratoEm: null, conformidadeEm: null }));
+    const r = await contrato();
+    expect(r).toEqual({ sucesso: true });
+    expect(dobles.contratoUpsert).toHaveBeenCalledTimes(1);
+  });
+
+  it("corrigir um contrato já cadastrado continua possível", async () => {
+    const r = await contrato({ percentualComissao: "6" });
+    expect(r).toEqual({ sucesso: true });
   });
 });
 

@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { adminIdLogado } from "@/lib/auth";
+import { bloqueioDaAcao } from "@/lib/ciclo-ata";
+import { carregarAtaNoCiclo } from "@/lib/ciclo-ata-db";
 import { temPermissao } from "@/lib/permissoes";
 import { exigirPermissaoDe, permissoesDoAdmin } from "@/lib/permissoes-db";
 import { prisma } from "@/lib/prisma";
@@ -60,8 +62,17 @@ export default async function AnaliseAtaPage({ params }: { params: Promise<{ ata
     documentosCount: ata.documentos.length,
   });
   if (!ata.contrato) {
-    alertas.push("Sem contrato de intermediação — o vendedor não verá esta ata até o contrato ser cadastrado.");
+    alertas.push("Sem contrato de intermediação — a ata não é vendida nem aparece no catálogo até o contrato ser cadastrado.");
   }
+
+  // Cada etapa só abre depois da anterior: conformidade (5) espera o contrato (4); aprovar (6)
+  // espera a conformidade. Quem tem as duas permissões registra e aprova na mesma ação.
+  const noCiclo = await carregarAtaNoCiclo(ata.id);
+  const bloqueioSalvar = noCiclo ? bloqueioDaAcao("conformidade", noCiclo.dados) : null;
+  const dadosParaAprovar =
+    noCiclo && podeConferir ? { ...noCiclo.dados, conformidadeEm: noCiclo.dados.conformidadeEm ?? new Date() } : noCiclo?.dados;
+  const bloqueioAprovar = dadosParaAprovar ? bloqueioDaAcao("aprovar", dadosParaAprovar) : null;
+  const bloqueioDaTela = bloqueioSalvar ?? bloqueioAprovar;
 
   // Comparativo auxiliar de preços (null se o banco falhar: o bloco avisa e o resto da página segue).
   const comparativo = await carregarComparativoOuNulo(ata.id);
@@ -115,6 +126,14 @@ export default async function AnaliseAtaPage({ params }: { params: Promise<{ ata
         <ol className="passos">
           <Etapa
             marcador={1}
+            titulo="Contrato"
+            concluida={Boolean(ata.contrato)}
+            valor={ata.contrato ? percentualDeFracao(Number(ata.contrato.percentualComissao)) : "Pendente"}
+            corValor={ata.contrato ? "var(--cor-marca-clara)" : "var(--cor-alerta)"}
+            nota={ata.contrato ? "comissão pactuada com o fornecedor" : "vem primeiro: sem contrato a análise não abre"}
+          />
+          <Etapa
+            marcador={2}
             titulo="Conformidade"
             concluida={confirmados === totalItens}
             valor={`${confirmados}/${totalItens}`}
@@ -128,17 +147,9 @@ export default async function AnaliseAtaPage({ params }: { params: Promise<{ ata
             </div>
           </Etapa>
           <Etapa
-            marcador={2}
-            titulo="Contrato"
-            concluida={Boolean(ata.contrato)}
-            valor={ata.contrato ? percentualDeFracao(Number(ata.contrato.percentualComissao)) : "Pendente"}
-            corValor={ata.contrato ? "var(--cor-marca-clara)" : "var(--cor-alerta)"}
-            nota={ata.contrato ? "comissão pactuada com o fornecedor" : "sem contrato o vendedor não vê a ata"}
-          />
-          <Etapa
             marcador={3}
             titulo="Aprovação"
-            concluida={ata.status === "APROVADA"}
+            concluida={ata.status === "APROVADA" && Boolean(ata.contrato)}
             valor={ROTULO_STATUS[ata.status]}
             corValor={
               ata.status === "APROVADA"
@@ -147,7 +158,13 @@ export default async function AnaliseAtaPage({ params }: { params: Promise<{ ata
                   ? "var(--cor-critico)"
                   : undefined
             }
-            nota={ata.status === "APROVADA" ? "liberada no catálogo público" : "só aparece no catálogo depois de aprovada"}
+            nota={
+              ata.status === "APROVADA" && !ata.contrato
+                ? "aprovada antes do contrato: não está liberada"
+                : ata.status === "APROVADA"
+                  ? "liberada no catálogo público"
+                  : "só aparece no catálogo depois de aprovada, com contrato"
+            }
           />
           <Etapa
             marcador={<IconeOlho />}
@@ -159,6 +176,15 @@ export default async function AnaliseAtaPage({ params }: { params: Promise<{ ata
           />
         </ol>
       </section>
+
+      {bloqueioDaTela && (
+        <Aviso tom="atencao" titulo="A análise ainda não abre.">
+          {bloqueioDaTela.mensagem}{" "}
+          <Link href={bloqueioDaTela.etapa.caminho(ata.id)} className="font-semibold underline underline-offset-2">
+            {bloqueioDaTela.etapa.acao}
+          </Link>
+        </Aviso>
+      )}
 
       {alertas.length > 0 && (
         <Aviso tom="atencao" titulo="Alertas">
@@ -226,6 +252,8 @@ export default async function AnaliseAtaPage({ params }: { params: Promise<{ ata
           parecerAtual={c?.parecer ?? ""}
           podeConferir={podeConferir}
           podeAprovar={podeAprovar}
+          bloqueioSalvar={bloqueioSalvar?.mensagem ?? null}
+          bloqueioAprovar={bloqueioAprovar?.mensagem ?? null}
         />
         {podeAprovar && ata.status !== "REJEITADA" && (
           <form action={rejeitarAta} className="mt-6 border-t pt-5" style={{ borderColor: "var(--cor-borda)" }}>

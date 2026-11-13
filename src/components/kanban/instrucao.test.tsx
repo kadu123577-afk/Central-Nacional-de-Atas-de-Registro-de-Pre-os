@@ -59,12 +59,16 @@ function obrigatoriosFeitos() {
   );
 }
 
-const desenhar = (c: CartaoView, somenteLeitura = false) =>
-  renderToStaticMarkup(createElement(Instrucao, { cartao: c, somenteLeitura }));
+/**
+ * Por padrão desenha a aba de quem marca E declara (o jurídico no painel). O consultor marca mas não
+ * declara (`podeDeclarar = false`); no modo somente leitura ninguém mexe.
+ */
+const desenhar = (c: CartaoView, somenteLeitura = false, podeDeclarar = !somenteLeitura) =>
+  renderToStaticMarkup(createElement(Instrucao, { cartao: c, somenteLeitura, podeDeclarar }));
 
 const contar = (html: string, trecho: string) => html.split(trecho).length - 1;
 
-describe("aba Instrução: o vendedor", () => {
+describe("aba Instrução: quem marca e declara (o jurídico, no painel)", () => {
   it("sem instrução iniciada mostra o cabeçalho, os 11 itens em 3 grupos e o progresso zerado", () => {
     const html = desenhar(cartao());
     expect(html).toContain("O que o órgão aderente precisa reunir.");
@@ -115,7 +119,7 @@ describe("aba Instrução: o vendedor", () => {
 
   it("não declarada: aviso da trava, texto da declaração e justificativa obrigatória enquanto faltam itens", () => {
     const html = desenhar(cartao({ instrucao: {} }));
-    expect(html).toContain("Sem a declaração registrada, o município não pode ser marcado como Aderiu.");
+    expect(html).toContain("Sem a declaração registrada, a equipe da Central não registra a adesão deste município.");
     expect(html).toContain("Registrar declaração");
     expect(html).toContain(TEXTO_DECLARACAO);
     expect(html).toContain("Itens ainda não confirmados:");
@@ -157,13 +161,13 @@ describe("aba Instrução: o vendedor", () => {
     expect(html).not.toContain("Sem a declaração registrada");
   });
 
-  it("declarada por admin aparece como Administrador", () => {
+  it("declarada pelo administrador aparece como jurídico da Central", () => {
     const html = desenhar(
       cartao({
         instrucao: { itens: obrigatoriosFeitos(), declaracaoEm: new Date("2026-10-21T15:30:00Z"), declaracaoPorTipo: "admin", declaracaoVersao: 1 },
       }),
     );
-    expect(html).toContain("por Administrador");
+    expect(html).toContain("por jurídico da Central");
   });
 
   it("declarada com exceção: mostra a justificativa em aviso de atenção e o que ainda falta", () => {
@@ -332,7 +336,7 @@ describe("aba Instrução: modo somente leitura (Pipeline do gestor)", () => {
     expect(html).toContain("Pendente");
     expect(html).toContain("Marcado em 05/10/2026");
     expect(html).toContain("Nota: ok");
-    expect(html).toContain("Sem a declaração registrada, o município não pode ser marcado como Aderiu.");
+    expect(html).toContain("Sem a declaração registrada, a equipe da Central não registra a adesão deste município.");
   });
 
   it("declaração registrada é mostrada sem botão de revogar", () => {
@@ -350,5 +354,47 @@ describe("aba Instrução: modo somente leitura (Pipeline do gestor)", () => {
   it("mantém o link do kit de minutas (é link, não botão)", () => {
     const html = desenhar(cartao(), true);
     expect(html).toContain('href="/minutas/cm1oportunidade0000000001"');
+  });
+});
+
+describe("aba Instrução: quem só marca os itens (o consultor e o Dr. Rui)", () => {
+  const marca = (c: CartaoView) => desenhar(c, false, false);
+
+  it("marca os itens, mas não tem formulário para declarar: a declaração é do jurídico", () => {
+    const html = marca(cartao({ instrucao: { itens: obrigatoriosFeitos() } }));
+    expect(contar(html, 'type="checkbox"')).toBe(ITENS_INSTRUCAO.length);
+    expect(html).toContain("A declaração de conformidade é feita pelo jurídico da Central.");
+    expect(html).toContain("avise o jurídico");
+    expect(html).not.toContain("Registrar declaração");
+    expect(html).not.toContain("justificativaExcecao");
+  });
+
+  it("com a declaração registrada, mostra quem declarou e NÃO oferece revogar", () => {
+    const html = marca(
+      cartao({
+        instrucao: { itens: obrigatoriosFeitos(), declaracaoEm: new Date("2026-10-21T15:30:00Z"), declaracaoPorTipo: "admin", declaracaoVersao: 1 },
+      }),
+    );
+    expect(html).toContain("Declaração registrada.");
+    expect(html).toContain("por jurídico da Central");
+    expect(html).not.toContain("Revogar declaração");
+  });
+
+  it("o aviso do que mudou depois da declaração não manda revogar para quem não pode", () => {
+    const html = marca(
+      cartao({
+        instrucao: { itens: {}, declaracaoEm: new Date("2026-10-21T15:30:00Z"), declaracaoPorTipo: "admin", declaracaoVersao: 1 },
+      }),
+    );
+    expect(html).toContain("O checklist mudou depois da declaração.");
+    expect(html).not.toContain("revogue e registre de novo");
+  });
+});
+
+describe("aba Instrução: o jurídico declara mesmo sem marcar itens", () => {
+  it("só declarar (sem a permissão de instruir): vê os itens sem poder marcar e tem o formulário da declaração", () => {
+    const html = desenhar(cartao({ instrucao: { itens: obrigatoriosFeitos() } }), true, true);
+    expect(html).not.toContain('type="checkbox"');
+    expect(html).toContain("Registrar declaração");
   });
 });

@@ -254,6 +254,7 @@ model OportunidadeVenda {
   liquidacoes  Liquidacao[]
   vinculosContrato VinculoContrato[]
   instrucao    InstrucaoAdesao?
+  itensAderidos AdesaoItem[]
 
   @@unique([ataId, entidadeAlvoId])
   @@map("oportunidades_venda")
@@ -364,6 +365,7 @@ model Item {
   ata     Ata      @relation(fields: [ataId], references: [id])
   adesoes Adesao[]
   saldo   Saldo?
+  adesoesDeOportunidade AdesaoItem[]
 
   @@index([codigoCatalogo])
   @@map("itens")
@@ -372,6 +374,24 @@ model Item {
 // Snapshot materializado do consumo agregado do item, mantido em transação
 // junto com cada adesão aceita — evita recalcular a soma de todas as
 // adesões a cada checagem da trava do art. 86.
+// Quantidade aderida de cada item, por oportunidade (2026-11-14): é o que registrar a adesão grava
+// e o que faz o saldo da ata andar (Saldo.quantidadeConsumida) e os limites do art. 86 valerem.
+model AdesaoItem {
+  id             String   @id @default(cuid())
+  oportunidadeId String
+  itemId         String
+  quantidade     Int
+  registradoPor  String
+  criadoEm       DateTime @default(now())
+
+  oportunidade OportunidadeVenda @relation(fields: [oportunidadeId], references: [id])
+  item         Item              @relation(fields: [itemId], references: [id])
+
+  @@unique([oportunidadeId, itemId])
+  @@index([itemId])
+  @@map("adesao_itens")
+}
+
 model Saldo {
   id                  String   @id @default(cuid())
   itemId              String   @unique
@@ -1084,4 +1104,17 @@ model DespesaScp {
 
   @@index([data])
   @@map("despesas_scp")
+}
+
+// Feriados extras da equipe (2026-11-14, passo 4 do plano do workflow): feriado estadual ou
+// municipal e ponto facultativo, que somam aos feriados nacionais (calculados em
+// src/lib/dias-uteis.ts) na contagem de prazos em dias úteis.
+model Feriado {
+  id        String   @id @default(cuid())
+  data      DateTime @unique @db.Date
+  nome      String
+  criadoPor String
+  criadoEm  DateTime @default(now())
+
+  @@map("feriados")
 }

@@ -754,6 +754,32 @@ async function main() {
   const itemCimento = ataCimento.itens[0];
   const itemNotebook = ataNotebook.itens[0];
 
+  // ---- Contrato e conformidade das atas aprovadas ----
+  //
+  // Regra de 14/11/2026: sem o contrato de intermediação a ata não é vendida nem aparece no
+  // catálogo, e ninguém aprova a ata sem o contrato e a conformidade. Os dados de demonstração
+  // seguem a mesma ordem do fluxo (contrato, conformidade, aprovação).
+  const atasAprovadas = await prisma.ata.findMany({
+    where: { isSeed: true, status: "APROVADA" },
+    select: { id: true, dataAssinatura: true },
+  });
+  for (const a of atasAprovadas) {
+    await prisma.contratoIntermediacao.create({
+      data: { ataId: a.id, percentualComissao: "0.0500", dataAssinatura: a.dataAssinatura, observacoes: "Contrato de demonstração" },
+    });
+    await prisma.conformidadeAta.create({
+      data: {
+        ataId: a.id,
+        fornecedorRegular: true,
+        editalPermiteAdesao: true,
+        limitesRespeitados: true,
+        pesquisaPrecos: true,
+        anuenciaGerenciador: true,
+        estimativaQuantidades: true,
+      },
+    });
+  }
+
   // ---- Adesões — uma em cada um dos 8 estágios, datas espalhadas ----
   //
   // Órgão aderente sempre compatível com a esfera do órgão gerenciador da

@@ -87,6 +87,8 @@ describe("perfis prontos", () => {
   it("captação (estagiário) não aprova, não cobra e não gere usuários", () => {
     const captacao = perfilPorChave("captacao")?.permissoes ?? [];
     expect(captacao).toContain("atas.captar");
+    expect(captacao).toContain("adesao.registrar");
+    expect(captacao).not.toContain("adesao.declarar");
     expect(captacao).not.toContain("atas.aprovar");
     expect(captacao).not.toContain("comissao.cobrar");
     expect(captacao).not.toContain("usuarios.gerir");

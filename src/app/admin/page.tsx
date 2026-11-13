@@ -23,6 +23,9 @@ import { expirarOportunidadesVencidas } from "@/lib/negociacao-expiracao";
 import { montarPainel, resumirPorVendedor } from "@/lib/painel-vendedor";
 import { carregarLinhasOportunidades } from "@/lib/painel-vendedor-db";
 import { filtroContatoVencido } from "@/lib/radar-atas-view";
+import { ONDE_PRONTA_PARA_REGISTRAR } from "@/lib/registrar-adesao-db";
+import { etapaPorNumero } from "@/lib/ciclo-ata";
+import { carregarAtasEmAndamento } from "@/lib/ciclo-ata-db";
 
 export const dynamic = "force-dynamic";
 
@@ -79,6 +82,13 @@ export default async function PainelAdminPage({
 
   await expirarOportunidadesVencidas();
 
+  // Ciclo da ata (2026-11-14): quantas atas esperam uma etapa que ESTA pessoa pode resolver.
+  const atasEmAndamento = verModeracao ? await carregarAtasEmAndamento() : [];
+  const atasNaSuaVez = atasEmAndamento.filter((a) => {
+    const etapa = a.situacao.etapaAtual ? etapaPorNumero(a.situacao.etapaAtual) : undefined;
+    return etapa ? temPermissao(permissoes, etapa.permissao) : false;
+  }).length;
+
   const [
     totalAtas,
     atasComAdesao,
@@ -96,6 +106,8 @@ export default async function PainelAdminPage({
     contratosDetectadosParaConfirmar,
     aditivosAAcompanhar,
     fornecedoresComContatoVencido,
+    adesoesProntasParaRegistrar,
+    atasSemItens,
   ] = await Promise.all([
     prisma.ata.count({ where: { status: "APROVADA" } }),
     // Funil de conversão (mapa do núcleo de atas, 2026-09-05): quantas atas
@@ -151,6 +163,14 @@ export default async function PainelAdminPage({
     // Funil de prospecção de fornecedores (Projeto RNA, etapa 5): contatado ou
     // interessado cujo próximo contato marcado já passou.
     prisma.prospeccaoFornecedor.count({ where: filtroContatoVencido(new Date()) }),
+    // Registro da adesão (2026-11-14): declaração do jurídico feita, contrato na ata, ainda não aderida.
+    prisma.oportunidadeVenda.count({ where: ONDE_PRONTA_PARA_REGISTRAR }),
+    // Captação (2026-11-14): ata cadastrada ou aprovada que ainda não tem itens.
+    prisma.ata.findMany({
+      where: { status: { in: ["PENDENTE", "APROVADA"] }, itens: { none: {} } },
+      select: { id: true },
+      orderBy: { createdAt: "asc" },
+    }),
   ]);
 
   const taxaConversao = totalAtas > 0 ? Math.round((atasComAdesao / totalAtas) * 100) : null;
@@ -173,6 +193,30 @@ export default async function PainelAdminPage({
   const k = painel.kpis;
 
   const fila: ItemFila[] = [
+    {
+      rotulo: "Atas esperando uma etapa sua no ciclo",
+      permissao: ["atas.captar", "atas.contrato", "atas.conformidade", "atas.aprovar", "atas.publicar"],
+      descricao: "Da captação à publicação: cada ata mostra em que etapa está e o prazo em dias úteis.",
+      n: atasNaSuaVez,
+      href: "/admin/ciclo",
+      tom: "atencao",
+    },
+    {
+      rotulo: "Atas sem itens cadastrados",
+      permissao: ["atas.captar"],
+      descricao: "Sem itens e saldos a ata não pode ser analisada nem negociada.",
+      n: atasSemItens.length,
+      href: atasSemItens[0] ? `/admin/atas/${atasSemItens[0].id}/itens` : "/admin",
+      tom: "atencao",
+    },
+    {
+      rotulo: "Adesões prontas para registrar",
+      permissao: ["adesao.registrar"],
+      descricao: "O jurídico já declarou a conformidade: registre a quantidade de cada item.",
+      n: adesoesProntasParaRegistrar,
+      href: "/admin/adesoes",
+      tom: "atencao",
+    },
     {
       rotulo: "Atas aguardando análise",
       permissao: ["atas.conformidade", "atas.aprovar"],
