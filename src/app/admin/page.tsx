@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import type { Prisma } from "@/generated/prisma/client";
 import { adminIdLogado } from "@/lib/auth";
 import { MENSAGEM_SEM_PERMISSAO, temAlguma, temPermissao, type Permissao } from "@/lib/permissoes";
 import { permissoesDoAdmin } from "@/lib/permissoes-db";
@@ -46,6 +47,50 @@ function ataImportadaIncompleta(ata: { origem: string; itens: unknown[]; fornece
   );
 }
 
+/** Uma linha dentro de uma tarefa da fila: a ata, o município ou o cartão que está esperando, com o link direto. */
+interface SubLinha {
+  rotulo: string;
+  detalhe?: string;
+  href: string;
+}
+
+/** Quantas linhas cada tarefa mostra antes do "e mais N". */
+const LIMITE_SUBLINHAS = 5;
+
+async function subAdesoesParaRegistrar(): Promise<SubLinha[]> {
+  const ops = await prisma.oportunidadeVenda.findMany({
+    where: ONDE_PRONTA_PARA_REGISTRAR,
+    take: LIMITE_SUBLINHAS,
+    select: { id: true, ata: { select: { numero: true } }, entidadeAlvo: { select: { nome: true, municipio: true, uf: true } } },
+  });
+  return ops.map((o) => ({
+    rotulo: `${o.entidadeAlvo.municipio ?? o.entidadeAlvo.nome}${o.entidadeAlvo.uf ? `/${o.entidadeAlvo.uf}` : ""}`,
+    detalhe: `Ata ${o.ata.numero}`,
+    href: `/admin/adesoes/${o.id}`,
+  }));
+}
+
+async function subCaptacoes(adminId: string, onde: Prisma.CaptacaoWhereInput): Promise<SubLinha[]> {
+  const cartoes = await prisma.captacao.findMany({
+    where: { responsavelId: adminId, ...onde },
+    orderBy: [{ proximoContatoEm: { sort: "asc", nulls: "last" } }, { atualizadoEm: "desc" }],
+    take: LIMITE_SUBLINHAS,
+    select: { id: true, nome: true, fornecedorNome: true },
+  });
+  return cartoes.map((c) => ({ rotulo: c.nome, detalhe: c.fornecedorNome ?? "Empresa a identificar", href: `/admin/captacao/${c.id}` }));
+}
+
+async function subCadastrosAguardando(): Promise<SubLinha[]> {
+  const [orgaos, fornecedores] = await Promise.all([
+    prisma.orgao.findMany({ where: { aguardaLiberacao: true }, orderBy: { createdAt: "asc" }, take: LIMITE_SUBLINHAS, select: { nome: true, uf: true } }),
+    prisma.fornecedor.findMany({ where: { aguardaLiberacao: true }, orderBy: { createdAt: "asc" }, take: LIMITE_SUBLINHAS, select: { razaoSocial: true } }),
+  ]);
+  return [
+    ...orgaos.map((o) => ({ rotulo: o.nome, detalhe: `Órgão${o.uf ? ` · ${o.uf}` : ""}`, href: "/admin/usuarios" })),
+    ...fornecedores.map((f) => ({ rotulo: f.razaoSocial, detalhe: "Fornecedor", href: "/admin/usuarios" })),
+  ].slice(0, LIMITE_SUBLINHAS);
+}
+
 interface ItemFila {
   rotulo: string;
   /** Quem resolve este ponto: só aparece na fila de quem tem uma destas permissões. */
@@ -54,6 +99,8 @@ interface ItemFila {
   n: number;
   href: string;
   tom: Tom;
+  /** Uma linha por ata, município ou cartão que espera (as primeiras), com o link direto. */
+  subitens?: SubLinha[];
 }
 
 /**
@@ -90,10 +137,11 @@ export default async function PainelAdminPage({
 
   // Ciclo da ata (2026-11-14): quantas atas esperam uma etapa que ESTA pessoa pode resolver.
   const atasEmAndamento = ehGestor || verModeracao ? await carregarAtasEmAndamento() : [];
-  const atasNaSuaVez = atasEmAndamento.filter((a) => {
+  const atasDoCiclo = atasEmAndamento.filter((a) => {
     const etapa = a.situacao.etapaAtual ? etapaPorNumero(a.situacao.etapaAtual) : undefined;
     return etapa ? temPermissao(permissoes, etapa.permissao) : false;
-  }).length;
+  });
+  const atasNaSuaVez = atasDoCiclo.length;
 
   // Instrução da adesão (2026-11-14): o que espera o jurídico declarar e o que o Dr. Rui ainda instrui.
   const filaInstrucao = temAlguma(permissoes, ["adesao.declarar", "adesao.instruir"]) ? await carregarFilaDaInstrucao(300) : null;
@@ -191,7 +239,7 @@ export default async function PainelAdminPage({
         itens: { none: {} },
         fornecedor: { cnpj: { not: CNPJ_FORNECEDOR_A_CONFIRMAR } },
       },
-      select: { id: true },
+      select: { id: true, numero: true, fornecedor: { select: { razaoSocial: true } } },
       orderBy: { createdAt: "asc" },
     }),
     // Cadastro público (14/11/2026): órgãos e fornecedores que se cadastraram e esperam a equipe liberar.
@@ -199,6 +247,27 @@ export default async function PainelAdminPage({
       ([orgaos, fornecedores]) => orgaos + fornecedores,
     ),
   ]);
+
+  // Listas curtas para as tarefas (uma linha por ata, município ou cartão), só do que a pessoa pode resolver.
+  const [subRegistrar, subPrimeiroContato, subContatoVencido, subCadastros] = await Promise.all([
+    temPermissao(permissoes, "adesao.registrar") && adesoesProntasParaRegistrar > 0 ? subAdesoesParaRegistrar() : Promise.resolve([]),
+    temPermissao(permissoes, "atas.captar") && captacoesParaPrimeiroContato > 0
+      ? subCaptacoes(adminId, { estagio: "identificada" })
+      : Promise.resolve([]),
+    temPermissao(permissoes, "atas.captar") && captacoesComContatoVencido > 0
+      ? subCaptacoes(adminId, {
+          estagio: { in: ["identificada", "em_contato", "interessada"] },
+          proximoContatoEm: { lt: hojeBrasilia(new Date()) },
+        })
+      : Promise.resolve([]),
+    temPermissao(permissoes, "usuarios.gerir") && cadastrosAguardandoLiberacao > 0 ? subCadastrosAguardando() : Promise.resolve([]),
+  ]);
+  const naFilaDeInstrucao = filaInstrucao?.itens ?? [];
+  const linhaDaInstrucao = (i: (typeof naFilaDeInstrucao)[number]): SubLinha => ({
+    rotulo: `${i.municipio}${i.uf ? `/${i.uf}` : ""}`,
+    detalhe: `Ata ${i.ataNumero} · ${i.obrigatoriosFeitos} de ${i.obrigatoriosTotal} itens · ${i.consultor}`,
+    href: `/admin/adesoes/${i.id}`,
+  });
 
   const taxaConversao = totalAtas > 0 ? Math.round((atasComAdesao / totalAtas) * 100) : null;
 
@@ -244,6 +313,10 @@ export default async function PainelAdminPage({
       n: atasNaSuaVez,
       href: "/admin/ciclo",
       tom: "atencao",
+      subitens: atasDoCiclo.slice(0, LIMITE_SUBLINHAS).flatMap((a) => {
+        const etapa = a.situacao.etapaAtual ? etapaPorNumero(a.situacao.etapaAtual) : undefined;
+        return etapa ? [{ rotulo: `Ata ${a.numero}`, detalhe: `${etapa.numero}. ${etapa.titulo} · ${a.fornecedor}`, href: etapa.caminho(a.id) }] : [];
+      }),
     },
     {
       rotulo: "Atas para completar os dados da empresa",
@@ -252,6 +325,11 @@ export default async function PainelAdminPage({
       n: atasParaCompletar.length,
       href: atasParaCompletar[0] ? `/admin/atas/${atasParaCompletar[0].id}/completar` : "/admin",
       tom: "atencao",
+      subitens: atasParaCompletar.slice(0, LIMITE_SUBLINHAS).map((a) => ({
+        rotulo: `Ata ${a.numero}`,
+        detalhe: a.fornecedor.razaoSocial,
+        href: `/admin/atas/${a.id}/completar`,
+      })),
     },
     {
       rotulo: "Atas sem itens cadastrados",
@@ -260,6 +338,11 @@ export default async function PainelAdminPage({
       n: atasSemItens.length,
       href: "/admin/atas-itens",
       tom: "atencao",
+      subitens: atasSemItens.slice(0, LIMITE_SUBLINHAS).map((a) => ({
+        rotulo: `Ata ${a.numero}`,
+        detalhe: a.fornecedor.razaoSocial,
+        href: `/admin/atas/${a.id}/itens`,
+      })),
     },
     {
       rotulo: "Declarações de conformidade a fazer",
@@ -268,6 +351,7 @@ export default async function PainelAdminPage({
       n: filaInstrucao?.prontosParaDeclarar ?? 0,
       href: "/admin/adesoes",
       tom: "atencao",
+      subitens: naFilaDeInstrucao.filter((i) => i.prontoParaDeclarar).slice(0, LIMITE_SUBLINHAS).map(linhaDaInstrucao),
     },
     {
       rotulo: "Instruções de adesão em andamento",
@@ -276,6 +360,7 @@ export default async function PainelAdminPage({
       n: filaInstrucao?.total ?? 0,
       href: "/admin/adesoes",
       tom: "atencao",
+      subitens: naFilaDeInstrucao.slice(0, LIMITE_SUBLINHAS).map(linhaDaInstrucao),
     },
     {
       rotulo: "Adesões prontas para registrar",
@@ -284,6 +369,7 @@ export default async function PainelAdminPage({
       n: adesoesProntasParaRegistrar,
       href: "/admin/adesoes",
       tom: "atencao",
+      subitens: subRegistrar,
     },
     {
       rotulo: "Atas na sua vez",
@@ -316,6 +402,7 @@ export default async function PainelAdminPage({
       n: cadastrosAguardandoLiberacao,
       href: "/admin/usuarios",
       tom: "atencao",
+      subitens: subCadastros,
     },
     {
       rotulo: "Contatos marcados como errados",
@@ -356,6 +443,7 @@ export default async function PainelAdminPage({
       n: captacoesParaPrimeiroContato,
       href: "/admin/captacao?so=meus",
       tom: "atencao",
+      subitens: subPrimeiroContato,
     },
     {
       rotulo: "Captações com contato vencido",
@@ -364,6 +452,7 @@ export default async function PainelAdminPage({
       n: captacoesComContatoVencido,
       href: "/admin/captacao?so=meus",
       tom: "critico",
+      subitens: subContatoVencido,
     },
     {
       rotulo: "Prazos de negociação vencendo",
@@ -453,6 +542,30 @@ export default async function PainelAdminPage({
                   )}
                 </div>
               </div>
+              {item.n > 0 && item.subitens && item.subitens.length > 0 && (
+                <ul className="mt-1 w-full basis-full border-l-2 pl-4 text-[13px]" style={{ borderColor: "var(--cor-borda)" }}>
+                  {item.subitens.map((s) => (
+                    <li key={`${s.href}-${s.rotulo}-${s.detalhe ?? ""}`} className="py-0.5">
+                      <Link href={s.href} className="font-semibold hover:text-[var(--cor-marca-clara)]">
+                        {s.rotulo}
+                      </Link>
+                      {s.detalhe && (
+                        <span className="ml-2 text-xs" style={{ color: "var(--cor-texto-3)" }}>
+                          {s.detalhe}
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                  {item.n > item.subitens.length && (
+                    <li className="py-0.5 text-xs" style={{ color: "var(--cor-texto-3)" }}>
+                      e mais {item.n - item.subitens.length} ·{" "}
+                      <Link href={item.href} className="font-semibold underline underline-offset-2">
+                        ver todas
+                      </Link>
+                    </li>
+                  )}
+                </ul>
+              )}
             </li>
           ))}
         </ul>
