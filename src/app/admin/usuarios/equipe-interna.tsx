@@ -5,6 +5,7 @@ import { Aviso } from "@/components/ui/aviso";
 import { Badge } from "@/components/ui/badge";
 import { Secao } from "@/components/ui/secao";
 import { PERFIS, PERMISSOES, ROTULO_PERMISSAO, normalizarPermissoes, type Permissao } from "@/lib/permissoes";
+import { AvisoSenhaProvisoria, BotaoRedefinirSenha } from "./redefinir-senha";
 import {
   alternarAtivoMembro,
   atualizarMembroEquipe,
@@ -83,7 +84,7 @@ function FormularioNovoMembro() {
         <Campo label="E-mail" name="email" type="email" required />
       </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Campo label="Senha (mín. 12 caracteres)" name="senha" type="password" required />
+        <Campo label="Senha provisória (deixe em branco para o sistema gerar)" name="senha" type="password" />
         <Campo label="Cargo (aparece na tela)" name="cargo" />
       </div>
       <label className="block">
@@ -105,7 +106,8 @@ function FormularioNovoMembro() {
       <ListaPermissoes marcadas={marcadas} aoMudar={setMarcadas} />
 
       {estado.erro && <Aviso tom="critico">{estado.erro}</Aviso>}
-      {estado.ok && <Aviso tom="atencao">Conta criada.</Aviso>}
+      {estado.ok && !estado.senhaProvisoria && <Aviso tom="atencao">Conta criada. A pessoa troca a senha no primeiro acesso.</Aviso>}
+      {estado.senhaProvisoria && <AvisoSenhaProvisoria senha={estado.senhaProvisoria} />}
 
       <button type="submit" disabled={pendente} className="botao-atas self-start">
         {pendente ? "Salvando..." : "Criar conta da equipe"}
@@ -185,6 +187,7 @@ export function EquipeInterna({ membros, adminLogadoId }: { membros: MembroEquip
                     : permissoes.map((c) => ROTULO_PERMISSAO[c]).join(" · ")}
                 </p>
                 <EditarMembro key={`${m.id}-${permissoes.join(",")}`} membro={m} />
+                {m.id !== adminLogadoId && <BotaoRedefinirSenha tipo="admin" id={m.id} />}
               </li>
             );
           })}

@@ -107,7 +107,8 @@ export async function loginVendedor(
   await registrarSucessoLogin("vendedor", email);
   await registrarAuditoria({ ator: `vendedor:${vendedor.id}`, acao: "vendedor.login" });
   await criarSessaoVendedor(vendedor.id);
-  redirect("/vendedor");
+  // Senha criada ou redefinida pela gestão: troca obrigatória antes de usar o sistema.
+  redirect(vendedor.senhaProvisoria ? "/trocar-senha" : "/vendedor");
 }
 
 export async function logoutVendedor(): Promise<void> {

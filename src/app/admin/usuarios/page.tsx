@@ -29,6 +29,7 @@ import { resumoParaAdmin } from "@/lib/credenciamento-view";
 import { AcoesCredenciamento } from "./acoes-credenciamento";
 import { FormularioNovoVendedor } from "./formulario-vendedor";
 import { EquipeInterna } from "./equipe-interna";
+import { BotaoRedefinirSenha } from "./redefinir-senha";
 import { NAV_ADMIN } from "@/app/admin/nav";
 
 export const dynamic = "force-dynamic";
@@ -150,6 +151,7 @@ export default async function GestaoUsuariosPage() {
                         </form>
                       </div>
                     </div>
+                    <BotaoRedefinirSenha tipo="vendedor" id={v.id} />
                     {atas.length > 0 && (
                       <div className="flex flex-wrap gap-2">
                         {atas.map((a) => (

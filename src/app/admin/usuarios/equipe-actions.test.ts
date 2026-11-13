@@ -17,6 +17,7 @@ const dobles = vi.hoisted(() => ({
   adminFindUnique: vi.fn(),
   adminUpdate: vi.fn(),
   adminCount: vi.fn(),
+  vendedorUpdate: vi.fn(),
 }));
 
 vi.mock("next/cache", () => ({ revalidatePath: dobles.revalidatePath }));
@@ -32,10 +33,11 @@ vi.mock("@/lib/prisma", () => ({
       update: dobles.adminUpdate,
       count: dobles.adminCount,
     },
+    vendedor: { update: dobles.vendedorUpdate },
   },
 }));
 
-import { alternarAtivoMembro, atualizarMembroEquipe, criarMembroEquipe } from "./equipe-actions";
+import { alternarAtivoMembro, atualizarMembroEquipe, criarMembroEquipe, redefinirSenha } from "./equipe-actions";
 
 const SENHA_BOA = "Chuva-de-Ouro-2026!";
 
@@ -55,6 +57,7 @@ beforeEach(() => {
   dobles.adminCreate.mockResolvedValue({ id: "novo1" });
   dobles.adminUpdate.mockResolvedValue({});
   dobles.adminCount.mockResolvedValue(1);
+  dobles.vendedorUpdate.mockResolvedValue({});
   dobles.redirect.mockImplementation((destino: string) => {
     throw new Error(`NEXT_REDIRECT:${destino}`);
   });
@@ -65,6 +68,7 @@ describe("sessão e permissão primeiro", () => {
     ["criarMembroEquipe", () => criarMembroEquipe({}, formulario({}))],
     ["atualizarMembroEquipe", () => atualizarMembroEquipe({}, formulario({}))],
     ["alternarAtivoMembro", () => alternarAtivoMembro({}, formulario({}))],
+    ["redefinirSenha", () => redefinirSenha({}, formulario({}))],
   ])("%s sem sessão manda para o login e não toca no banco", async (_nome, chamar) => {
     dobles.adminIdLogado.mockResolvedValue(null);
     await expect(chamar()).rejects.toThrow("NEXT_REDIRECT:/admin/login");
@@ -77,6 +81,7 @@ describe("sessão e permissão primeiro", () => {
     ["criarMembroEquipe", () => criarMembroEquipe({}, {} as FormData)],
     ["atualizarMembroEquipe", () => atualizarMembroEquipe({}, {} as FormData)],
     ["alternarAtivoMembro", () => alternarAtivoMembro({}, {} as FormData)],
+    ["redefinirSenha", () => redefinirSenha({}, {} as FormData)],
   ])("%s sem a permissão de gerir usuários para antes de ler o formulário", async (_nome, chamar) => {
     dobles.exigirPermissaoDe.mockRejectedValue(new Error("NEXT_REDIRECT:/admin?acesso=negado"));
     await expect(chamar()).rejects.toThrow("NEXT_REDIRECT:/admin?acesso=negado");
@@ -99,6 +104,7 @@ describe("criarMembroEquipe", () => {
         senhaHash: "hash-da-senha",
         cargo: "Aprovador de atas",
         permissoes: ["atas.aprovar", "adesao.instruir"],
+        senhaProvisoria: true,
       },
       select: { id: true },
     });
@@ -241,5 +247,78 @@ describe("alternarAtivoMembro", () => {
     const r = await alternarAtivoMembro({}, formulario({ adminId: "adm2" }));
     expect(r.erro).toMatch(/sem nenhum gestor de usuários ativo/);
     expect(dobles.adminUpdate).not.toHaveBeenCalled();
+  });
+});
+
+describe("senha provisória na criação", () => {
+  const base = { nome: "Estagiária", email: "estagiaria@exemplo.com.br", cargo: "Captação" };
+
+  it("sem senha digitada, o sistema gera uma, grava só o hash e devolve a senha uma vez", async () => {
+    const r = await criarMembroEquipe({}, formulario({ ...base, senha: "" }));
+    expect(r.ok).toBe(true);
+    expect(r.senhaProvisoria).toMatch(/^[A-Za-z2-9]{4}(-[A-Za-z2-9]{4}){3}$/);
+    expect(dobles.hashSenha).toHaveBeenCalledWith(r.senhaProvisoria);
+    const dados = dobles.adminCreate.mock.calls[0][0].data;
+    expect(dados.senhaHash).toBe("hash-da-senha");
+    expect(dados.senhaProvisoria).toBe(true);
+    const evento = dobles.registrarAuditoria.mock.calls[0][0];
+    expect(evento.detalhe).toContain("senha gerada");
+    expect(JSON.stringify(evento)).not.toContain(r.senhaProvisoria as string);
+  });
+
+  it("com senha digitada, não devolve senha na tela (quem digitou já a conhece)", async () => {
+    const r = await criarMembroEquipe({}, formulario({ ...base, senha: SENHA_BOA }));
+    expect(r).toEqual({ ok: true });
+    expect(dobles.adminCreate.mock.calls[0][0].data.senhaProvisoria).toBe(true);
+    expect(dobles.registrarAuditoria.mock.calls[0][0].detalhe).toContain("senha digitada");
+  });
+});
+
+describe("redefinirSenha", () => {
+  it("admin: gera senha nova, derruba as sessões, marca como provisória e audita sem a senha", async () => {
+    const r = await redefinirSenha({}, formulario({ tipo: "admin", id: "adm2" }));
+    expect(r.ok).toBe(true);
+    expect(r.senhaProvisoria).toMatch(/^[A-Za-z2-9]{4}(-[A-Za-z2-9]{4}){3}$/);
+    expect(dobles.adminUpdate).toHaveBeenCalledWith({
+      where: { id: "adm2" },
+      data: { senhaHash: "hash-da-senha", senhaProvisoria: true, sessaoVersao: { increment: 1 } },
+    });
+    const evento = dobles.registrarAuditoria.mock.calls[0][0];
+    expect(evento).toMatchObject({ ator: "admin:adm1", acao: "admin.redefinirSenha", alvo: "admin:adm2" });
+    expect(JSON.stringify(evento)).not.toContain(r.senhaProvisoria as string);
+    expect(dobles.revalidatePath).toHaveBeenCalledWith("/admin/usuarios");
+  });
+
+  it("vendedor: mesma coisa, na tabela de vendedores", async () => {
+    const r = await redefinirSenha({}, formulario({ tipo: "vendedor", id: "ven1" }));
+    expect(r.senhaProvisoria).toBeTruthy();
+    expect(dobles.vendedorUpdate).toHaveBeenCalledWith({
+      where: { id: "ven1" },
+      data: { senhaHash: "hash-da-senha", senhaProvisoria: true, sessaoVersao: { increment: 1 } },
+    });
+    expect(dobles.adminUpdate).not.toHaveBeenCalled();
+  });
+
+  it("ninguém redefine a própria senha por aqui", async () => {
+    await expect(redefinirSenha({}, formulario({ tipo: "admin", id: "adm1" }))).resolves.toEqual({
+      erro: "Para trocar a sua própria senha, use a tela Perfil.",
+    });
+    expect(dobles.adminUpdate).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["tipo desconhecido", { tipo: "fornecedor", id: "x1" }],
+    ["id com espaço", { tipo: "admin", id: "x y" }],
+    ["id vazio", { tipo: "vendedor", id: "" }],
+  ])("%s é recusado antes de gravar", async (_nome, campos) => {
+    await expect(redefinirSenha({}, formulario(campos))).resolves.toEqual({ erro: "Conta não encontrada." });
+    expect(dobles.adminUpdate).not.toHaveBeenCalled();
+    expect(dobles.vendedorUpdate).not.toHaveBeenCalled();
+  });
+
+  it("conta que não existe devolve erro e não audita", async () => {
+    dobles.adminUpdate.mockRejectedValue(new Error("P2025"));
+    await expect(redefinirSenha({}, formulario({ tipo: "admin", id: "adm9" }))).resolves.toEqual({ erro: "Conta não encontrada." });
+    expect(dobles.registrarAuditoria).not.toHaveBeenCalled();
   });
 });

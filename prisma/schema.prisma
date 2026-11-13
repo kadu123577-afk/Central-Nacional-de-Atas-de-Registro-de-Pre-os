@@ -75,6 +75,9 @@ model Admin {
   permissoes       String[] @default([])
   ativo            Boolean  @default(true)
   cargo            String?
+  // Conta criada ou redefinida pela gestão (2026-11-14): a pessoa entra com a senha
+  // provisória e é obrigada a trocá-la antes de usar o sistema (/trocar-senha).
+  senhaProvisoria  Boolean  @default(false)
 
   @@map("admins")
 }
@@ -197,6 +200,8 @@ model Vendedor {
   // pedido explícito) — vocabulário fixo em src/lib/vendedores.ts, mesmo
   // racional de categoria/estágio (não enum, evolui sem migração).
   tipo         String   @default("interno")
+  // Igual a Admin.senhaProvisoria: senha criada ou redefinida pela gestão, a trocar no primeiro acesso.
+  senhaProvisoria Boolean @default(false)
   createdAt    DateTime @default(now())
   isSeed       Boolean  @default(false)
 

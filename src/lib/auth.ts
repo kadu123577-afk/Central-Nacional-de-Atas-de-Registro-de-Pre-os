@@ -83,43 +83,48 @@ export async function gastarTempoDeHash(senha: string): Promise<void> {
 
 /**
  * Versão atual de sessão da conta, ou null se a conta não existe ou está
- * desativada (nesse caso nenhuma sessão dela vale).
+ * desativada (nesse caso nenhuma sessão dela vale). `provisoria` é verdadeiro
+ * para a conta cuja senha foi criada ou redefinida pela gestão e ainda não foi
+ * trocada (só admin e vendedor têm esse controle).
  */
-async function versaoAtualDaConta(tipo: TipoSessao, id: string): Promise<number | null> {
+async function versaoAtualDaConta(
+  tipo: TipoSessao,
+  id: string,
+): Promise<{ versao: number; provisoria: boolean } | null> {
   switch (tipo) {
     case "admin": {
       const conta = await prisma.admin.findUnique({
         where: { id },
-        select: { sessaoVersao: true, ativo: true },
+        select: { sessaoVersao: true, ativo: true, senhaProvisoria: true },
       });
-      return conta?.ativo ? conta.sessaoVersao : null;
+      return conta?.ativo ? { versao: conta.sessaoVersao, provisoria: conta.senhaProvisoria } : null;
     }
     case "fornecedor": {
       const conta = await prisma.fornecedor.findUnique({
         where: { id },
         select: { sessaoVersao: true, ativo: true },
       });
-      return conta?.ativo ? conta.sessaoVersao : null;
+      return conta?.ativo ? { versao: conta.sessaoVersao, provisoria: false } : null;
     }
     case "orgao": {
       const conta = await prisma.orgao.findUnique({
         where: { id },
         select: { sessaoVersao: true, ativo: true },
       });
-      return conta?.ativo ? conta.sessaoVersao : null;
+      return conta?.ativo ? { versao: conta.sessaoVersao, provisoria: false } : null;
     }
     case "vendedor": {
       const conta = await prisma.vendedor.findUnique({
         where: { id },
-        select: { sessaoVersao: true, ativo: true },
+        select: { sessaoVersao: true, ativo: true, senhaProvisoria: true },
       });
-      return conta?.ativo ? conta.sessaoVersao : null;
+      return conta?.ativo ? { versao: conta.sessaoVersao, provisoria: conta.senhaProvisoria } : null;
     }
   }
 }
 
 async function criarSessao(tipo: TipoSessao, id: string): Promise<void> {
-  const versao = (await versaoAtualDaConta(tipo, id)) ?? 0;
+  const versao = (await versaoAtualDaConta(tipo, id))?.versao ?? 0;
   const expiraEm = Date.now() + DURACAO_POR_TIPO[tipo];
   const payload = `${id}.${versao}.${expiraEm}`;
   const assinatura = assinar(payload);
@@ -148,7 +153,15 @@ async function encerrarSessao(tipo: TipoSessao): Promise<void> {
   });
 }
 
-async function idLogado(tipo: TipoSessao): Promise<string | null> {
+/**
+ * Id da conta logada, ou null. Conta com senha provisória NÃO conta como logada,
+ * a não ser que quem chama diga que aceita (só a tela de troca de senha aceita):
+ * assim ninguém usa o sistema com a senha que a gestão passou antes de trocá-la.
+ */
+async function idLogado(
+  tipo: TipoSessao,
+  opcoes: { aceitarSenhaProvisoria?: boolean } = {},
+): Promise<string | null> {
   const store = await cookies();
   const valorCookie = store.get(COOKIE_POR_TIPO[tipo])?.value;
   if (!valorCookie) return null;
@@ -175,8 +188,11 @@ async function idLogado(tipo: TipoSessao): Promise<string | null> {
   }
 
   const versaoCookie = Number(versaoStr);
-  const versaoConta = await versaoAtualDaConta(tipo, id);
-  if (versaoConta === null || versaoConta !== versaoCookie) {
+  const conta = await versaoAtualDaConta(tipo, id);
+  if (conta === null || conta.versao !== versaoCookie) {
+    return null;
+  }
+  if (conta.provisoria && !opcoes.aceitarSenhaProvisoria) {
     return null;
   }
 
@@ -195,7 +211,10 @@ export const orgaoIdLogado = () => idLogado("orgao");
 export const criarSessaoAdmin = (adminId: string) => criarSessao("admin", adminId);
 export const encerrarSessaoAdmin = () => encerrarSessao("admin");
 export const adminIdLogado = () => idLogado("admin");
+/** Só para /trocar-senha: aceita a sessão de quem ainda está com a senha provisória. */
+export const adminIdLogadoParaTrocarSenha = () => idLogado("admin", { aceitarSenhaProvisoria: true });
 
 export const criarSessaoVendedor = (vendedorId: string) => criarSessao("vendedor", vendedorId);
 export const encerrarSessaoVendedor = () => encerrarSessao("vendedor");
 export const vendedorIdLogado = () => idLogado("vendedor");
+export const vendedorIdLogadoParaTrocarSenha = () => idLogado("vendedor", { aceitarSenhaProvisoria: true });

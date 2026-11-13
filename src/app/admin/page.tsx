@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { adminIdLogado } from "@/lib/auth";
-import { MENSAGEM_SEM_PERMISSAO, temPermissao } from "@/lib/permissoes";
+import { MENSAGEM_SEM_PERMISSAO, temAlguma, temPermissao, type Permissao } from "@/lib/permissoes";
 import { permissoesDoAdmin } from "@/lib/permissoes-db";
 import { prisma } from "@/lib/prisma";
 import { saldoAgregadoDisponivel } from "@/lib/saldo";
@@ -44,6 +44,8 @@ function ataImportadaIncompleta(ata: { origem: string; itens: unknown[]; fornece
 
 interface ItemFila {
   rotulo: string;
+  /** Quem resolve este ponto: só aparece na fila de quem tem uma destas permissões. */
+  permissao: readonly Permissao[];
   descricao: string;
   n: number;
   href: string;
@@ -69,6 +71,11 @@ export default async function PainelAdminPage({
   const permissoes = await permissoesDoAdmin(adminId);
   if (permissoes === null) redirect("/admin/login");
   const podeAprovar = temPermissao(permissoes, "atas.aprovar");
+  // A página inicial é a fila de tarefas de cada perfil: cada pessoa vê só o que as permissões dela resolvem.
+  const ehGestor = temPermissao(permissoes, "usuarios.gerir");
+  const verCanalVendedores = temAlguma(permissoes, ["municipios.liberar", "usuarios.gerir"]);
+  const verModeracao = temAlguma(permissoes, ["atas.captar", "atas.contrato", "atas.conformidade", "atas.aprovar"]);
+  const verFinanceiro = temAlguma(permissoes, ["comissao.cobrar", "usuarios.gerir"]);
 
   await expirarOportunidadesVencidas();
 
@@ -168,6 +175,7 @@ export default async function PainelAdminPage({
   const fila: ItemFila[] = [
     {
       rotulo: "Atas aguardando análise",
+      permissao: ["atas.conformidade", "atas.aprovar"],
       descricao: "Aprovar libera a ata no catálogo; sem contrato ela não chega ao vendedor.",
       n: atasPendentes.length,
       href: "#moderacao",
@@ -175,6 +183,7 @@ export default async function PainelAdminPage({
     },
     {
       rotulo: "Pedidos de negociação aguardando liberação",
+      permissao: ["municipios.liberar"],
       descricao: "Vendedores esperando o município ser liberado.",
       n: pedidosNegociacaoPendentes,
       href: "/admin/negociacoes",
@@ -182,6 +191,7 @@ export default async function PainelAdminPage({
     },
     {
       rotulo: "Atas aprovadas sem contrato de intermediação",
+      permissao: ["atas.contrato"],
       descricao: "Ficam invisíveis para os vendedores até o contrato ser cadastrado.",
       n: totalAtasSemContrato,
       href: atasSemContrato[0] ? `/admin/atas/${atasSemContrato[0].id}/contrato` : "/admin",
@@ -189,6 +199,7 @@ export default async function PainelAdminPage({
     },
     {
       rotulo: "Contatos marcados como errados",
+      permissao: ["base.editar"],
       descricao: "Vendedores sinalizaram telefone, e-mail ou pessoa incorretos.",
       n: contatosParaRevisar,
       href: "/admin/contatos-revisao",
@@ -196,6 +207,7 @@ export default async function PainelAdminPage({
     },
     {
       rotulo: "Comissões a cobrar",
+      permissao: ["comissao.cobrar"],
       descricao: "Notas fiscais já liquidadas e pagas pelo órgão, sem cobrança ao fornecedor.",
       n: liquidacoesACobrar,
       href: "/admin/recebiveis-vendedores",
@@ -203,6 +215,7 @@ export default async function PainelAdminPage({
     },
     {
       rotulo: "Contratos detectados para confirmar",
+      permissao: ["adesao.acompanhar"],
       descricao: "O PNCP publicou contratos que parecem ter nascido das nossas atas ou negociações.",
       n: contratosDetectadosParaConfirmar,
       href: "/admin/contratos-detectados",
@@ -210,6 +223,7 @@ export default async function PainelAdminPage({
     },
     {
       rotulo: "Aditivos a acompanhar",
+      permissao: ["adesao.acompanhar"],
       descricao: "Aditivo de valor ou prazo gera comissão em cascata: lance a liquidação ou marque sem comissão.",
       n: aditivosAAcompanhar,
       href: "/admin/contratos-detectados",
@@ -217,6 +231,7 @@ export default async function PainelAdminPage({
     },
     {
       rotulo: "Fornecedores com contato vencido",
+      permissao: ["atas.captar"],
       descricao: "Fornecedores contatados ou interessados cujo próximo contato já passou.",
       n: fornecedoresComContatoVencido,
       href: "/admin/prospeccao-fornecedores",
@@ -224,13 +239,15 @@ export default async function PainelAdminPage({
     },
     {
       rotulo: "Prazos de negociação vencendo",
+      permissao: ["municipios.liberar"],
       descricao: "Municípios que expiram em até 3 dias sem avanço.",
       n: k.vencendo,
       href: "/admin/pipeline",
       tom: "critico",
     },
   ];
-  const totalFila = fila.reduce((soma, item) => soma + item.n, 0);
+  const filaDoPerfil = fila.filter((item) => temAlguma(permissoes, item.permissao));
+  const totalFila = filaDoPerfil.reduce((soma, item) => soma + item.n, 0);
 
   return (
     <AppShell
@@ -249,14 +266,14 @@ export default async function PainelAdminPage({
 
       <CabecalhoPagina
         rotulo="Operação"
-        titulo="Painel"
-        destaque="administrativo"
+        titulo={ehGestor ? "Painel" : "Minhas tarefas"}
+        destaque={ehGestor ? "administrativo" : "da equipe"}
         descricao={totalFila === 0 ? "Tudo em dia." : `${totalFila} ponto(s) esperando uma decisão sua.`}
       />
 
-      <Secao titulo="Fila de ação" destaque>
+      <Secao titulo={ehGestor ? "Fila de ação" : "O que está esperando você"} destaque>
         <ul className="lista-linhas">
-          {fila.map((item) => (
+          {filaDoPerfil.map((item) => (
             <li key={item.rotulo} className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex min-w-0 items-start gap-3">
                 <i
@@ -305,7 +322,7 @@ export default async function PainelAdminPage({
             </li>
           ))}
         </ul>
-        {atasSemContrato.length > 1 && (
+        {atasSemContrato.length > 1 && temPermissao(permissoes, "atas.contrato") && (
           <p
             className="mt-4 border-t pt-3 text-xs"
             style={{ borderColor: "var(--cor-borda)", color: "var(--cor-texto-3)" }}
@@ -328,6 +345,8 @@ export default async function PainelAdminPage({
         )}
       </Secao>
 
+      {verCanalVendedores && (
+      <>
       <FaixaNumeros
         itens={[
           {
@@ -405,7 +424,10 @@ export default async function PainelAdminPage({
           )}
         </Secao>
       </div>
+      </>
+      )}
 
+      {verModeracao && (
       <div id="moderacao" className="scroll-mt-6">
         <Secao
           titulo={`Atas aguardando moderação (${atasPendentes.length})`}
@@ -527,7 +549,9 @@ export default async function PainelAdminPage({
           )}
         </Secao>
       </div>
+      )}
 
+      {verFinanceiro && (
       <section className="flex flex-col gap-3">
         <h2
           className="marca text-[17px]"
@@ -565,6 +589,7 @@ export default async function PainelAdminPage({
           ]}
         />
       </section>
+      )}
     </AppShell>
   );
 }

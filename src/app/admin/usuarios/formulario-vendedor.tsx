@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { criarVendedorAdmin, type EstadoCriarVendedor } from "../actions";
 import { Secao } from "@/components/ui/secao";
 import { Aviso } from "@/components/ui/aviso";
+import { AvisoSenhaProvisoria } from "./redefinir-senha";
 import { ROTULO_TIPO_VENDEDOR, TIPOS_VENDEDOR } from "@/lib/vendedores";
 
 const estadoInicial: EstadoCriarVendedor = {};
@@ -19,7 +20,7 @@ export function FormularioNovoVendedor() {
           <Campo label="E-mail" name="email" type="email" required />
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Campo label="Senha (mín. 12 caracteres)" name="senha" type="password" required />
+          <Campo label="Senha provisória (deixe em branco para o sistema gerar)" name="senha" type="password" />
           <label className="block">
             <span className="rotulo-campo">Tipo</span>
             <select name="tipo" required className="campo-atas" defaultValue="interno">
@@ -33,6 +34,7 @@ export function FormularioNovoVendedor() {
         </div>
 
         {estado.erro && <Aviso tom="critico">{estado.erro}</Aviso>}
+        {estado.senhaProvisoria && <AvisoSenhaProvisoria senha={estado.senhaProvisoria} />}
 
         <button type="submit" disabled={pendente} className="botao-atas self-start">
           {pendente ? "Salvando..." : "Cadastrar vendedor"}

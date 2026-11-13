@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { adminIdLogado, hashSenha } from "@/lib/auth";
+import { gerarSenhaProvisoria } from "@/lib/senha-provisoria";
 import { registrarAuditoria } from "@/lib/auditoria";
 import { normalizarPermissoes, perfilPorChave, type Permissao } from "@/lib/permissoes";
 import { exigirPermissaoDe } from "@/lib/permissoes-db";
@@ -23,6 +24,8 @@ import { validarSenhaNova } from "@/lib/senha";
 export interface EstadoEquipe {
   erro?: string;
   ok?: boolean;
+  /** Senha provisória gerada pelo sistema: aparece uma vez, na tela de quem criou ou redefiniu a conta. */
+  senhaProvisoria?: string;
 }
 
 const LIMITE_CARGO = 60;
@@ -66,7 +69,8 @@ export async function criarMembroEquipe(_estadoAnterior: EstadoEquipe, formData:
 
   const nome = campo(formData, "nome").trim().slice(0, LIMITE_NOME);
   const email = campo(formData, "email").trim().toLowerCase();
-  const senha = campo(formData, "senha");
+  const senhaDigitada = campo(formData, "senha");
+  const senha = senhaDigitada || gerarSenhaProvisoria();
   const cargo = campo(formData, "cargo").trim().slice(0, LIMITE_CARGO) || null;
   const perfil = perfilPorChave(campo(formData, "perfil"));
 
@@ -82,7 +86,7 @@ export async function criarMembroEquipe(_estadoAnterior: EstadoEquipe, formData:
   let criadoId: string;
   try {
     const criado = await prisma.admin.create({
-      data: { nome, email, senhaHash, cargo, permissoes },
+      data: { nome, email, senhaHash, cargo, permissoes, senhaProvisoria: true },
       select: { id: true },
     });
     criadoId = criado.id;
@@ -94,10 +98,10 @@ export async function criarMembroEquipe(_estadoAnterior: EstadoEquipe, formData:
     ator: `admin:${adminId}`,
     acao: "admin.criarMembroEquipe",
     alvo: criadoId,
-    detalhe: `cargo ${cargo ?? "—"}; permissões: ${permissoes.join(", ") || "nenhuma"}`,
+    detalhe: `cargo ${cargo ?? "—"}; permissões: ${permissoes.join(", ") || "nenhuma"}; senha ${senhaDigitada ? "digitada" : "gerada"}, a trocar no primeiro acesso`,
   });
   revalidatePath("/admin/usuarios");
-  return { ok: true };
+  return senhaDigitada ? { ok: true } : { ok: true, senhaProvisoria: senha };
 }
 
 export async function atualizarMembroEquipe(_estadoAnterior: EstadoEquipe, formData: FormData): Promise<EstadoEquipe> {
@@ -153,4 +157,36 @@ export async function alternarAtivoMembro(_estadoAnterior: EstadoEquipe, formDat
   });
   revalidatePath("/admin/usuarios");
   return { ok: true };
+}
+
+/**
+ * Redefine a senha de uma conta (equipe interna ou vendedor): gera uma senha provisória nova,
+ * derruba as sessões abertas e obriga a troca no próximo acesso. A senha aparece uma vez, na
+ * tela de quem redefiniu. Ninguém redefine a própria senha por aqui (a tela Perfil faz isso).
+ */
+export async function redefinirSenha(_estadoAnterior: EstadoEquipe, formData: FormData): Promise<EstadoEquipe> {
+  const adminId = await exigirGestor();
+
+  const tipo = campo(formData, "tipo");
+  const alvoId = campo(formData, "id");
+  if ((tipo !== "admin" && tipo !== "vendedor") || !idComFormaValida(alvoId)) return { erro: "Conta não encontrada." };
+  if (tipo === "admin" && alvoId === adminId) return { erro: "Para trocar a sua própria senha, use a tela Perfil." };
+
+  const senha = gerarSenhaProvisoria();
+  const dados = { senhaHash: await hashSenha(senha), senhaProvisoria: true, sessaoVersao: { increment: 1 } };
+  try {
+    if (tipo === "admin") await prisma.admin.update({ where: { id: alvoId }, data: dados });
+    else await prisma.vendedor.update({ where: { id: alvoId }, data: dados });
+  } catch {
+    return { erro: "Conta não encontrada." };
+  }
+
+  await registrarAuditoria({
+    ator: `admin:${adminId}`,
+    acao: "admin.redefinirSenha",
+    alvo: `${tipo}:${alvoId}`,
+    detalhe: "senha provisória gerada; troca obrigatória no próximo acesso",
+  });
+  revalidatePath("/admin/usuarios");
+  return { ok: true, senhaProvisoria: senha };
 }

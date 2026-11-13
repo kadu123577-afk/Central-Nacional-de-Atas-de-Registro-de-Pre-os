@@ -46,3 +46,10 @@ que interessa nos pontos parcialmente corretos. Um commit + push por etapa.
 - **Declaração de conformidade da adesão:** só o jurídico (`adesao.declarar`) declara ou revoga; o consultor continua marcando os itens da instrução.
 - **Tela:** Admin > Usuários > Equipe interna cria contas, edita permissões e ativa/desativa (desativar derruba a sessão na hora). Trava: nunca deixa o sistema sem um gestor de usuários ativo; ninguém desativa a própria conta. O financeiro da SCP continua só por script, com 2FA.
 - **Pendente:** `adesao.registrar` está reservada. Hoje só o consultor dono da oportunidade registra a adesão; falta a tela do admin.
+
+## Acesso com senha provisória e página inicial por perfil (2026-11-14)
+- **Senha provisória:** a gestão cria a conta (equipe interna ou vendedor) em Admin > Usuários. Se o campo da senha fica em branco, o sistema gera uma (`src/lib/senha-provisoria.ts`) e a mostra uma única vez. A conta nasce com `senhaProvisoria = true`; no primeiro acesso a pessoa cai em `/trocar-senha` e só depois entra no sistema.
+- **Como é travado:** `adminIdLogado` e `vendedorIdLogado` devolvem `null` enquanto a conta está com senha provisória; só as variantes `...ParaTrocarSenha` (usadas por `/trocar-senha`) aceitam. Trocar a senha derruba a sessão antiga (`sessaoVersao + 1`) e abre outra.
+- **Redefinir senha:** botão "Redefinir senha" na equipe interna e nos vendedores (exige `usuarios.gerir`): gera outra senha provisória, encerra as sessões abertas e exige nova troca. Ninguém redefine a própria senha por ali (Perfil faz isso). Tudo na auditoria, sem gravar a senha.
+- **Página inicial por perfil:** `/admin` vira "Minhas tarefas" para quem não é gestor de usuários: a fila mostra só os pontos que as permissões da pessoa resolvem (`ItemFila.permissao`), e as seções de vendedores, moderação de atas e financeiro só aparecem para quem tem a permissão correspondente.
+- **Migração `20261114000000_senha_provisoria`:** `senhaProvisoria` em `admins` e `vendedores` (padrão falso: contas existentes não são afetadas).

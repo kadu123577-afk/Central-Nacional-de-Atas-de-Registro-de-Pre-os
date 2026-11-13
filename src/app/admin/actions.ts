@@ -20,6 +20,7 @@ import { detectarTipoDocumento, nomeArquivoSeguro } from "@/lib/documentos";
 import { statusDemandaValido } from "@/lib/demandas";
 import { validarTituloPublico } from "@/lib/site/titulo";
 import { validarSenhaNova } from "@/lib/senha";
+import { gerarSenhaProvisoria } from "@/lib/senha-provisoria";
 import {
   cifrarSegredo,
   decifrarSegredo,
@@ -116,7 +117,8 @@ export async function loginAdmin(
   await registrarSucessoLogin("admin", email);
   await registrarAuditoria({ ator: `admin:${admin.id}`, acao: "admin.login" });
   await criarSessaoAdmin(admin.id);
-  redirect("/admin");
+  // Senha criada ou redefinida pela gestão: troca obrigatória antes de usar o sistema.
+  redirect(admin.senhaProvisoria ? "/trocar-senha" : "/admin");
 }
 
 export async function logoutAdmin(): Promise<void> {
@@ -486,6 +488,8 @@ export async function alternarStatusFornecedor(formData: FormData): Promise<void
 
 export interface EstadoCriarVendedor {
   erro?: string;
+  /** Senha provisória gerada pelo sistema (só quando o campo senha ficou em branco): aparece uma vez. */
+  senhaProvisoria?: string;
 }
 
 /** Cadastro de vendedor pelo admin (2026-10-01) — até aqui só existia via
@@ -499,7 +503,8 @@ export async function criarVendedorAdmin(
 
   const nome = String(formData.get("nome") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim();
-  const senha = String(formData.get("senha") ?? "");
+  const senhaDigitada = String(formData.get("senha") ?? "");
+  const senha = senhaDigitada || gerarSenhaProvisoria();
   const tipo = String(formData.get("tipo") ?? "").trim();
 
   if (!nome || !email) {
@@ -516,14 +521,14 @@ export async function criarVendedorAdmin(
   const senhaHash = await hashSenha(senha);
   try {
     await prisma.vendedor.create({
-      data: { nome, email, senhaHash, tipo },
+      data: { nome, email, senhaHash, tipo, senhaProvisoria: true },
     });
   } catch {
     return { erro: "Já existe um vendedor com esse e-mail." };
   }
 
   revalidatePath("/admin/usuarios");
-  return {};
+  return senhaDigitada ? {} : { senhaProvisoria: senha };
 }
 
 export async function alternarStatusVendedor(formData: FormData): Promise<void> {
