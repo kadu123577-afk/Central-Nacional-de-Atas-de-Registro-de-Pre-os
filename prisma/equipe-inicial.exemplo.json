@@ -1,0 +1,20 @@
+[
+  {
+    "nome": "Nome da Pessoa (captação)",
+    "email": "captacao@exemplo.com.br",
+    "cargo": "Captador",
+    "permissoes": ["atas.captar"]
+  },
+  {
+    "nome": "Nome da Pessoa (jurídico)",
+    "email": "juridico@exemplo.com.br",
+    "cargo": "Jurídico",
+    "perfil": "juridico"
+  },
+  {
+    "nome": "Nome da Pessoa (consultor de vendas)",
+    "email": "vendas@exemplo.com.br",
+    "tipo": "consultor",
+    "tipoVendedor": "interno"
+  }
+]

@@ -66,12 +66,17 @@ npm run db:migrar
 # 4. Criar o primeiro administrador (uma vez)
 ADMIN_EMAIL="gestor@exemplo.com.br" ADMIN_SENHA="uma senha forte de 12+ caracteres" ADMIN_NOME="Nome" npm run seed:admin
 
-# 5. Montar e subir
+# 5. Criar a equipe do workflow, todas com a mesma senha provisória (veja a seção 5)
+EQUIPE_ARQUIVO=/caminho/equipe-inicial.json SENHA_PROVISORIA='<senha inicial combinada>' npm run seed:equipe
+
+# 6. Montar e subir
 npm run build
 npm run start        # porta 3000; use PORT=8080 para mudar
 ```
 
 Depois do passo 4, apague `ADMIN_EMAIL` e `ADMIN_SENHA` do ambiente.
+
+O arquivo da equipe (passo 5) tem os e-mails reais e **não fica no repositório**: quem coordena o projeto o entrega junto com a senha inicial. O formato está em [`prisma/equipe-inicial.exemplo.json`](prisma/equipe-inicial.exemplo.json). O passo pode ser repetido sem risco (conta que já existe não é alterada; `REDEFINIR=sim` refaz a senha de todos).
 
 **Proxy reverso.** O sistema limita tentativas de login por IP lendo o cabeçalho `X-Forwarded-For` (o primeiro valor). O proxy deve **sobrescrever** esse cabeçalho com o IP real do cliente (nunca repassar o que o cliente mandou), senão o limite pode ser contornado. Aponte o balanceador para `/api/saude`.
 
@@ -79,7 +84,7 @@ Depois do passo 4, apague `ADMIN_EMAIL` e `ADMIN_SENHA` do ambiente.
 
 1. Entre em `/entrar` com a conta do primeiro administrador e, em **Equipe e conta → Perfil**, ative o **2FA** (aplicativo autenticador).
 2. Em **Equipe e conta → Usuários**, crie as contas da equipe. Cada pessoa recebe permissões por atividade do workflow (captação, contrato, conformidade, aprovação, publicação, liberação de municípios, instrução, declaração, registro de adesão, acompanhamento, cobrança, base de municípios, gestão de usuários).
-3. A conta nasce com uma **senha provisória, mostrada uma única vez**; a pessoa é obrigada a trocá-la no primeiro acesso. Para quem esquecer a senha: **Redefinir senha** gera outra provisória.
+3. A conta nasce com uma **senha provisória**; a pessoa é obrigada a trocá-la no primeiro acesso (12 caracteres ou mais). Pela tela, a senha provisória é gerada e mostrada uma única vez; pelo `seed:equipe`, todas recebem a senha inicial combinada. **Enquanto a senha inicial for compartilhada, não abra o sistema ao público antes de todos trocarem a senha** (ou restrinja o acesso por rede até lá). Para quem esquecer a senha: **Redefinir senha** gera outra provisória.
 4. **Consultores de vendas:** criados na mesma tela (aba de consultores). Antes de atuar, cada um aceita o compromisso de integridade e a gestão o libera (credenciamento).
 5. Perfis prontos: Administrador, Jurídico, Aprovador, Captação (estagiário) e Cobrança. Dá para ajustar as permissões de cada pessoa.
 

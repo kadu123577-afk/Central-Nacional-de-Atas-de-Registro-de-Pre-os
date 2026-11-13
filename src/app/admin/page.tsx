@@ -75,6 +75,10 @@ export default async function PainelAdminPage({
   const permissoes = await permissoesDoAdmin(adminId);
   if (permissoes === null) redirect("/admin/login");
   const podeAprovar = temPermissao(permissoes, "atas.aprovar");
+  // Cada botão da lista de atas só aparece para quem tem a permissão da tela para onde ele leva.
+  const podeCompletar = temPermissao(permissoes, "atas.captar");
+  const podeContrato = temPermissao(permissoes, "atas.contrato");
+  const podeAnalisar = temAlguma(permissoes, ["atas.conformidade", "atas.aprovar"]);
   // A página inicial é a fila de tarefas de cada perfil: cada pessoa vê só o que as permissões dela resolvem.
   const ehGestor = temPermissao(permissoes, "usuarios.gerir");
   const verCanalVendedores = temAlguma(permissoes, ["municipios.liberar", "usuarios.gerir"]);
@@ -586,17 +590,21 @@ export default async function PainelAdminPage({
                     </div>
 
                     <div className="flex flex-wrap gap-2">
-                      {ataImportadaIncompleta(ata) && (
+                      {podeCompletar && ataImportadaIncompleta(ata) && (
                         <Link href={`/admin/atas/${ata.id}/completar`} className="botao-atas secundario">
                           Completar
                         </Link>
                       )}
-                      <Link href={`/admin/atas/${ata.id}/contrato`} className="botao-atas secundario">
-                        Contrato
-                      </Link>
-                      <Link href={`/admin/atas/${ata.id}/analise`} className="botao-atas">
-                        Analisar e aprovar
-                      </Link>
+                      {podeContrato && (
+                        <Link href={`/admin/atas/${ata.id}/contrato`} className="botao-atas secundario">
+                          Contrato
+                        </Link>
+                      )}
+                      {podeAnalisar && (
+                        <Link href={`/admin/atas/${ata.id}/analise`} className="botao-atas">
+                          Analisar e aprovar
+                        </Link>
+                      )}
                       {podeAprovar && (
                         <form action={rejeitarAta}>
                           <input type="hidden" name="ataId" value={ata.id} />
