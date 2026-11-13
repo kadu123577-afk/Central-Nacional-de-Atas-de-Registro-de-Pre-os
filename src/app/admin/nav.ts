@@ -30,7 +30,7 @@ export const NAV_ADMIN: ItemNav[] = [
   { rotulo: "Indicadores", href: "/admin/indicadores", grupo: "Venda" },
 
   // Atividades 12 a 15: declarar e registrar a adesão, contrato e entrega.
-  { rotulo: "Adesões", href: "/admin/adesoes", grupo: "Adesão e entrega", permissoes: ["adesao.registrar", "adesao.declarar"] },
+  { rotulo: "Adesões", href: "/admin/adesoes", grupo: "Adesão e entrega", permissoes: ["adesao.registrar", "adesao.declarar", "adesao.instruir"] },
   { rotulo: "Contratos detectados", href: "/admin/contratos-detectados", grupo: "Adesão e entrega", permissoes: ["adesao.acompanhar"] },
 
   // Atividade 16: cobrar e receber a comissão.

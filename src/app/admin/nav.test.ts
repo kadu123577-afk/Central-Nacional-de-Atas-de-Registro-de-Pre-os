@@ -41,8 +41,12 @@ describe("menu do admin, pelas etapas do workflow", () => {
     expect(grupoDe("/admin/feriados")).toBe("Cadastros");
   });
 
-  it("a tela de adesões serve a quem registra e a quem declara (jurídico)", () => {
-    expect(NAV_ADMIN.find((i) => i.href === "/admin/adesoes")?.permissoes).toEqual(["adesao.registrar", "adesao.declarar"]);
+  it("a tela de adesões serve a quem registra (estagiário), a quem declara (jurídico) e a quem instrui (Dr. Rui)", () => {
+    expect(NAV_ADMIN.find((i) => i.href === "/admin/adesoes")?.permissoes).toEqual([
+      "adesao.registrar",
+      "adesao.declarar",
+      "adesao.instruir",
+    ]);
   });
 
   it("o financeiro da SCP continua fora do menu", () => {

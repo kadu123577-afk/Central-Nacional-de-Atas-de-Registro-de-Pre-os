@@ -104,6 +104,10 @@ async function autorizar(
 function revalidarTelas(ataId: string): void {
   revalidatePath(`/vendedor/atas/${ataId}`);
   revalidatePath("/admin/pipeline");
+  // Telas do painel por onde o jurídico e o Dr. Rui instruem e declaram.
+  revalidatePath("/admin/adesoes");
+  revalidatePath("/admin/adesoes/[oportunidadeId]", "page");
+  revalidatePath("/admin");
 }
 
 /** Dia de hoje no fuso de Brasília (AAAA-MM-DD): às 22h daqui o UTC já virou o dia seguinte. */

@@ -5,11 +5,13 @@ import { temPermissao } from "@/lib/permissoes";
 import { prisma } from "@/lib/prisma";
 import { percentualDeFracao } from "@/lib/formato";
 import { centavosDoValor, formatarReaisDeCentavos } from "@/lib/registrar-adesao";
+import { carregarCartoes } from "@/lib/kanban-db";
 import { carregarParaRegistro } from "@/lib/registrar-adesao-db";
 import { limiteAgregado, limitePorOrgao } from "@/lib/saldo";
 import { logoutAdmin } from "../../actions";
 import { NAV_ADMIN } from "../../nav";
 import { AppShell } from "@/components/ui/app-shell";
+import { Instrucao } from "@/components/kanban/instrucao";
 import { Aviso } from "@/components/ui/aviso";
 import { CabecalhoPagina } from "@/components/ui/cabecalho-pagina";
 import { Secao } from "@/components/ui/secao";
@@ -28,16 +30,23 @@ const dataBr = (d: Date) => d.toLocaleDateString("pt-BR", { timeZone: "UTC" });
 export default async function RegistrarAdesaoPage({ params }: { params: Promise<{ oportunidadeId: string }> }) {
   const adminId = await adminIdLogado();
   if (!adminId) redirect("/admin/login");
-  await exigirPermissaoDe(adminId, ["adesao.registrar", "adesao.declarar"]);
+  await exigirPermissaoDe(adminId, ["adesao.registrar", "adesao.declarar", "adesao.instruir"]);
   const permissoes = (await permissoesDoAdmin(adminId)) ?? [];
   const podeRegistrar = temPermissao(permissoes, "adesao.registrar");
-  const podeDesfazer = temPermissao(permissoes, "adesao.declarar");
+  const podeInstruir = temPermissao(permissoes, "adesao.instruir");
+  // Declarar e desfazer o registro são do jurídico (adesao.declarar).
+  const podeDeclarar = temPermissao(permissoes, "adesao.declarar");
+  const podeDesfazer = podeDeclarar;
 
   const { oportunidadeId } = await params;
   if (!/^[A-Za-z0-9_-]{1,64}$/.test(oportunidadeId)) notFound();
   const dados = await carregarParaRegistro(oportunidadeId);
   if (!dados) notFound();
   const { oportunidade: op, itens } = dados;
+
+  // O cartão do Kanban traz a instrução da adesão (os itens e a declaração) no formato que a tela usa.
+  const { cartoes } = await carregarCartoes({ id: op.id }, { verDesvio: true });
+  const cartao = cartoes[0] ?? null;
 
   const registrada = op.estagio === "aderiu";
   const pendencias: string[] = [];
@@ -98,6 +107,26 @@ export default async function RegistrarAdesaoPage({ params }: { params: Promise<
         descricao={`Ata ${op.ataNumero} · ${op.ataObjeto}`}
         voltar={{ href: "/admin/adesoes", rotulo: "Adesões" }}
       />
+
+      {cartao && (
+        <Secao
+          titulo="Instrução e declaração de conformidade"
+          descricao={
+            registrada
+              ? "O que foi reunido e declarado para sustentar esta adesão."
+              : "Os itens da instrução são marcados pelo consultor e pelo Dr. Rui, conforme os documentos chegam. A declaração de conformidade é do jurídico e libera o registro da adesão."
+          }
+          destaque={!registrada && !op.declaradaEm}
+        >
+          <div className="flex flex-col gap-5">
+            <Instrucao
+              cartao={cartao}
+              somenteLeitura={!podeInstruir || registrada || op.expirada}
+              podeDeclarar={podeDeclarar && !op.expirada}
+            />
+          </div>
+        </Secao>
+      )}
 
       {registrada ? (
         <Secao titulo="Adesão registrada" descricao="Quantidades gravadas por item. O saldo da ata já foi atualizado." destaque>

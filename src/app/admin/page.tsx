@@ -26,6 +26,7 @@ import { filtroContatoVencido } from "@/lib/radar-atas-view";
 import { ONDE_PRONTA_PARA_REGISTRAR } from "@/lib/registrar-adesao-db";
 import { etapaPorNumero } from "@/lib/ciclo-ata";
 import { carregarAtasEmAndamento } from "@/lib/ciclo-ata-db";
+import { carregarFilaDaInstrucao } from "@/lib/fila-instrucao-db";
 
 export const dynamic = "force-dynamic";
 
@@ -88,6 +89,9 @@ export default async function PainelAdminPage({
     const etapa = a.situacao.etapaAtual ? etapaPorNumero(a.situacao.etapaAtual) : undefined;
     return etapa ? temPermissao(permissoes, etapa.permissao) : false;
   }).length;
+
+  // Instrução da adesão (2026-11-14): o que espera o jurídico declarar e o que o Dr. Rui ainda instrui.
+  const filaInstrucao = temAlguma(permissoes, ["adesao.declarar", "adesao.instruir"]) ? await carregarFilaDaInstrucao(300) : null;
 
   const [
     totalAtas,
@@ -207,6 +211,22 @@ export default async function PainelAdminPage({
       descricao: "Sem itens e saldos a ata não pode ser analisada nem negociada.",
       n: atasSemItens.length,
       href: atasSemItens[0] ? `/admin/atas/${atasSemItens[0].id}/itens` : "/admin",
+      tom: "atencao",
+    },
+    {
+      rotulo: "Declarações de conformidade a fazer",
+      permissao: ["adesao.declarar"],
+      descricao: "Municípios com todos os itens obrigatórios da instrução feitos: esperam a declaração do jurídico.",
+      n: filaInstrucao?.prontosParaDeclarar ?? 0,
+      href: "/admin/adesoes",
+      tom: "atencao",
+    },
+    {
+      rotulo: "Instruções de adesão em andamento",
+      permissao: ["adesao.instruir"],
+      descricao: "Municípios em negociação ainda sem a declaração: marque os itens conforme os documentos chegam.",
+      n: filaInstrucao?.total ?? 0,
+      href: "/admin/adesoes",
       tom: "atencao",
     },
     {
