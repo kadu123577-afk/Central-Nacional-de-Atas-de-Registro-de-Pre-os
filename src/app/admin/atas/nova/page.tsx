@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { adminIdLogado } from "@/lib/auth";
+import { exigirPermissaoDe } from "@/lib/permissoes-db";
 import { FormularioNovaAtaAdmin } from "./formulario";
 
 export const dynamic = "force-dynamic";
@@ -15,6 +16,7 @@ export default async function NovaAtaAdminPage() {
   if (!adminId) {
     redirect("/admin/login");
   }
+  await exigirPermissaoDe(adminId, "atas.captar");
 
   return <FormularioNovaAtaAdmin />;
 }

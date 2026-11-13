@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { adminIdLogado } from "@/lib/auth";
+import { exigirPermissaoDe } from "@/lib/permissoes-db";
 import { prisma } from "@/lib/prisma";
 import {
   ROTULO_STATUS_DEMANDA,
@@ -30,6 +31,7 @@ export default async function DemandasPage({
 }) {
   const adminId = await adminIdLogado();
   if (!adminId) redirect("/admin/login");
+  await exigirPermissaoDe(adminId, "base.editar");
 
   const { status } = await searchParams;
   const filtro: StatusDemanda | null = status && statusDemandaValido(status) ? status : null;

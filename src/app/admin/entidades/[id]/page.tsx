@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { adminIdLogado } from "@/lib/auth";
+import { exigirPermissaoDe } from "@/lib/permissoes-db";
 import { prisma } from "@/lib/prisma";
 import { alternarStatusEntidadeAlvo, alternarStatusPontoFocal, logoutAdmin, removerSinalMunicipio } from "../../actions";
 import { AppShell } from "@/components/ui/app-shell";
@@ -30,6 +31,7 @@ export default async function DetalheEntidadeAlvoPage({
   if (!adminId) {
     redirect("/admin/login");
   }
+  await exigirPermissaoDe(adminId, "base.editar");
 
   const { id } = await params;
   const entidade = await prisma.entidadeAlvo.findUnique({

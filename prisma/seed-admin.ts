@@ -8,6 +8,7 @@ import "dotenv/config";
 import { PrismaClient } from "../src/generated/prisma/client";
 import bcrypt from "bcryptjs";
 import { validarSenhaNova } from "../src/lib/senha";
+import { TODAS_AS_PERMISSOES } from "../src/lib/permissoes";
 
 const prisma = new PrismaClient();
 
@@ -26,8 +27,9 @@ async function main() {
   const senhaHash = await bcrypt.hash(senha, 12);
   const admin = await prisma.admin.upsert({
     where: { email },
+    // O primeiro administrador nasce com todas as permissões; a equipe é criada depois, em Admin > Usuários.
     update: { senhaHash, nome },
-    create: { email, senhaHash, nome },
+    create: { email, senhaHash, nome, permissoes: [...TODAS_AS_PERMISSOES] },
   });
 
   console.log(`Admin pronto: ${admin.email} (id ${admin.id})`);

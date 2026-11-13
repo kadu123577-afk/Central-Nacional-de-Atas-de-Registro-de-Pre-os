@@ -9,11 +9,15 @@ interface Props {
   ataId: string;
   respostasAtuais: RespostasConformidade;
   parecerAtual: string;
+  /** Quem tem "atas.conformidade" marca o checklist e escreve o parecer. */
+  podeConferir: boolean;
+  /** Quem tem "atas.aprovar" vê o botão de aprovar. */
+  podeAprovar: boolean;
 }
 
 const estadoInicial: EstadoAnaliseAta = {};
 
-export function FormularioAnalise({ ataId, respostasAtuais, parecerAtual }: Props) {
+export function FormularioAnalise({ ataId, respostasAtuais, parecerAtual, podeConferir, podeAprovar }: Props) {
   const acaoComId = analisarAta.bind(null, ataId);
   const [estado, formAction, pendente] = useActionState(acaoComId, estadoInicial);
   // Depois de um erro o React zera o formulário; repõe o que foi marcado/digitado.
@@ -32,6 +36,7 @@ export function FormularioAnalise({ ataId, respostasAtuais, parecerAtual }: Prop
                 type="checkbox"
                 name={item.campo}
                 defaultChecked={respostas[item.campo]}
+                disabled={!podeConferir}
                 className="mt-1 size-4 shrink-0"
                 style={{ accentColor: "var(--cor-marca)" }}
               />
@@ -45,19 +50,29 @@ export function FormularioAnalise({ ataId, respostasAtuais, parecerAtual }: Prop
         <span className="rotulo-campo">
           Parecer <small>(obrigatório para aprovar com itens não confirmados)</small>
         </span>
-        <textarea name="parecer" rows={3} defaultValue={estado.valores?.parecer ?? parecerAtual} className="campo-atas" />
+        <textarea
+          name="parecer"
+          rows={3}
+          defaultValue={estado.valores?.parecer ?? parecerAtual}
+          disabled={!podeConferir}
+          className="campo-atas"
+        />
       </label>
 
       {estado.erro && <Aviso tom="critico">{estado.erro}</Aviso>}
       {estado.mensagem && <Aviso tom="sucesso">{estado.mensagem}</Aviso>}
 
       <div className="flex flex-wrap gap-2">
-        <button type="submit" name="decisao" value="salvar" disabled={pendente} className="botao-atas secundario">
-          Salvar análise
-        </button>
-        <button type="submit" name="decisao" value="aprovar" disabled={pendente} className="botao-atas">
-          Aprovar ata
-        </button>
+        {podeConferir && (
+          <button type="submit" name="decisao" value="salvar" disabled={pendente} className="botao-atas secundario">
+            Salvar análise
+          </button>
+        )}
+        {podeAprovar && (
+          <button type="submit" name="decisao" value="aprovar" disabled={pendente} className="botao-atas">
+            Aprovar ata
+          </button>
+        )}
       </div>
     </form>
   );

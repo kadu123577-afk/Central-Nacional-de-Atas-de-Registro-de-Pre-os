@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { adminIdLogado } from "@/lib/auth";
+import { exigirPermissaoDe } from "@/lib/permissoes-db";
 import { prisma } from "@/lib/prisma";
 import { AppShell } from "@/components/ui/app-shell";
 import { CabecalhoPagina } from "@/components/ui/cabecalho-pagina";
@@ -18,6 +19,7 @@ export default async function FaturamentoAdminPage() {
   if (!adminId) {
     redirect("/admin/login");
   }
+  await exigirPermissaoDe(adminId, "comissao.cobrar");
 
   const faturamentos = await prisma.faturamento.findMany({
     include: {

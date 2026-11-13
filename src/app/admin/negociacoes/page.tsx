@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { adminIdLogado } from "@/lib/auth";
+import { exigirPermissaoDe } from "@/lib/permissoes-db";
 import { prisma } from "@/lib/prisma";
 import { decidirPedidosNegociacao, logoutAdmin } from "../actions";
 import { NAV_ADMIN } from "../nav";
@@ -38,6 +39,7 @@ const ESTAGIOS_ABERTOS = ["a_contatar", "em_negociacao"];
 export default async function NegociacoesPage() {
   const adminId = await adminIdLogado();
   if (!adminId) redirect("/admin/login");
+  await exigirPermissaoDe(adminId, "municipios.liberar");
 
   await expirarOportunidadesVencidas();
 

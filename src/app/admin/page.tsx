@@ -1,11 +1,14 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { adminIdLogado } from "@/lib/auth";
+import { MENSAGEM_SEM_PERMISSAO, temPermissao } from "@/lib/permissoes";
+import { permissoesDoAdmin } from "@/lib/permissoes-db";
 import { prisma } from "@/lib/prisma";
 import { saldoAgregadoDisponivel } from "@/lib/saldo";
 import { logoutAdmin, rejeitarAta } from "./actions";
 import { AppShell } from "@/components/ui/app-shell";
 import { Secao } from "@/components/ui/secao";
+import { Aviso } from "@/components/ui/aviso";
 import { CabecalhoPagina } from "@/components/ui/cabecalho-pagina";
 import { FaixaNumeros } from "@/components/ui/faixa-numeros";
 import { Badge, type Tom } from "@/components/ui/badge";
@@ -53,11 +56,19 @@ interface ItemFila {
  * funil, por vendedor), as atas aguardando moderação e, por último, o canal
  * de autoatendimento dos órgãos.
  */
-export default async function PainelAdminPage() {
+export default async function PainelAdminPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ acesso?: string }>;
+}) {
   const adminId = await adminIdLogado();
   if (!adminId) {
     redirect("/admin/login");
   }
+  const { acesso } = await searchParams;
+  const permissoes = await permissoesDoAdmin(adminId);
+  if (permissoes === null) redirect("/admin/login");
+  const podeAprovar = temPermissao(permissoes, "atas.aprovar");
 
   await expirarOportunidadesVencidas();
 
@@ -234,6 +245,8 @@ export default async function PainelAdminPage() {
         </form>
       }
     >
+      {acesso === "negado" && <Aviso tom="atencao">{MENSAGEM_SEM_PERMISSAO}</Aviso>}
+
       <CabecalhoPagina
         rotulo="Operação"
         titulo="Painel"
@@ -498,12 +511,14 @@ export default async function PainelAdminPage() {
                       <Link href={`/admin/atas/${ata.id}/analise`} className="botao-atas">
                         Analisar e aprovar
                       </Link>
-                      <form action={rejeitarAta}>
-                        <input type="hidden" name="ataId" value={ata.id} />
-                        <button type="submit" className="botao-atas critico">
-                          Rejeitar
-                        </button>
-                      </form>
+                      {podeAprovar && (
+                        <form action={rejeitarAta}>
+                          <input type="hidden" name="ataId" value={ata.id} />
+                          <button type="submit" className="botao-atas critico">
+                            Rejeitar
+                          </button>
+                        </form>
+                      )}
                     </div>
                   </li>
                 );

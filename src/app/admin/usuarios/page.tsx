@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { adminIdLogado } from "@/lib/auth";
+import { exigirPermissaoDe } from "@/lib/permissoes-db";
 import { prisma } from "@/lib/prisma";
 import {
   alternarStatusFornecedor,
@@ -27,6 +28,7 @@ import {
 import { resumoParaAdmin } from "@/lib/credenciamento-view";
 import { AcoesCredenciamento } from "./acoes-credenciamento";
 import { FormularioNovoVendedor } from "./formulario-vendedor";
+import { EquipeInterna } from "./equipe-interna";
 import { NAV_ADMIN } from "@/app/admin/nav";
 
 export const dynamic = "force-dynamic";
@@ -42,8 +44,14 @@ export default async function GestaoUsuariosPage() {
   if (!adminId) {
     redirect("/admin/login");
   }
+  await exigirPermissaoDe(adminId, "usuarios.gerir");
 
-  const [fornecedores, orgaos, vendedores] = await Promise.all([
+  const [equipe, fornecedores, orgaos, vendedores] = await Promise.all([
+    prisma.admin.findMany({
+      where: { isSeed: false },
+      select: { id: true, nome: true, email: true, cargo: true, ativo: true, permissoes: true, totpAtivo: true, acessoFinanceiro: true },
+      orderBy: { createdAt: "asc" },
+    }),
     prisma.fornecedor.findMany({ orderBy: { razaoSocial: "asc" } }),
     prisma.orgao.findMany({ orderBy: { nome: "asc" } }),
     prisma.vendedor.findMany({
@@ -76,6 +84,8 @@ export default async function GestaoUsuariosPage() {
         descricao="Desativar bloqueia o login, sem apagar atas, adesões ou faturamento já existentes."
         voltar={{ href: "/admin", rotulo: "Painel" }}
       />
+
+      <EquipeInterna membros={equipe} adminLogadoId={adminId} />
 
       <Secao titulo={`Vendedores (${vendedores.length})`}>
         {vendedores.length === 0 ? (

@@ -60,7 +60,7 @@ export async function buscarCandidatosEntrada(email: string): Promise<CandidatoE
   const campos = { id: true, email: true, senhaHash: true } as const;
 
   const [admin, vendedor, fornecedor, orgao] = await Promise.all([
-    prisma.admin.findFirst({ where: { email: igual }, select: campos }),
+    prisma.admin.findFirst({ where: { email: igual, ativo: true }, select: campos }),
     prisma.vendedor.findFirst({ where: { email: igual, ativo: true }, select: campos }),
     prisma.fornecedor.findFirst({
       where: { email: igual, ativo: true, senhaHash: { not: null } },

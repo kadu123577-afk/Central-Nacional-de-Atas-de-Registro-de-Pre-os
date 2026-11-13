@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { adminIdLogado } from "@/lib/auth";
+import { exigirPermissaoDe } from "@/lib/permissoes-db";
 import { prisma } from "@/lib/prisma";
 import { logoutAdmin } from "../actions";
 import { NAV_ADMIN } from "../nav";
@@ -37,6 +38,7 @@ const LIMITE_FAIXAS = 500;
 export default async function ComissaoPage() {
   const adminId = await adminIdLogado();
   if (!adminId) redirect("/admin/login");
+  await exigirPermissaoDe(adminId, "atas.contrato");
 
   const linhas = await prisma.faixaComissao.findMany({
     orderBy: { valorMinimo: "asc" },

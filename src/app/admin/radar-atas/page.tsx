@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { Prisma } from "@/generated/prisma/client";
 import { adminIdLogado } from "@/lib/auth";
+import { exigirPermissaoDe } from "@/lib/permissoes-db";
 import { prisma } from "@/lib/prisma";
 import { logoutAdmin } from "../actions";
 import { NAV_ADMIN } from "../nav";
@@ -51,6 +52,7 @@ export default async function RadarAtasPage({
 }) {
   const adminId = await adminIdLogado();
   if (!adminId) redirect("/admin/login");
+  await exigirPermissaoDe(adminId, "atas.captar");
 
   const filtros = lerFiltrosRadar(await searchParams);
   const agora = new Date();

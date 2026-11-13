@@ -67,6 +67,14 @@ model Admin {
   // o acesso só é dado pelo script prisma/habilitar-financeiro.ts (npm run
   // admin:financeiro), direto no servidor, com registro na auditoria.
   acessoFinanceiro Boolean  @default(false)
+  // Equipe interna por atividade do workflow (2026-11-13): cada conta guarda a
+  // lista de permissões (chaves de src/lib/permissoes.ts). Lista vazia = só
+  // olha o painel. Contas anteriores receberam todas as permissões na migração.
+  // `ativo` falso bloqueia o login e derruba a sessão na hora; `cargo` é só
+  // o rótulo que aparece na tela (ex.: "Aprovador de atas").
+  permissoes       String[] @default([])
+  ativo            Boolean  @default(true)
+  cargo            String?
 
   @@map("admins")
 }

@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { adminIdLogado } from "@/lib/auth";
+import { exigirPermissaoDe } from "@/lib/permissoes-db";
 import { prisma } from "@/lib/prisma";
 import { logoutAdmin } from "../../../actions";
 import { NAV_ADMIN } from "../../../nav";
@@ -44,6 +45,7 @@ function paraInputData(data: Date | null): string {
 export default async function ContratoAtaPage({ params }: { params: Promise<{ ataId: string }> }) {
   const adminId = await adminIdLogado();
   if (!adminId) redirect("/admin/login");
+  await exigirPermissaoDe(adminId, "atas.contrato");
 
   const { ataId } = await params;
   const ata = await prisma.ata.findUnique({

@@ -27,6 +27,13 @@ vi.mock("@/lib/auth", () => ({
   vendedorIdLogado: dobles.vendedorIdLogado,
   adminIdLogado: dobles.adminIdLogado,
 }));
+vi.mock("@/lib/permissoes-db", () => ({
+  exigirPermissaoDe: vi.fn(async () => undefined),
+  adminTemPermissao: vi.fn(async () => true),
+  permissoesDoAdmin: vi.fn(async () => []),
+  ACAO_PERMISSAO_NEGADA: "permissao.negada",
+  CAMINHO_SEM_PERMISSAO: "/admin?acesso=negado",
+}));
 vi.mock("@/lib/auditoria", () => ({ registrarAuditoria: dobles.registrarAuditoria }));
 vi.mock("@/lib/instrucao-adesao-db", () => ({
   buscarOportunidadeDaInstrucao: dobles.buscarOportunidadeDaInstrucao,
@@ -37,6 +44,7 @@ vi.mock("@/lib/instrucao-adesao-db", () => ({
 }));
 
 import { ITENS_INSTRUCAO, VERSAO_DECLARACAO, type MapaInstrucao } from "@/lib/instrucao-adesao";
+import { adminTemPermissao } from "@/lib/permissoes-db";
 import type { OportunidadeDaInstrucao, RegistroInstrucao } from "@/lib/instrucao-adesao-db";
 import { declararConformidade, marcarItemInstrucao, revogarDeclaracao } from "./instrucao-actions";
 
@@ -170,14 +178,42 @@ describe("quem pode chamar", () => {
     );
   });
 
-  it.each([
-    ["marcarItemInstrucao", () => marcar("dfd", { feito: "true" })],
-    ["declararConformidade", () => declarar({ justificativaExcecao: JUSTIFICATIVA })],
-    ["revogarDeclaracao", () => revogar()],
-  ])("%s: vendedor de outra oportunidade é recusado e nada é gravado", async (_nome, chamar) => {
+  it("marcarItemInstrucao: vendedor de outra oportunidade é recusado e nada é gravado", async () => {
     memoria.registro = registro({ declaracaoEm: new Date("2026-10-15T10:00:00Z") });
     dobles.vendedorIdLogado.mockResolvedValue("outro-vendedor");
-    await expect(chamar()).resolves.toEqual({ erro: "Oportunidade não encontrada." });
+    await expect(marcar("dfd", { feito: "true" })).resolves.toEqual({ erro: "Oportunidade não encontrada." });
+    nenhumaEscrita();
+  });
+
+  it.each([
+    ["declararConformidade", () => declarar({ justificativaExcecao: JUSTIFICATIVA })],
+    ["revogarDeclaracao", () => revogar()],
+  ])("%s: vendedor, mesmo dono da oportunidade, é recusado: só o jurídico declara", async (_nome, chamar) => {
+    memoria.registro = registro({ declaracaoEm: new Date("2026-10-15T10:00:00Z") });
+    await expect(chamar()).resolves.toEqual({ erro: "A declaração de conformidade é feita pelo jurídico." });
+    expect(dobles.buscarOportunidadeDaInstrucao).not.toHaveBeenCalled();
+    nenhumaEscrita();
+  });
+
+  it.each([
+    ["declararConformidade", () => declarar({ justificativaExcecao: JUSTIFICATIVA })],
+    ["revogarDeclaracao", () => revogar()],
+  ])("%s: admin sem a permissão de declarar é recusado e nada é gravado", async (_nome, chamar) => {
+    memoria.registro = registro({ declaracaoEm: new Date("2026-10-15T10:00:00Z") });
+    dobles.vendedorIdLogado.mockResolvedValue(null);
+    dobles.adminIdLogado.mockResolvedValue("adm1");
+    vi.mocked(adminTemPermissao).mockResolvedValueOnce(false);
+    await expect(chamar()).resolves.toEqual({ erro: "Você não tem permissão para esta etapa da instrução." });
+    expect(adminTemPermissao).toHaveBeenCalledWith("adm1", "adesao.declarar");
+    nenhumaEscrita();
+  });
+
+  it("marcarItemInstrucao: admin sem a permissão de instruir é recusado e nada é gravado", async () => {
+    dobles.vendedorIdLogado.mockResolvedValue(null);
+    dobles.adminIdLogado.mockResolvedValue("adm1");
+    vi.mocked(adminTemPermissao).mockResolvedValueOnce(false);
+    await expect(marcar("dfd", { feito: "true" })).resolves.toEqual({ erro: "Você não tem permissão para esta etapa da instrução." });
+    expect(adminTemPermissao).toHaveBeenCalledWith("adm1", "adesao.instruir");
     nenhumaEscrita();
   });
 
@@ -207,6 +243,8 @@ describe("quem pode chamar", () => {
   ])("%s: oportunidade expirada não aceita nada", async (_nome, chamar) => {
     memoria.oportunidade = { ...memoria.oportunidade!, expiradaEm: new Date("2026-10-19T00:00:00Z") };
     memoria.registro = registro({ declaracaoEm: new Date("2026-10-15T10:00:00Z") });
+    dobles.vendedorIdLogado.mockResolvedValue(null);
+    dobles.adminIdLogado.mockResolvedValue("adm1");
     const resposta = await chamar();
     expect(resposta.erro).toMatch(/prazo deste município venceu/);
     nenhumaEscrita();
@@ -368,6 +406,12 @@ describe("marcarItemInstrucao", () => {
 });
 
 describe("declararConformidade", () => {
+  // A declaração é do jurídico: aqui quem chama é um admin com a permissão (o dublê de adminTemPermissao devolve true).
+  beforeEach(() => {
+    dobles.vendedorIdLogado.mockResolvedValue(null);
+    dobles.adminIdLogado.mockResolvedValue("adm1");
+  });
+
   it("sem nenhum item e sem justificativa é recusado, e a mensagem diz o que falta", async () => {
     const resposta = await declarar();
     expect(resposta.ok).toBeUndefined();
@@ -400,8 +444,8 @@ describe("declararConformidade", () => {
     expect(lidoEm).toBeNull(); // a linha ainda não existia
     expect(dados).toEqual({
       declaracaoEm: new Date("2026-10-21T15:00:00Z"),
-      declaracaoPorTipo: "vendedor",
-      declaracaoPorId: "vend1",
+      declaracaoPorTipo: "admin",
+      declaracaoPorId: "adm1",
       declaracaoVersao: VERSAO_DECLARACAO,
       declaracaoExcecao: "O parecer jurídico chega na próxima semana, ok?",
     });
@@ -411,8 +455,8 @@ describe("declararConformidade", () => {
     await declarar({ justificativaExcecao: JUSTIFICATIVA });
     expect(dobles.registrarAuditoria).toHaveBeenCalledTimes(1);
     const evento = dobles.registrarAuditoria.mock.calls[0][0];
-    expect(evento.ator).toBe("vendedor:vend1");
-    expect(evento.acao).toBe("vendedor.declararConformidade");
+    expect(evento.ator).toBe("admin:adm1");
+    expect(evento.acao).toBe("admin.declararConformidade");
     expect(evento.alvo).toBe(OPORTUNIDADE_ID);
     expect(evento.detalhe).toContain(`versão ${VERSAO_DECLARACAO}`);
     expect(evento.detalhe).toContain("com exceção");
@@ -432,7 +476,7 @@ describe("declararConformidade", () => {
     expect(eventos.length).toBeGreaterThan(1);
     for (const e of eventos) {
       expect(e.detalhe.length).toBeLessThanOrEqual(500);
-      expect(e.acao).toBe("vendedor.declararConformidade");
+      expect(e.acao).toBe("admin.declararConformidade");
       expect(e.alvo).toBe(OPORTUNIDADE_ID);
     }
     expect(eventos[0].detalhe).toMatch(new RegExp(`^\\(1/${eventos.length}\\) versão `));
@@ -506,6 +550,11 @@ describe("declararConformidade", () => {
 });
 
 describe("revogarDeclaracao", () => {
+  beforeEach(() => {
+    dobles.vendedorIdLogado.mockResolvedValue(null);
+    dobles.adminIdLogado.mockResolvedValue("adm1");
+  });
+
   const declarada = () =>
     registro({
       itens: mapaObrigatoriosFeitos(),
@@ -528,8 +577,8 @@ describe("revogarDeclaracao", () => {
 
     expect(dobles.registrarAuditoria).toHaveBeenCalledTimes(1);
     const evento = dobles.registrarAuditoria.mock.calls[0][0];
-    expect(evento.ator).toBe("vendedor:vend1");
-    expect(evento.acao).toBe("vendedor.revogarDeclaracao");
+    expect(evento.ator).toBe("admin:adm1");
+    expect(evento.acao).toBe("admin.revogarDeclaracao");
     expect(evento.alvo).toBe(OPORTUNIDADE_ID);
     expect(evento.detalhe).toContain("2026-10-15T10:00:00.000Z");
     expect(evento.detalhe).toContain("vendedor:vend1");

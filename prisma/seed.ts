@@ -25,6 +25,7 @@ import bcrypt from "bcryptjs";
 import { verificarAdesao } from "../src/lib/saldo";
 import { calcularFaturamento } from "../src/lib/faturamento";
 import { ORDEM_ESTAGIOS } from "../src/lib/adesao";
+import { TODAS_AS_PERMISSOES } from "../src/lib/permissoes";
 
 const prisma = new PrismaClient();
 
@@ -165,12 +166,13 @@ async function main() {
   // ---- Admin de demonstração ----
   const admin = await prisma.admin.upsert({
     where: { email: "admin.demo@centraldeatas.teste" },
-    update: { senhaHash, isSeed: true },
+    update: { senhaHash, isSeed: true, permissoes: [...TODAS_AS_PERMISSOES] },
     create: {
       email: "admin.demo@centraldeatas.teste",
       nome: "Admin Demonstração",
       senhaHash,
       isSeed: true,
+      permissoes: [...TODAS_AS_PERMISSOES],
     },
   });
 

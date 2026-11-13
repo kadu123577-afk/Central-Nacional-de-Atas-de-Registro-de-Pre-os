@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { adminIdLogado } from "@/lib/auth";
+import { exigirPermissaoDe } from "@/lib/permissoes-db";
 import { prisma } from "@/lib/prisma";
 import { alternarStatusPontoFocal, logoutAdmin } from "../../../../actions";
 import { AppShell } from "@/components/ui/app-shell";
@@ -21,6 +22,7 @@ export default async function DetalheContatoPage({
   if (!adminId) {
     redirect("/admin/login");
   }
+  await exigirPermissaoDe(adminId, "base.editar");
 
   const { id, contatoId } = await params;
   const [contato, atasVigentes] = await Promise.all([

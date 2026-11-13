@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { temAlguma, type Permissao } from "@/lib/permissoes";
 import { Logo } from "./logo";
+import { usePermissoesDoAdmin } from "./permissoes-contexto";
 
 export interface ItemNav {
   rotulo: string;
@@ -11,6 +13,8 @@ export interface ItemNav {
   grupo?: string;
   /** Prefixos de rota que também marcam este item como ativo (páginas filhas). */
   ativoEm?: string[];
+  /** Só aparece para quem tem pelo menos uma destas permissões (menu do admin). */
+  permissoes?: readonly Permissao[];
 }
 
 /** Raízes ("/admin", "/vendedor") só ficam ativas na página exata; as demais valem pras páginas filhas. */
@@ -27,7 +31,7 @@ function itemAtivo(item: ItemNav, pathname: string): boolean {
  */
 export function AppShell({
   area,
-  itens,
+  itens: todosOsItens,
   rodape,
   children,
   // Telas de formulário/texto corrido ficam melhores estreitas (leitura);
@@ -42,6 +46,9 @@ export function AppShell({
   larguraMaxima?: string;
 }) {
   const pathname = usePathname();
+  const permissoes = usePermissoesDoAdmin();
+  // Sem permissões no contexto (área de vendedor, tela de login) o menu aparece inteiro.
+  const itens = todosOsItens.filter((item) => !item.permissoes || permissoes === null || temAlguma(permissoes, item.permissoes));
 
   return (
     <div className="flex min-h-screen flex-col md:flex-row">

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { adminIdLogado, vendedorIdLogado } from "@/lib/auth";
+import { adminTemPermissao } from "@/lib/permissoes-db";
 import { registrarAuditoria } from "@/lib/auditoria";
 import {
   ITENS_INSTRUCAO,
@@ -43,6 +44,8 @@ export interface EstadoInstrucao {
 const ESTAGIO_ADERIU = "aderiu";
 const ERRO_NAO_ENCONTRADA = "Oportunidade não encontrada.";
 const ERRO_EXPIRADA = "O prazo deste município venceu. Faça um novo pedido de negociação.";
+const ERRO_SO_JURIDICO = "A declaração de conformidade é feita pelo jurídico.";
+const ERRO_SEM_PERMISSAO = "Você não tem permissão para esta etapa da instrução.";
 const ERRO_CONFLITO = "A instrução foi alterada por outra pessoa ao mesmo tempo. Confira os itens e tente de novo.";
 
 type Ator = { tipo: "admin" | "vendedor"; id: string };
@@ -67,23 +70,33 @@ function campoTexto(formData: FormData, nome: string): string | null {
   return typeof valor === "string" ? valor : null;
 }
 
-/** O vendedor só mexe no que é dele; o admin, em qualquer uma. Expirada não aceita nada. */
+/**
+ * O vendedor só mexe no que é dele (marcar itens); o admin, em qualquer uma, se tiver a
+ * permissão da etapa: "adesao.instruir" para marcar itens e "adesao.declarar" para declarar
+ * ou revogar. A declaração de conformidade não é do vendedor: só o jurídico declara.
+ * Expirada não aceita nada.
+ */
 async function autorizar(
   sessao: { vendedorId: string | null; adminId: string | null },
   oportunidadeId: string,
+  etapa: "instruir" | "declarar" = "instruir",
 ): Promise<{ ator: Ator; oportunidade: OportunidadeDaInstrucao } | { erro: string }> {
   if (!idComFormaValida(oportunidadeId)) return { erro: ERRO_NAO_ENCONTRADA };
+  if (etapa === "declarar" && !sessao.adminId) return { erro: ERRO_SO_JURIDICO };
   const oportunidade = await buscarOportunidadeDaInstrucao(oportunidadeId);
   if (!oportunidade) return { erro: ERRO_NAO_ENCONTRADA };
 
   let ator: Ator | null = null;
-  if (sessao.vendedorId && oportunidade.vendedorId === sessao.vendedorId) {
+  if (etapa === "instruir" && sessao.vendedorId && oportunidade.vendedorId === sessao.vendedorId) {
     ator = { tipo: "vendedor", id: sessao.vendedorId };
   } else if (sessao.adminId) {
     ator = { tipo: "admin", id: sessao.adminId };
   }
   // Mesma resposta para "não existe" e "é de outro vendedor": não revela o que não é dele.
   if (!ator) return { erro: ERRO_NAO_ENCONTRADA };
+  if (ator.tipo === "admin" && !(await adminTemPermissao(ator.id, etapa === "declarar" ? "adesao.declarar" : "adesao.instruir"))) {
+    return { erro: ERRO_SEM_PERMISSAO };
+  }
   if (oportunidade.expiradaEm) return { erro: ERRO_EXPIRADA };
   return { ator, oportunidade };
 }
@@ -207,7 +220,7 @@ export async function declararConformidade(
   const sessao = await exigirSessao();
   const justificativa = campoTexto(formData, "justificativaExcecao") ?? "";
 
-  const acesso = await autorizar(sessao, oportunidadeId);
+  const acesso = await autorizar(sessao, oportunidadeId, "declarar");
   if ("erro" in acesso) return { erro: acesso.erro };
   const { ator, oportunidade } = acesso;
 
@@ -253,7 +266,7 @@ export async function declararConformidade(
 export async function revogarDeclaracao(oportunidadeId: string): Promise<EstadoInstrucao> {
   const sessao = await exigirSessao();
 
-  const acesso = await autorizar(sessao, oportunidadeId);
+  const acesso = await autorizar(sessao, oportunidadeId, "declarar");
   if ("erro" in acesso) return { erro: acesso.erro };
   const { ator, oportunidade } = acesso;
 

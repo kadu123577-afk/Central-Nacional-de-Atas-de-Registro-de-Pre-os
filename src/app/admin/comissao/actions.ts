@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { adminIdLogado } from "@/lib/auth";
+import { exigirPermissaoDe } from "@/lib/permissoes-db";
 import { registrarAuditoria } from "@/lib/auditoria";
 import {
   formatarPercentual,
@@ -51,6 +52,7 @@ async function exigirAdmin(): Promise<string> {
   if (!adminId) {
     redirect("/admin/login");
   }
+  await exigirPermissaoDe(adminId, "atas.contrato");
   return adminId;
 }
 

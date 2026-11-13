@@ -49,6 +49,8 @@ import { expirarOportunidadesVencidas } from "@/lib/negociacao-expiracao";
 import { ITENS_CONFORMIDADE, itensPendentes, type RespostasConformidade } from "@/lib/conformidade";
 import { MENSAGEM_CODIGO_CATALOGO_INVALIDO, interpretarCodigoCatalogo } from "@/lib/vantajosidade-db";
 import { podeAtuar } from "@/lib/credenciamento";
+import { PERMISSAO_POR_ACAO } from "@/lib/permissoes";
+import { ACAO_PERMISSAO_NEGADA, CAMINHO_SEM_PERMISSAO, adminTemPermissao, exigirPermissaoDe } from "@/lib/permissoes-db";
 
 export interface EstadoLoginAdmin {
   erro?: string;
@@ -88,6 +90,12 @@ export async function loginAdmin(
   if (!senhaCorreta) {
     await registrarFalhaLogin("admin", email);
     await registrarAuditoria({ ator: `admin:${admin.id}`, acao: "admin.login_falhou" });
+    return { erro: "E-mail ou senha inválidos." };
+  }
+  // Conta desativada pela gestão: mesma mensagem de senha errada, para não revelar o motivo.
+  if (!admin.ativo) {
+    await registrarFalhaLogin("admin", email);
+    await registrarAuditoria({ ator: `admin:${admin.id}`, acao: "admin.login_recusado", detalhe: "conta desativada" });
     return { erro: "E-mail ou senha inválidos." };
   }
 
@@ -136,6 +144,7 @@ export async function completarFornecedorDaAta(
   if (!adminId) {
     redirect("/admin/login");
   }
+  await exigirPermissaoDe(adminId, "atas.captar", "admin.completarFornecedorDaAta");
 
   const ataId = String(formData.get("ataId") ?? "");
   const razaoSocial = String(formData.get("razaoSocial") ?? "").trim();
@@ -170,6 +179,7 @@ export async function adicionarItemNaAta(
   if (!adminId) {
     redirect("/admin/login");
   }
+  await exigirPermissaoDe(adminId, "atas.captar", "admin.adicionarItemNaAta");
 
   const ataId = String(formData.get("ataId") ?? "");
   const descricao = String(formData.get("descricao") ?? "").trim();
@@ -241,6 +251,7 @@ export async function definirCodigoCatalogoItem(
   if (!adminId) {
     redirect("/admin/login");
   }
+  await exigirPermissaoDe(adminId, "atas.captar", "admin.definirCodigoCatalogoItem");
 
   const itemId = formData.get("itemId");
   const digitado = formData.get("codigoCatalogo");
@@ -430,6 +441,13 @@ async function exigirAdmin(acao: string): Promise<string> {
   if (!adminId) {
     redirect("/admin/login");
   }
+  // Ação sem regra em PERMISSAO_POR_ACAO é recusada: quem cria ação nova decide a permissão dela.
+  const exigida = PERMISSAO_POR_ACAO[acao];
+  if (!exigida) {
+    await registrarAuditoria({ ator: `admin:${adminId}`, acao: ACAO_PERMISSAO_NEGADA, detalhe: `${acao} sem regra` });
+    redirect(CAMINHO_SEM_PERMISSAO);
+  }
+  await exigirPermissaoDe(adminId, exigida, acao);
   await registrarAuditoria({ ator: `admin:${adminId}`, acao });
   return adminId;
 }
@@ -705,33 +723,56 @@ export async function analisarAta(
   _estadoAnterior: EstadoAnaliseAta,
   formData: FormData,
 ): Promise<EstadoAnaliseAta> {
-  await exigirAdmin("admin.analisarAta");
-  const adminId = await adminIdLogado();
+  const adminId = await exigirAdmin("admin.analisarAta");
+
+  // Salvar o checklist é do jurídico (atas.conformidade); aprovar é do aprovador (atas.aprovar).
+  // Quem só aprova não mexe no checklist: aprova com base no que o jurídico já registrou.
+  const decisao = String(formData.get("decisao") ?? "salvar");
+  const [podeConformidade, podeAprovar] = await Promise.all([
+    adminTemPermissao(adminId, "atas.conformidade"),
+    adminTemPermissao(adminId, "atas.aprovar"),
+  ]);
+  if (decisao === "aprovar" ? !podeAprovar : !podeConformidade) {
+    return { erro: decisao === "aprovar" ? "Você não tem permissão para aprovar atas." : "Você não tem permissão para salvar a conformidade da ata." };
+  }
 
   const ata = await prisma.ata.findUnique({ where: { id: ataId } });
   if (!ata) return { erro: "Ata não encontrada." };
 
-  const respostas = Object.fromEntries(
-    ITENS_CONFORMIDADE.map((i) => [i.campo, formData.get(i.campo) === "on"]),
-  ) as RespostasConformidade;
-  const parecer = String(formData.get("parecer") ?? "").trim() || null;
+  let respostas: RespostasConformidade;
+  let parecer: string | null;
+  if (podeConformidade) {
+    respostas = Object.fromEntries(
+      ITENS_CONFORMIDADE.map((i) => [i.campo, formData.get(i.campo) === "on"]),
+    ) as RespostasConformidade;
+    parecer = String(formData.get("parecer") ?? "").trim() || null;
+  } else {
+    const registrada = await prisma.conformidadeAta.findUnique({ where: { ataId } });
+    respostas = Object.fromEntries(
+      ITENS_CONFORMIDADE.map((i) => [i.campo, registrada?.[i.campo] === true]),
+    ) as RespostasConformidade;
+    parecer = registrada?.parecer ?? null;
+  }
   const valores = { respostas, parecer: parecer ?? "" };
-  const decisao = String(formData.get("decisao") ?? "salvar");
 
   const pendentes = itensPendentes(respostas);
   if (decisao === "aprovar" && pendentes.length > 0 && !parecer) {
     return {
-      erro: `Há ${pendentes.length} item(ns) do checklist não confirmado(s). Para aprovar com ressalva, escreva o parecer justificando.`,
+      erro: podeConformidade
+        ? `Há ${pendentes.length} item(ns) do checklist não confirmado(s). Para aprovar com ressalva, escreva o parecer justificando.`
+        : `Há ${pendentes.length} item(ns) do checklist não confirmado(s) e o jurídico ainda não registrou parecer. Peça a revisão do jurídico antes de aprovar.`,
       valores,
     };
   }
 
-  const dados = { ...respostas, parecer, responsavelId: adminId };
-  await prisma.conformidadeAta.upsert({
-    where: { ataId },
-    update: dados,
-    create: { ataId, ...dados },
-  });
+  if (podeConformidade) {
+    const dados = { ...respostas, parecer, responsavelId: adminId };
+    await prisma.conformidadeAta.upsert({
+      where: { ataId },
+      update: dados,
+      create: { ataId, ...dados },
+    });
+  }
 
   if (decisao === "aprovar") {
     await prisma.ata.update({ where: { id: ataId }, data: { status: "APROVADA" } });

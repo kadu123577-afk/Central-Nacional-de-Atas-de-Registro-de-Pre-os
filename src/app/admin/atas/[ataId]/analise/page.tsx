@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { adminIdLogado } from "@/lib/auth";
+import { temPermissao } from "@/lib/permissoes";
+import { exigirPermissaoDe, permissoesDoAdmin } from "@/lib/permissoes-db";
 import { prisma } from "@/lib/prisma";
 import { logoutAdmin, rejeitarAta } from "../../../actions";
 import { NAV_ADMIN } from "../../../nav";
@@ -31,6 +33,11 @@ const ROTULO_STATUS = { PENDENTE: "Pendente", APROVADA: "Aprovada", REJEITADA: "
 export default async function AnaliseAtaPage({ params }: { params: Promise<{ ataId: string }> }) {
   const adminId = await adminIdLogado();
   if (!adminId) redirect("/admin/login");
+  await exigirPermissaoDe(adminId, ["atas.conformidade", "atas.aprovar"]);
+  const permissoes = await permissoesDoAdmin(adminId);
+  const podeConferir = temPermissao(permissoes, "atas.conformidade");
+  const podeAprovar = temPermissao(permissoes, "atas.aprovar");
+  const podeCaptar = temPermissao(permissoes, "atas.captar");
 
   const { ataId } = await params;
   const ata = await prisma.ata.findUnique({
@@ -189,7 +196,7 @@ export default async function AnaliseAtaPage({ params }: { params: Promise<{ ata
         titulo="Vantajosidade dos preços"
         descricao="Compara o preço unitário de cada item da ata com preços de contratações públicas consultados no Compras.gov.br."
       >
-        <BlocoVantajosidade comparativo={comparativo} />
+        <BlocoVantajosidade comparativo={comparativo} podeCaptar={podeCaptar} />
       </Secao>
 
       <Secao titulo="Checklist de conformidade" destaque>
@@ -213,8 +220,14 @@ export default async function AnaliseAtaPage({ params }: { params: Promise<{ ata
             ))}
           </p>
         )}
-        <FormularioAnalise ataId={ata.id} respostasAtuais={respostasAtuais} parecerAtual={c?.parecer ?? ""} />
-        {ata.status !== "REJEITADA" && (
+        <FormularioAnalise
+          ataId={ata.id}
+          respostasAtuais={respostasAtuais}
+          parecerAtual={c?.parecer ?? ""}
+          podeConferir={podeConferir}
+          podeAprovar={podeAprovar}
+        />
+        {podeAprovar && ata.status !== "REJEITADA" && (
           <form action={rejeitarAta} className="mt-6 border-t pt-5" style={{ borderColor: "var(--cor-borda)" }}>
             <input type="hidden" name="ataId" value={ata.id} />
             <button type="submit" className="botao-atas critico">
@@ -303,7 +316,7 @@ function comparacaoConclusiva(item: ItemComparado): boolean {
  * no Compras.gov.br. Não substitui a pesquisa de preços do órgão (art. 23); o
  * aviso vai sempre junto dos números.
  */
-function BlocoVantajosidade({ comparativo }: { comparativo: ComparativoDaAta | null }) {
+function BlocoVantajosidade({ comparativo, podeCaptar }: { comparativo: ComparativoDaAta | null; podeCaptar: boolean }) {
   return (
     <div className="flex flex-col gap-5">
       <Aviso tom="info">{TEXTO_AVISO_VANTAJOSIDADE}</Aviso>
@@ -315,13 +328,13 @@ function BlocoVantajosidade({ comparativo }: { comparativo: ComparativoDaAta | n
           Esta ata ainda não tem itens para comparar.
         </p>
       ) : (
-        <ComparativoDosItens comparativo={comparativo} />
+        <ComparativoDosItens comparativo={comparativo} podeCaptar={podeCaptar} />
       )}
     </div>
   );
 }
 
-function ComparativoDosItens({ comparativo }: { comparativo: ComparativoDaAta }) {
+function ComparativoDosItens({ comparativo, podeCaptar }: { comparativo: ComparativoDaAta; podeCaptar: boolean }) {
   const { itens, resumo } = comparativo;
   const nenhumComCodigo = itens.every((i) => i.codigoCatalogo === null);
   const nenhumConsultado = itens.every((i) => i.referencia === null);
@@ -378,7 +391,7 @@ function ComparativoDosItens({ comparativo }: { comparativo: ComparativoDaAta })
           </thead>
           <tbody>
             {itens.map((item) => (
-              <LinhaDoItem key={item.itemId} item={item} />
+              <LinhaDoItem key={item.itemId} item={item} podeCaptar={podeCaptar} />
             ))}
           </tbody>
         </table>
@@ -387,7 +400,7 @@ function ComparativoDosItens({ comparativo }: { comparativo: ComparativoDaAta })
   );
 }
 
-function LinhaDoItem({ item }: { item: ItemComparado }) {
+function LinhaDoItem({ item, podeCaptar }: { item: ItemComparado; podeCaptar: boolean }) {
   const { referencia } = item;
   const situacao = SITUACAO[item.classificacao];
   const conclusiva = comparacaoConclusiva(item);
@@ -407,7 +420,9 @@ function LinhaDoItem({ item }: { item: ItemComparado }) {
             " · sem código"
           )}
         </span>
-        <FormularioCodigoCatalogo itemId={item.itemId} codigoAtual={item.codigoCatalogo} descricao={item.descricao} />
+        {podeCaptar && (
+          <FormularioCodigoCatalogo itemId={item.itemId} codigoAtual={item.codigoCatalogo} descricao={item.descricao} />
+        )}
       </td>
       <td className="align-top">
         <span className="numero font-semibold" style={{ color: "var(--cor-texto)" }}>

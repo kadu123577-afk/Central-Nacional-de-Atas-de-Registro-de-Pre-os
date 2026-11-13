@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { adminIdLogado } from "@/lib/auth";
+import { exigirPermissaoDe } from "@/lib/permissoes-db";
 import { prisma } from "@/lib/prisma";
 import { alternarStatusPontoFocal, confirmarContatoAdmin, logoutAdmin } from "../actions";
 import { NAV_ADMIN } from "../nav";
@@ -22,6 +23,7 @@ export const dynamic = "force-dynamic";
 export default async function ContatosRevisaoPage() {
   const adminId = await adminIdLogado();
   if (!adminId) redirect("/admin/login");
+  await exigirPermissaoDe(adminId, "base.editar");
 
   const contatos = await prisma.pontoFocal.findMany({
     where: { contatoErradoEm: { not: null }, ativo: true },

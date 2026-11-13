@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { adminIdLogado } from "@/lib/auth";
+import { exigirPermissaoDe } from "@/lib/permissoes-db";
 import { prisma } from "@/lib/prisma";
 import { logoutAdmin } from "../actions";
 import { NAV_ADMIN } from "../nav";
@@ -108,6 +109,7 @@ function dadosDoContrato(c: ContratoComMunicipio): DadosContrato {
 export default async function ContratosDetectadosPage() {
   const adminId = await adminIdLogado();
   if (!adminId) redirect("/admin/login");
+  await exigirPermissaoDe(adminId, "adesao.acompanhar");
 
   const [contagens, totalAditivos] = await Promise.all([
     prisma.vinculoContrato.groupBy({ by: ["status", "nivel"], _count: { _all: true } }),

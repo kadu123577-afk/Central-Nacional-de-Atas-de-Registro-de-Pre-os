@@ -20,6 +20,13 @@ const dobles = vi.hoisted(() => ({
 vi.mock("next/cache", () => ({ revalidatePath: dobles.revalidatePath }));
 vi.mock("next/navigation", () => ({ redirect: dobles.redirect }));
 vi.mock("@/lib/auth", () => ({ adminIdLogado: dobles.adminIdLogado }));
+vi.mock("@/lib/permissoes-db", () => ({
+  exigirPermissaoDe: vi.fn(async () => undefined),
+  adminTemPermissao: vi.fn(async () => true),
+  permissoesDoAdmin: vi.fn(async () => []),
+  ACAO_PERMISSAO_NEGADA: "permissao.negada",
+  CAMINHO_SEM_PERMISSAO: "/admin?acesso=negado",
+}));
 vi.mock("@/lib/auditoria", () => ({ registrarAuditoria: dobles.registrarAuditoria }));
 vi.mock("@/lib/prisma", () => ({
   prisma: {

@@ -90,9 +90,9 @@ async function versaoAtualDaConta(tipo: TipoSessao, id: string): Promise<number 
     case "admin": {
       const conta = await prisma.admin.findUnique({
         where: { id },
-        select: { sessaoVersao: true },
+        select: { sessaoVersao: true, ativo: true },
       });
-      return conta ? conta.sessaoVersao : null;
+      return conta?.ativo ? conta.sessaoVersao : null;
     }
     case "fornecedor": {
       const conta = await prisma.fornecedor.findUnique({

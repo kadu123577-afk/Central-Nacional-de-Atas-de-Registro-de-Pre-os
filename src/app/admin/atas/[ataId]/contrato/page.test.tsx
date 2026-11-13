@@ -28,6 +28,13 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/admin/atas/ata1/contrato",
 }));
 vi.mock("../../../actions", () => ({ logoutAdmin: vi.fn(), salvarContratoIntermediacao: vi.fn() }));
+vi.mock("@/lib/permissoes-db", () => ({
+  exigirPermissaoDe: vi.fn(async () => undefined),
+  adminTemPermissao: vi.fn(async () => true),
+  permissoesDoAdmin: vi.fn(async () => []),
+  ACAO_PERMISSAO_NEGADA: "permissao.negada",
+  CAMINHO_SEM_PERMISSAO: "/admin?acesso=negado",
+}));
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     ata: { findUnique: dobles.ataFindUnique },

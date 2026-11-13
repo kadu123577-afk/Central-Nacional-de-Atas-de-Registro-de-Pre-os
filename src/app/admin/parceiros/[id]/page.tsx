@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { adminIdLogado } from "@/lib/auth";
+import { exigirPermissaoDe } from "@/lib/permissoes-db";
 import { prisma } from "@/lib/prisma";
 import { alternarStatusParceiro, logoutAdmin } from "../../actions";
 import { AppShell } from "@/components/ui/app-shell";
@@ -23,6 +24,7 @@ export default async function DetalheParceiroPage({
   if (!adminId) {
     redirect("/admin/login");
   }
+  await exigirPermissaoDe(adminId, "base.editar");
 
   const { id } = await params;
   const parceiro = await prisma.parceiro.findUnique({ where: { id } });

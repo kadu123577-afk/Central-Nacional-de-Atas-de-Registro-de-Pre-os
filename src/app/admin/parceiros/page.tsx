@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { adminIdLogado } from "@/lib/auth";
+import { exigirPermissaoDe } from "@/lib/permissoes-db";
 import { prisma } from "@/lib/prisma";
 import { logoutAdmin } from "../actions";
 import { AppShell } from "@/components/ui/app-shell";
@@ -19,6 +20,7 @@ export default async function ParceirosPage() {
   if (!adminId) {
     redirect("/admin/login");
   }
+  await exigirPermissaoDe(adminId, "base.editar");
 
   const parceiros = await prisma.parceiro.findMany({ orderBy: { nome: "asc" } });
 

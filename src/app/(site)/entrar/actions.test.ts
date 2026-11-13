@@ -184,6 +184,7 @@ beforeEach(() => {
     id: "adm1",
     email: "equipe@arca.example",
     senhaHash: hash(SENHA.admin),
+    ativo: true,
     totpAtivo: false,
     totpSegredo: null,
     totpUltimoPasso: null,

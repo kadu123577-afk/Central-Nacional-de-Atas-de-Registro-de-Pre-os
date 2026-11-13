@@ -36,3 +36,13 @@ que interessa nos pontos parcialmente corretos. Um commit + push por etapa.
 - Cobrança por liquidação: **A cobrar → Cobrada → Recebida**; cobrada/recebida exigem o nº da NF da comissão (datas automáticas).
 - Tela de recebíveis: total aderido, liquidado, **comissão recebida** e **falta receber**; por linha, comissão devida/recebida.
 - Limites de 50%/200%: já existem em `src/lib/saldo.ts` (fluxo do órgão); aqui seguem como item informativo do checklist, sem trava no valor aderido.
+
+## Equipe interna e permissões por atividade (2026-11-13)
+- **Por quê:** o workflow principal tem 17 atividades com papéis diferentes (captação, jurídico, aprovação, administração, vendas). Antes só existia "admin" (vê e faz quase tudo) e "vendedor".
+- **Como:** `Admin.permissoes` guarda uma lista de chaves (`src/lib/permissoes.ts`: `atas.captar`, `atas.contrato`, `atas.conformidade`, `atas.aprovar`, `atas.publicar`, `municipios.liberar`, `adesao.instruir`, `adesao.declarar`, `adesao.registrar`, `adesao.acompanhar`, `comissao.cobrar`, `base.editar`, `usuarios.gerir`). Cada pessoa recebe o conjunto do seu ramo no mapa do workflow; os perfis prontos (administrador, jurídico, aprovador, captação, cobrança) só preenchem as caixas.
+- **Migração `20261113000000_permissoes_equipe_interna`:** adiciona `permissoes`, `ativo` e `cargo`; as contas que já existiam recebem todas as permissões (ninguém perde acesso). Conta nova nasce **sem** permissão.
+- **Onde vale:** `exigirAdmin` das ações do admin consulta `PERMISSAO_POR_ACAO` (ação sem regra é recusada); cada página protegida chama `exigirPermissaoDe`; o menu lateral esconde o que a pessoa não pode usar. Sem permissão, a pessoa volta ao painel com aviso e a negativa vai para a auditoria (`permissao.negada`). A lista é lida do banco a cada chamada: revogar vale na hora.
+- **Aprovar x conferir:** quem só tem `atas.aprovar` aprova com base no checklist que o jurídico registrou e não altera o checklist; quem só tem `atas.conformidade` salva a análise e não aprova.
+- **Declaração de conformidade da adesão:** só o jurídico (`adesao.declarar`) declara ou revoga; o consultor continua marcando os itens da instrução.
+- **Tela:** Admin > Usuários > Equipe interna cria contas, edita permissões e ativa/desativa (desativar derruba a sessão na hora). Trava: nunca deixa o sistema sem um gestor de usuários ativo; ninguém desativa a própria conta. O financeiro da SCP continua só por script, com 2FA.
+- **Pendente:** `adesao.registrar` está reservada. Hoje só o consultor dono da oportunidade registra a adesão; falta a tela do admin.
