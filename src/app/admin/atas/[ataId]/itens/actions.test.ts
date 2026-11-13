@@ -15,6 +15,7 @@ const d = vi.hoisted(() => ({
   transaction: vi.fn(),
   documentoFindFirst: vi.fn(),
   lerArquivo: vi.fn(),
+  buscarPncp: vi.fn(),
 }));
 
 vi.mock("next/cache", () => ({ revalidatePath: d.revalidatePath }));
@@ -30,6 +31,11 @@ vi.mock("@/lib/prisma", () => ({
     $transaction: d.transaction,
   },
 }));
+// A busca no PNCP (rede) é testada em src/lib/itens-pncp.test.ts; aqui só o que a ação faz com o resultado.
+vi.mock("@/lib/itens-pncp", async (importOriginal) => {
+  const real = await importOriginal<typeof import("@/lib/itens-pncp")>();
+  return { ...real, buscarItensDaAtaNoPncp: d.buscarPncp };
+});
 // A leitura de Excel e PDF é testada em src/lib/importar-itens-arquivo.test.ts; aqui o leitor real vale por
 // padrão (o CSV passa por ele) e cada teste pode trocá-lo para provar o que a ação faz com o resultado.
 vi.mock("@/lib/importar-itens-arquivo", async (importOriginal) => {
@@ -222,5 +228,54 @@ describe("gravarItens", () => {
 
   it("sem o campo da planilha pede para conferir antes", async () => {
     await expect(gravarItens(ATA, {}, formulario({}))).resolves.toEqual({ erro: "Confira a planilha antes de gravar." });
+  });
+});
+
+describe("conferirItens: buscar os itens no PNCP", () => {
+  const ITEM = { numeroItem: 1, descricao: "Papel sulfite A4", categoria: "Material", unidade: "Caixa", quantidadeRegistrada: 90, valorUnitario: 8.5 };
+  const BUSCA = { ok: true, itens: [ITEM], semResultado: 0, deOutraEmpresa: 2, comMaisDeDuasCasas: 0, truncado: false, empresaNaoConfirmada: false };
+
+  beforeEach(() => {
+    d.ataFindUnique.mockResolvedValue({
+      id: ATA,
+      categoria: "material-escritorio",
+      linkPncp: "https://pncp.gov.br/app/atas/03532661000156/2024/75/1",
+      numeroControlePncp: null,
+      fornecedor: { cnpj: "20.720.905/0002-24" },
+    });
+  });
+
+  it("busca a compra da ata, para a empresa da ata, e põe a lista no campo com o aviso do que ficou de fora", async () => {
+    d.buscarPncp.mockResolvedValue(BUSCA);
+    const r = await conferirItens(ATA, {}, formulario({ fonte: "pncp" }));
+    expect(d.buscarPncp).toHaveBeenCalledWith({ cnpj: "03532661000156", ano: 2024, sequencialCompra: 75 }, { fornecedorCnpj: "20.720.905/0002-24" });
+    expect(r.formato).toBe("pncp");
+    expect(r.texto).toContain("Papel sulfite A4	Caixa	90	8,5");
+    expect(r.previa?.itens).toHaveLength(1);
+    expect(r.previa?.itens[0]).toMatchObject({ quantidadeRegistrada: 90, valorUnitario: "8.50" });
+    expect(r.aviso).toContain("Li 1 item(ns) no PNCP");
+    expect(r.aviso).toContain("2 item(ns) da compra foram ganhos por outra empresa");
+    expect(d.transaction).not.toHaveBeenCalled();
+  });
+
+  it("vale mais que o arquivo, o documento e o texto colado", async () => {
+    d.buscarPncp.mockResolvedValue(BUSCA);
+    await conferirItens(ATA, {}, formulario({ fonte: "pncp", documentoId: "cmdoc0000000000000001", planilha: "lixo", arquivo: new File(["x"], "a.csv") }));
+    expect(d.buscarPncp).toHaveBeenCalledTimes(1);
+    expect(d.documentoFindFirst).not.toHaveBeenCalled();
+    expect(d.lerArquivo).not.toHaveBeenCalled();
+  });
+
+  it("ata sem link nem número do PNCP: explica, sem consultar a rede", async () => {
+    d.ataFindUnique.mockResolvedValue({ id: ATA, categoria: null, linkPncp: null, numeroControlePncp: null, fornecedor: { cnpj: "20720905000224" } });
+    const r = await conferirItens(ATA, {}, formulario({ fonte: "pncp" }));
+    expect(r.erro).toContain("não tem o link do PNCP");
+    expect(d.buscarPncp).not.toHaveBeenCalled();
+  });
+
+  it("falha na consulta ao PNCP vira erro na tela, sem prévia", async () => {
+    d.buscarPncp.mockResolvedValue({ ok: false, erro: "Não consegui consultar o PNCP agora." });
+    const r = await conferirItens(ATA, {}, formulario({ fonte: "pncp" }));
+    expect(r).toEqual({ erro: "Não consegui consultar o PNCP agora." });
   });
 });

@@ -27,10 +27,13 @@ export function ImportarItens({
   ataId,
   itensNaAta,
   documentos = [],
+  podeBuscarNoPncp = false,
 }: {
   ataId: string;
   itensNaAta: number;
   documentos?: DocumentoParaLer[];
+  /** A ata tem o link (ou o número) do PNCP: dá para buscar os itens de lá. */
+  podeBuscarNoPncp?: boolean;
 }) {
   const [conferido, conferir, conferindo] = useActionState(conferirItens.bind(null, ataId), estadoInicial);
   const [gravado, gravar, gravando] = useActionState(gravarItens.bind(null, ataId), estadoInicial);
@@ -49,6 +52,17 @@ export function ImportarItens({
       </p>
 
       <form action={conferir} className="flex flex-col gap-3">
+        {podeBuscarNoPncp && (
+          <div className="flex flex-wrap items-center gap-3 rounded-[var(--raio-grande)] border p-3 text-sm" style={{ borderColor: "var(--cor-borda)" }}>
+            <span className="rotulo-campo">Ata no PNCP</span>
+            <button type="submit" name="fonte" value="pncp" className="botao-atas secundario pequeno" disabled={conferindo}>
+              {conferindo ? "Buscando..." : "Buscar os itens no PNCP"}
+            </button>
+            <span className="text-xs" style={{ color: "var(--cor-texto-3)" }}>
+              Traz só os itens que a empresa da ata ganhou, ao valor homologado. Confira antes de gravar.
+            </span>
+          </div>
+        )}
         {documentos.length > 0 && (
           <div className="flex flex-col gap-2 rounded-[var(--raio-grande)] border p-3" style={{ borderColor: "var(--cor-borda)" }}>
             <span className="rotulo-campo">Documentos anexados à ata</span>

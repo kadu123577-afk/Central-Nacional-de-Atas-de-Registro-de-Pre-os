@@ -1,3 +1,4 @@
+import { jsonOuNull } from "@/lib/itens-pncp";
 import { prisma } from "@/lib/prisma";
 import {
   mapearAtaPncp,
@@ -38,8 +39,8 @@ async function buscarJson<T>(url: string): Promise<T | null> {
     headers: cabecalhos(),
     signal: AbortSignal.timeout(TIMEOUT_MS),
   });
-  if (!resposta.ok) return null;
-  return (await resposta.json()) as T;
+  // 204 (item sem resultado) e corpo vazio não são erro: sem isto, um item sem vencedor derrubava os itens da ata inteira.
+  return (await jsonOuNull(resposta)) as T | null;
 }
 
 /**
@@ -70,7 +71,9 @@ async function buscarItensComFornecedor(
     for (const itemBruto of itensBrutos) {
       const urlResultados = montarUrlResultadosItem(identificador, itemBruto.numeroItem);
       const resultados = await buscarJson<ResultadoItemPncpBruto[]>(urlResultados);
-      const vencedor = resultados?.[0] ? mapearFornecedorVencedor(resultados[0]) : null;
+      // Item sem resultado (ninguém ganhou) não faz parte da ata: fica de fora.
+      if (!resultados?.[0]) continue;
+      const vencedor = mapearFornecedorVencedor(resultados[0]);
 
       // A primeira vitória de pessoa jurídica encontrada vira o fornecedor
       // da ata inteira — nosso cadastro (Sprint 1) associa um único
@@ -78,7 +81,8 @@ async function buscarItensComFornecedor(
       // item fica com o do primeiro item; limitação conhecida.
       if (vencedor && !fornecedor) fornecedor = vencedor;
 
-      itensImportados.push(mapearItemPncp(itemBruto));
+      // Com o resultado, a ata guarda a quantidade e o valor HOMOLOGADOS, não os estimados do edital.
+      itensImportados.push(mapearItemPncp(itemBruto, resultados[0]));
     }
 
     if (!fornecedor) return null;

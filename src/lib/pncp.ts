@@ -189,14 +189,21 @@ export function limparDescricaoPncp(descricaoBruta: string): string {
   return semSufixoNumerico.length > 0 ? semSufixoNumerico : descricaoBruta.trim();
 }
 
-export function mapearItemPncp(bruta: ItemCompraPncpBruto): ItemImportado {
+/**
+ * O item da ata. A compra de origem traz a quantidade e o valor ESTIMADOS no edital; o que vale na ata é o
+ * que foi HOMOLOGADO no resultado do item (conferido na API em 14/11/2026: um item estimado em R$ 0,15 foi
+ * homologado a R$ 0,1005). Com o resultado, usa a quantidade e o valor homologados; sem ele, cai para o estimado.
+ */
+export function mapearItemPncp(bruta: ItemCompraPncpBruto, resultado?: ResultadoItemPncpBruto | null): ItemImportado {
+  const homologado =
+    resultado && resultado.quantidadeHomologada > 0 && resultado.valorUnitarioHomologado > 0 ? resultado : null;
   return {
     numeroItem: bruta.numeroItem,
     descricao: limparDescricaoPncp(bruta.descricao),
     categoria: bruta.materialOuServico === "S" ? "Serviço" : "Material",
     unidade: bruta.unidadeMedida,
-    quantidadeRegistrada: bruta.quantidade,
-    valorUnitario: bruta.valorUnitarioEstimado,
+    quantidadeRegistrada: homologado ? homologado.quantidadeHomologada : bruta.quantidade,
+    valorUnitario: homologado ? homologado.valorUnitarioHomologado : bruta.valorUnitarioEstimado,
   };
 }
 

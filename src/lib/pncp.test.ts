@@ -172,6 +172,31 @@ describe("mapearItemPncp", () => {
     });
   });
 
+  it("com o resultado do item, usa a quantidade e o valor HOMOLOGADOS (o que vale na ata), não os estimados", () => {
+    const resultado: ResultadoItemPncpBruto = {
+      numeroItem: 1,
+      quantidadeHomologada: 4800,
+      valorUnitarioHomologado: 21.3,
+      tipoPessoa: "PJ",
+      niFornecedor: "98765432000188",
+      nomeRazaoSocialFornecedor: "Distribuidora Hospitalar LTDA",
+    };
+    expect(mapearItemPncp(exemplo, resultado)).toMatchObject({ quantidadeRegistrada: 4800, valorUnitario: 21.3 });
+  });
+
+  it("resultado sem quantidade ou sem valor (zero) não serve: cai para o estimado", () => {
+    const base = { numeroItem: 1, tipoPessoa: "PJ" as const, niFornecedor: "1", nomeRazaoSocialFornecedor: "X" };
+    expect(mapearItemPncp(exemplo, { ...base, quantidadeHomologada: 0, valorUnitarioHomologado: 20 })).toMatchObject({
+      quantidadeRegistrada: 5000,
+      valorUnitario: 24.9,
+    });
+    expect(mapearItemPncp(exemplo, { ...base, quantidadeHomologada: 10, valorUnitarioHomologado: 0 })).toMatchObject({
+      quantidadeRegistrada: 5000,
+      valorUnitario: 24.9,
+    });
+    expect(mapearItemPncp(exemplo, null)).toMatchObject({ quantidadeRegistrada: 5000, valorUnitario: 24.9 });
+  });
+
   it("mapeia materialOuServico 'S' como categoria Serviço", () => {
     expect(mapearItemPncp({ ...exemplo, materialOuServico: "S" }).categoria).toBe("Serviço");
   });

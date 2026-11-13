@@ -9,6 +9,7 @@ import { CabecalhoPagina } from "@/components/ui/cabecalho-pagina";
 import { Secao } from "@/components/ui/secao";
 import { Badge } from "@/components/ui/badge";
 import { CATEGORIAS_ATAS, rotuloDaCategoria } from "@/lib/categorias";
+import { compraDaAtaNoPncp } from "@/lib/itens-pncp";
 import { linkPncpDaAta } from "@/lib/link-pncp";
 import { diasRestantesBrasilia, textoDiasRestantes, tomDiasRestantes } from "@/lib/radar-atas-view";
 import { FormularioAdicionarItem } from "../completar/formulario-item";
@@ -147,6 +148,7 @@ export default async function ItensDaAtaPage({ params }: { params: Promise<{ ata
         <ImportarItens
           ataId={ata.id}
           itensNaAta={ata.itens.length}
+          podeBuscarNoPncp={compraDaAtaNoPncp({ linkPncp: linkPncp ?? ata.linkPncp, numeroControlePncp: ata.numeroControlePncp }) !== null}
           documentos={ata.documentos.map((d) => ({
             id: d.id,
             nomeArquivo: d.nomeArquivo,

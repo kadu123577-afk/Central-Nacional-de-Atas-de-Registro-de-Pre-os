@@ -11,6 +11,7 @@ import {
   type ItemImportado,
 } from "@/lib/importar-itens";
 import { lerArquivoDeItens } from "@/lib/importar-itens-arquivo";
+import { avisoDoPncp, buscarItensDaAtaNoPncp, compraDaAtaNoPncp, itensDoPncpParaTexto } from "@/lib/itens-pncp";
 import { exigirPermissaoDe } from "@/lib/permissoes-db";
 import { prisma } from "@/lib/prisma";
 
@@ -19,7 +20,8 @@ import { prisma } from "@/lib/prisma";
  * entraria e o que está errado, sem gravar; "Gravar" lê de novo o mesmo texto e só grava se não
  * houver nenhum erro (tudo ou nada). A fonte pode ser o texto colado, um arquivo (Excel .xlsx, PDF
  * ou CSV) ou o documento já anexado à ata (PDF ou Excel): arquivo e PDF viram o mesmo texto de
- * planilha, que volta para o campo para a pessoa conferir e corrigir. Exige "atas.itens" (ou
+ * planilha, que volta para o campo para a pessoa conferir e corrigir. Também dá para buscar os itens no PNCP
+ * (botão "Buscar os itens no PNCP", só com o link ou o número da ata guardados), ao valor homologado. Exige "atas.itens" (ou
  * "atas.captar"), conferida antes de ler o formulário. O id da ata vem do navegador: só passa o que
  * tem forma de id e existe.
  */
@@ -30,8 +32,8 @@ export interface EstadoImportacaoItens {
   /** O texto conferido, devolvido para o botão "Gravar" reenviar o mesmo conteúdo. */
   texto?: string;
   gravados?: number;
-  /** De que tipo era o arquivo lido (para a tela dizer "Li o PDF", "Li o Excel"). */
-  formato?: "xlsx" | "pdf" | "texto";
+  /** De onde veio o texto lido (para a tela dizer "Li o PDF", "Li o Excel"). */
+  formato?: "xlsx" | "pdf" | "texto" | "pncp";
   /** Recado sobre o que foi lido e o que conferir. */
   aviso?: string;
   /** Linhas do PDF que não pareciam item (para a pessoa digitar, se forem). */
@@ -54,7 +56,7 @@ async function exigirCaptacao(): Promise<string> {
 
 interface TextoLido {
   texto: string;
-  formato?: "xlsx" | "pdf" | "texto";
+  formato?: "xlsx" | "pdf" | "texto" | "pncp";
   aviso?: string;
   naoLidas?: string[];
 }
@@ -74,7 +76,19 @@ async function lerArquivo(nome: string, bytes: Uint8Array): Promise<TextoLido | 
  * De onde vem o texto da planilha, em ordem de prioridade: o documento já anexado à ata (botão
  * "Ler itens deste documento"), o arquivo enviado (Excel, PDF ou CSV) e, por último, o que foi colado.
  */
-async function lerTexto(formData: FormData, ataId: string): Promise<TextoLido | { erro: string }> {
+async function lerTexto(formData: FormData, ata: AtaDaImportacao): Promise<TextoLido | { erro: string }> {
+  const ataId = ata.id;
+
+  if (formData.get("fonte") === "pncp") {
+    const compra = compraDaAtaNoPncp({ linkPncp: ata.linkPncp, numeroControlePncp: ata.numeroControlePncp });
+    if (!compra) {
+      return { erro: "Esta ata não tem o link do PNCP guardado. Use o PDF, o Excel ou cole as células." };
+    }
+    const busca = await buscarItensDaAtaNoPncp(compra, { fornecedorCnpj: ata.fornecedor.cnpj });
+    if (!busca.ok) return { erro: busca.erro };
+    return { texto: itensDoPncpParaTexto(busca.itens), formato: "pncp", aviso: avisoDoPncp(busca) };
+  }
+
   const documentoId = formData.get("documentoId");
   if (typeof documentoId === "string" && documentoId !== "") {
     if (!idComFormaValida(documentoId)) return { erro: "Documento inválido. Atualize a página." };
@@ -95,9 +109,20 @@ async function lerTexto(formData: FormData, ataId: string): Promise<TextoLido | 
   return { texto: typeof colado === "string" ? colado : "" };
 }
 
-async function carregarAta(ataId: unknown): Promise<{ id: string; categoria: string | null } | null> {
+interface AtaDaImportacao {
+  id: string;
+  categoria: string | null;
+  linkPncp: string | null;
+  numeroControlePncp: string | null;
+  fornecedor: { cnpj: string };
+}
+
+async function carregarAta(ataId: unknown): Promise<AtaDaImportacao | null> {
   if (!idComFormaValida(ataId)) return null;
-  return prisma.ata.findUnique({ where: { id: ataId }, select: { id: true, categoria: true } });
+  return prisma.ata.findUnique({
+    where: { id: ataId },
+    select: { id: true, categoria: true, linkPncp: true, numeroControlePncp: true, fornecedor: { select: { cnpj: true } } },
+  });
 }
 
 export async function conferirItens(
@@ -109,7 +134,7 @@ export async function conferirItens(
   const ata = await carregarAta(ataId);
   if (!ata) return { erro: "Ata não encontrada." };
 
-  const lido = await lerTexto(formData, ata.id);
+  const lido = await lerTexto(formData, ata);
   if ("erro" in lido) return { erro: lido.erro };
   if (lido.texto.length > LIMITE_CARACTERES_IMPORTACAO) {
     return { erro: "O arquivo tem texto demais. Divida a planilha em partes menores." };
