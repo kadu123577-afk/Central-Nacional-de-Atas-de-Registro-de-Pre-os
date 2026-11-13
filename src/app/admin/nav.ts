@@ -23,7 +23,13 @@ export const NAV_ADMIN: ItemNav[] = [
   { rotulo: "Prospecção de fornecedores", href: "/admin/prospeccao-fornecedores", grupo: "Captação e aprovação", permissoes: ["atas.captar"] },
   { rotulo: "Fornecedores", href: "/admin/fornecedores", grupo: "Captação e aprovação", permissoes: ["atas.captar"] },
 
-  // Atividades 8 a 11: o município pedido, liberado, abordado e instruído.
+  // Atividades 8 a 17: o município pedido, liberado, abordado, instruído, aderido, entregue e cobrado.
+  {
+    rotulo: "Ciclo da adesão",
+    href: "/admin/ciclo-adesao",
+    grupo: "Venda",
+    permissoes: ["municipios.liberar", "adesao.instruir", "adesao.declarar", "adesao.registrar", "adesao.acompanhar", "comissao.cobrar"],
+  },
   { rotulo: "Atas", href: "/atas", grupo: "Venda", ativoEm: ["/admin/atas"] },
   { rotulo: "Negociações", href: "/admin/negociacoes", grupo: "Venda", permissoes: ["municipios.liberar"] },
   { rotulo: "Pipeline", href: "/admin/pipeline", grupo: "Venda" },

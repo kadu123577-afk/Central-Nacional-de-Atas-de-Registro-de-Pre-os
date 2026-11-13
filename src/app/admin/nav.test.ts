@@ -36,6 +36,7 @@ describe("menu do admin, pelas etapas do workflow", () => {
   it("as telas novas do workflow estão no menu, cada uma na sua etapa", () => {
     const grupoDe = (href: string) => NAV_ADMIN.find((i) => i.href === href)?.grupo;
     expect(grupoDe("/admin/ciclo")).toBe("Captação e aprovação");
+    expect(grupoDe("/admin/ciclo-adesao")).toBe("Venda");
     expect(grupoDe("/admin/negociacoes")).toBe("Venda");
     expect(grupoDe("/admin/adesoes")).toBe("Adesão e entrega");
     expect(grupoDe("/admin/feriados")).toBe("Cadastros");

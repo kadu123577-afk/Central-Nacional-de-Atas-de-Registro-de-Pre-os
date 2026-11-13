@@ -11,11 +11,15 @@ import { normalizarMapa, resumirInstrucao } from "@/lib/instrucao-adesao";
  */
 export interface ItemDaFilaDeInstrucao {
   id: string;
+  ataId: string;
   municipio: string;
   uf: string | null;
   ataNumero: string;
   consultor: string;
   prazoEm: Date | null;
+  /** Quando a instrução começou e quando foi mexida pela última vez (null = nada marcado ainda). */
+  instrucaoCriadaEm: Date | null;
+  instrucaoAtualizadaEm: Date | null;
   obrigatoriosFeitos: number;
   obrigatoriosTotal: number;
   /** Todos os itens obrigatórios feitos: pronto para o jurídico declarar. */
@@ -45,11 +49,12 @@ export async function carregarFilaDaInstrucao(limite = 300): Promise<FilaDaInstr
       take: limite,
       select: {
         id: true,
+        ataId: true,
         prazoEm: true,
         entidadeAlvo: { select: { nome: true, municipio: true, uf: true } },
         ata: { select: { numero: true } },
         vendedor: { select: { nome: true } },
-        instrucao: { select: { itens: true } },
+        instrucao: { select: { itens: true, criadoEm: true, atualizadoEm: true } },
       },
     }),
   ]);
@@ -58,11 +63,14 @@ export async function carregarFilaDaInstrucao(limite = 300): Promise<FilaDaInstr
     const resumo = resumirInstrucao(normalizarMapa(l.instrucao?.itens ?? {}));
     return {
       id: l.id,
+      ataId: l.ataId,
       municipio: l.entidadeAlvo.municipio ?? l.entidadeAlvo.nome,
       uf: l.entidadeAlvo.uf,
       ataNumero: l.ata.numero,
       consultor: l.vendedor.nome,
       prazoEm: l.prazoEm,
+      instrucaoCriadaEm: l.instrucao?.criadoEm ?? null,
+      instrucaoAtualizadaEm: l.instrucao?.atualizadoEm ?? null,
       obrigatoriosFeitos: resumo.obrigatoriosFeitos,
       obrigatoriosTotal: resumo.obrigatoriosTotal,
       prontoParaDeclarar: resumo.completo,

@@ -201,7 +201,11 @@ export function situacaoDoPrazo(
   agora: Date,
   feriados?: Feriados,
 ): SituacaoDoPrazo {
-  const vencimento = somarDiasUteis(desde, etapa.prazoDiasUteis, feriados);
+  return situacaoDoVencimento(somarDiasUteis(desde, etapa.prazoDiasUteis, feriados), agora, feriados);
+}
+
+/** Em dia, vence hoje ou atrasou, para um vencimento já conhecido (tudo em dias úteis). */
+export function situacaoDoVencimento(vencimento: Date, agora: Date, feriados?: Feriados): SituacaoDoPrazo {
   const diasUteis = diasUteisEntre(agora, vencimento, feriados);
   return { vencimento, diasUteis, tom: diasUteis < 0 ? "atrasado" : diasUteis === 0 ? "hoje" : "ok" };
 }
