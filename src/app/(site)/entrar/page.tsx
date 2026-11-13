@@ -51,7 +51,8 @@ export default async function PaginaEntrar({ searchParams }: { searchParams: Pro
           <p>
             Com o acesso, o seu órgão pede a adesão a uma ata e a equipe da Central cuida do resto:
             confere itens e saldo, monta o pedido, envia ao gerenciador e acompanha as respostas. O
-            fornecedor vê os pedidos que chegam para as atas dele.
+            fornecedor vê os pedidos que chegam para as atas dele. A equipe e os consultores da Central
+            entram por aqui também: o sistema leva cada pessoa à sua área.
           </p>
         </div>
         <ul className="entrar__lista">

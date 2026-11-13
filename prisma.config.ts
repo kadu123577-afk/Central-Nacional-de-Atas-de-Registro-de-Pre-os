@@ -11,6 +11,8 @@ export default defineConfig({
   },
   engine: "classic",
   datasource: {
-    url: env("DATABASE_URL"),
+    // "prisma generate" (rodado no npm ci, antes de o banco existir) não conecta: um valor qualquer basta.
+    // Os demais comandos (migrate deploy) exigem DATABASE_URL de verdade.
+    url: process.argv.includes("generate") ? (process.env.DATABASE_URL ?? "postgresql://sem-banco/sem-banco") : env("DATABASE_URL"),
   },
 });

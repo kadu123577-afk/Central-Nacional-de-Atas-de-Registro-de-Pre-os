@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   if (!SITE.indexar) return [];
 
-  const fixas: MetadataRoute.Sitemap = ["", "/catalogo", "/termos-de-uso", "/politica-privacidade"].map(
+  const fixas: MetadataRoute.Sitemap = [...(process.env.RAIZ_ABRE_LOGIN === "nao" ? [""] : []), "/catalogo", "/termos-de-uso", "/politica-privacidade"].map(
     (caminho) => ({ url: `${SITE.url}${caminho}` }),
   );
 

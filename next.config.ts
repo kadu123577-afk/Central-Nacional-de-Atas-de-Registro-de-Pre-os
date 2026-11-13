@@ -45,6 +45,12 @@ const cabecalhosDeSeguranca = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // Um link só (14/11/2026): o endereço raiz abre a tela de entrada, e depois do login a pessoa
+  // vai para a área dela. O catálogo público continua em /catalogo. RAIZ_ABRE_LOGIN=nao devolve a
+  // vitrine à raiz. O valor é lido na hora do build.
+  async redirects() {
+    return process.env.RAIZ_ABRE_LOGIN === "nao" ? [] : [{ source: "/", destination: "/entrar", permanent: false }];
+  },
   async headers() {
     return [
       { source: "/:path*", headers: cabecalhosDeSeguranca },

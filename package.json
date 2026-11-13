@@ -6,6 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "postinstall": "prisma generate",
+    "db:migrar": "prisma migrate deploy",
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -46,5 +48,8 @@
     "tsx": "^4.23.13",
     "typescript": "^5",
     "vitest": "^2.1.9"
+  },
+  "engines": {
+    "node": ">=20.9.0"
   }
 }
