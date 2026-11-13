@@ -17,7 +17,12 @@ const dobles = vi.hoisted(() => ({
   adminFindUnique: vi.fn(),
   adminUpdate: vi.fn(),
   adminCount: vi.fn(),
+  adminDeleteMany: vi.fn(),
   vendedorUpdate: vi.fn(),
+  vendedorFindUnique: vi.fn(),
+  vendedorDelete: vi.fn(),
+  credenciamentoDeleteMany: vi.fn(),
+  transaction: vi.fn(),
 }));
 
 vi.mock("next/cache", () => ({ revalidatePath: dobles.revalidatePath }));
@@ -32,12 +37,23 @@ vi.mock("@/lib/prisma", () => ({
       findUnique: dobles.adminFindUnique,
       update: dobles.adminUpdate,
       count: dobles.adminCount,
+      deleteMany: dobles.adminDeleteMany,
     },
-    vendedor: { update: dobles.vendedorUpdate },
+    vendedor: { update: dobles.vendedorUpdate, findUnique: dobles.vendedorFindUnique, delete: dobles.vendedorDelete },
+    credenciamentoConsultor: { deleteMany: dobles.credenciamentoDeleteMany },
+    $transaction: dobles.transaction,
   },
 }));
 
-import { alternarAtivoMembro, atualizarMembroEquipe, criarMembroEquipe, redefinirSenha } from "./equipe-actions";
+import {
+  alternarAtivoMembro,
+  atualizarMembroEquipe,
+  atualizarVendedor,
+  criarMembroEquipe,
+  excluirMembroEquipe,
+  excluirVendedor,
+  redefinirSenha,
+} from "./equipe-actions";
 
 const SENHA_BOA = "Chuva-de-Ouro-2026!";
 
@@ -58,6 +74,10 @@ beforeEach(() => {
   dobles.adminUpdate.mockResolvedValue({});
   dobles.adminCount.mockResolvedValue(1);
   dobles.vendedorUpdate.mockResolvedValue({});
+  dobles.adminDeleteMany.mockResolvedValue({ count: 1 });
+  dobles.vendedorDelete.mockResolvedValue({});
+  dobles.credenciamentoDeleteMany.mockResolvedValue({ count: 0 });
+  dobles.transaction.mockResolvedValue([]);
   dobles.redirect.mockImplementation((destino: string) => {
     throw new Error(`NEXT_REDIRECT:${destino}`);
   });
@@ -69,6 +89,9 @@ describe("sessão e permissão primeiro", () => {
     ["atualizarMembroEquipe", () => atualizarMembroEquipe({}, formulario({}))],
     ["alternarAtivoMembro", () => alternarAtivoMembro({}, formulario({}))],
     ["redefinirSenha", () => redefinirSenha({}, formulario({}))],
+    ["excluirMembroEquipe", () => excluirMembroEquipe({}, formulario({}))],
+    ["atualizarVendedor", () => atualizarVendedor({}, formulario({}))],
+    ["excluirVendedor", () => excluirVendedor({}, formulario({}))],
   ])("%s sem sessão manda para o login e não toca no banco", async (_nome, chamar) => {
     dobles.adminIdLogado.mockResolvedValue(null);
     await expect(chamar()).rejects.toThrow("NEXT_REDIRECT:/admin/login");
@@ -82,6 +105,9 @@ describe("sessão e permissão primeiro", () => {
     ["atualizarMembroEquipe", () => atualizarMembroEquipe({}, {} as FormData)],
     ["alternarAtivoMembro", () => alternarAtivoMembro({}, {} as FormData)],
     ["redefinirSenha", () => redefinirSenha({}, {} as FormData)],
+    ["excluirMembroEquipe", () => excluirMembroEquipe({}, {} as FormData)],
+    ["atualizarVendedor", () => atualizarVendedor({}, {} as FormData)],
+    ["excluirVendedor", () => excluirVendedor({}, {} as FormData)],
   ])("%s sem a permissão de gerir usuários para antes de ler o formulário", async (_nome, chamar) => {
     dobles.exigirPermissaoDe.mockRejectedValue(new Error("NEXT_REDIRECT:/admin?acesso=negado"));
     await expect(chamar()).rejects.toThrow("NEXT_REDIRECT:/admin?acesso=negado");
@@ -320,5 +346,161 @@ describe("redefinirSenha", () => {
     dobles.adminUpdate.mockRejectedValue(new Error("P2025"));
     await expect(redefinirSenha({}, formulario({ tipo: "admin", id: "adm9" }))).resolves.toEqual({ erro: "Conta não encontrada." });
     expect(dobles.registrarAuditoria).not.toHaveBeenCalled();
+  });
+});
+
+describe("atualizarMembroEquipe: nome e e-mail", () => {
+  const ALVO = { id: "adm2", ativo: true, cargo: null, permissoes: ["atas.contrato"], nome: "Nome Antigo", email: "antigo@exemplo.com" };
+
+  it("muda o nome e o e-mail (em minúsculas) junto com cargo e permissões, e a trilha diz o que mudou sem repetir os valores", async () => {
+    dobles.adminFindUnique.mockResolvedValue(ALVO);
+    const r = await atualizarMembroEquipe(
+      {},
+      formulario({ adminId: "adm2", nome: "  Nome Novo ", email: " NOVO@Exemplo.com ", cargo: "Jurídico", permissao: ["atas.contrato"] }),
+    );
+    expect(r).toEqual({ ok: true });
+    expect(dobles.adminUpdate).toHaveBeenCalledWith({
+      where: { id: "adm2" },
+      data: { cargo: "Jurídico", permissoes: ["atas.contrato"], nome: "Nome Novo", email: "novo@exemplo.com" },
+    });
+    const detalhe = dobles.registrarAuditoria.mock.calls[0][0].detalhe as string;
+    expect(detalhe).toContain("nome alterado");
+    expect(detalhe).toContain("e-mail alterado");
+    expect(detalhe).not.toContain("Nome Novo");
+    expect(detalhe).not.toContain("novo@exemplo.com");
+  });
+
+  it("nome e e-mail iguais ao que já estava não vão para o banco", async () => {
+    dobles.adminFindUnique.mockResolvedValue(ALVO);
+    await atualizarMembroEquipe({}, formulario({ adminId: "adm2", nome: "Nome Antigo", email: "antigo@exemplo.com", permissao: ["atas.contrato"] }));
+    expect(dobles.adminUpdate.mock.calls[0][0].data).toEqual({ cargo: null, permissoes: ["atas.contrato"] });
+  });
+
+  it("recusa nome vazio e e-mail inválido, sem gravar", async () => {
+    dobles.adminFindUnique.mockResolvedValue(ALVO);
+    expect(await atualizarMembroEquipe({}, formulario({ adminId: "adm2", nome: "  ", email: "a@b.co" }))).toEqual({ erro: "Informe o nome." });
+    expect(await atualizarMembroEquipe({}, formulario({ adminId: "adm2", nome: "X", email: "sem-arroba" }))).toEqual({ erro: "Informe um e-mail válido." });
+    expect(dobles.adminUpdate).not.toHaveBeenCalled();
+  });
+
+  it("e-mail que outra conta já usa: avisa, sem derrubar", async () => {
+    dobles.adminFindUnique.mockResolvedValue(ALVO);
+    dobles.adminUpdate.mockRejectedValue({ code: "P2002" });
+    const r = await atualizarMembroEquipe({}, formulario({ adminId: "adm2", nome: "X", email: "outro@exemplo.com", permissao: ["atas.contrato"] }));
+    expect(r).toEqual({ erro: "Já existe uma conta com esse e-mail." });
+    expect(dobles.registrarAuditoria).not.toHaveBeenCalled();
+  });
+
+  it("outro erro do banco não é confundido com e-mail repetido", async () => {
+    dobles.adminFindUnique.mockResolvedValue(ALVO);
+    dobles.adminUpdate.mockRejectedValue(new Error("banco fora"));
+    await expect(atualizarMembroEquipe({}, formulario({ adminId: "adm2", nome: "X", email: "a@b.co" }))).rejects.toThrow("banco fora");
+  });
+});
+
+describe("excluirMembroEquipe", () => {
+  it("exclui outra conta em definitivo e audita quem foi, sem o e-mail", async () => {
+    dobles.adminFindUnique.mockResolvedValue({ id: "adm2", nome: "Fulano de Tal", cargo: "Estagiário", ativo: true, permissoes: ["atas.itens"] });
+    await expect(excluirMembroEquipe({}, formulario({ adminId: "adm2" }))).resolves.toEqual({ ok: true });
+    expect(dobles.adminDeleteMany).toHaveBeenCalledWith({ where: { id: "adm2" } });
+    expect(dobles.registrarAuditoria.mock.calls[0][0]).toMatchObject({
+      acao: "admin.excluirMembroEquipe",
+      alvo: "adm2",
+      detalhe: "conta de Fulano de Tal (Estagiário) excluída",
+    });
+    expect(dobles.revalidatePath).toHaveBeenCalledWith("/admin/usuarios");
+  });
+
+  it("ninguém exclui a própria conta", async () => {
+    await expect(excluirMembroEquipe({}, formulario({ adminId: "adm1" }))).resolves.toEqual({ erro: "Você não pode excluir a própria conta." });
+    expect(dobles.adminFindUnique).not.toHaveBeenCalled();
+    expect(dobles.adminDeleteMany).not.toHaveBeenCalled();
+  });
+
+  it("recusa excluir o último gestor de usuários ativo, mas deixa excluir um gestor já desativado", async () => {
+    dobles.adminFindUnique.mockResolvedValue({ id: "adm2", nome: "G", cargo: null, ativo: true, permissoes: ["usuarios.gerir"] });
+    dobles.adminCount.mockResolvedValue(0);
+    expect((await excluirMembroEquipe({}, formulario({ adminId: "adm2" }))).erro).toMatch(/sem nenhum gestor de usuários ativo/);
+    expect(dobles.adminDeleteMany).not.toHaveBeenCalled();
+
+    dobles.adminFindUnique.mockResolvedValue({ id: "adm2", nome: "G", cargo: null, ativo: false, permissoes: ["usuarios.gerir"] });
+    await expect(excluirMembroEquipe({}, formulario({ adminId: "adm2" }))).resolves.toEqual({ ok: true });
+  });
+
+  it("conta que não existe, id fora do formato e exclusão que não achou nada", async () => {
+    dobles.adminFindUnique.mockResolvedValue(null);
+    expect(await excluirMembroEquipe({}, formulario({ adminId: "adm2" }))).toEqual({ erro: "Conta não encontrada." });
+    expect(await excluirMembroEquipe({}, formulario({ adminId: "x y; drop" }))).toEqual({ erro: "Conta não encontrada." });
+    dobles.adminFindUnique.mockResolvedValue({ id: "adm2", nome: "G", cargo: null, ativo: true, permissoes: [] });
+    dobles.adminDeleteMany.mockResolvedValue({ count: 0 });
+    expect(await excluirMembroEquipe({}, formulario({ adminId: "adm2" }))).toEqual({ erro: "Conta não encontrada." });
+    expect(dobles.registrarAuditoria).not.toHaveBeenCalled();
+  });
+});
+
+describe("atualizarVendedor", () => {
+  const ALVO = { id: "v1", nome: "Leide", email: "leide@exemplo.com", tipo: "interno" };
+
+  it("muda nome, e-mail e tipo e audita só o que mudou", async () => {
+    dobles.vendedorFindUnique.mockResolvedValue(ALVO);
+    const r = await atualizarVendedor({}, formulario({ vendedorId: "v1", nome: " Leide Souza ", email: "LEIDE.S@exemplo.com", tipo: "externo" }));
+    expect(r).toEqual({ ok: true });
+    expect(dobles.vendedorUpdate).toHaveBeenCalledWith({
+      where: { id: "v1" },
+      data: { nome: "Leide Souza", email: "leide.s@exemplo.com", tipo: "externo" },
+    });
+    expect(dobles.registrarAuditoria.mock.calls[0][0]).toMatchObject({ acao: "admin.atualizarVendedor", detalhe: "alterado: nome, e-mail, tipo" });
+  });
+
+  it("sem mudança nada é gravado; dado inválido é recusado", async () => {
+    dobles.vendedorFindUnique.mockResolvedValue(ALVO);
+    expect(await atualizarVendedor({}, formulario({ vendedorId: "v1", nome: "Leide", email: "leide@exemplo.com", tipo: "interno" }))).toEqual({ ok: true });
+    expect(dobles.vendedorUpdate).not.toHaveBeenCalled();
+    expect((await atualizarVendedor({}, formulario({ vendedorId: "v1", nome: "", email: "a@b.co", tipo: "interno" }))).erro).toBe("Informe o nome.");
+    expect((await atualizarVendedor({}, formulario({ vendedorId: "v1", nome: "X", email: "ruim", tipo: "interno" }))).erro).toBe("Informe um e-mail válido.");
+    expect((await atualizarVendedor({}, formulario({ vendedorId: "v1", nome: "X", email: "a@b.co", tipo: "gerente" }))).erro).toBe("Selecione um tipo de consultor válido.");
+    expect(dobles.vendedorUpdate).not.toHaveBeenCalled();
+  });
+
+  it("e-mail repetido avisa; consultor que não existe também", async () => {
+    dobles.vendedorFindUnique.mockResolvedValue(ALVO);
+    dobles.vendedorUpdate.mockRejectedValue({ code: "P2002" });
+    expect(await atualizarVendedor({}, formulario({ vendedorId: "v1", nome: "Leide", email: "outro@exemplo.com", tipo: "interno" }))).toEqual({ erro: "Já existe uma conta com esse e-mail." });
+    dobles.vendedorFindUnique.mockResolvedValue(null);
+    expect(await atualizarVendedor({}, formulario({ vendedorId: "v1", nome: "X", email: "a@b.co", tipo: "interno" }))).toEqual({ erro: "Consultor não encontrado." });
+  });
+});
+
+describe("excluirVendedor", () => {
+  const SEM_HISTORIA = { id: "v1", nome: "Leide", _count: { atas: 0, oportunidades: 0, pedidosNegociacao: 0 } };
+
+  it("exclui o consultor sem história junto com o credenciamento dele, numa transação, e audita", async () => {
+    dobles.vendedorFindUnique.mockResolvedValue(SEM_HISTORIA);
+    await expect(excluirVendedor({}, formulario({ vendedorId: "v1" }))).resolves.toEqual({ ok: true });
+    expect(dobles.transaction).toHaveBeenCalledTimes(1);
+    expect(dobles.credenciamentoDeleteMany).toHaveBeenCalledWith({ where: { vendedorId: "v1" } });
+    expect(dobles.vendedorDelete).toHaveBeenCalledWith({ where: { id: "v1" } });
+    expect(dobles.registrarAuditoria.mock.calls[0][0]).toMatchObject({ acao: "admin.excluirVendedor", alvo: "v1" });
+  });
+
+  it.each([
+    ["atas", { atas: 1, oportunidades: 0, pedidosNegociacao: 0 }],
+    ["municípios", { atas: 0, oportunidades: 3, pedidosNegociacao: 0 }],
+    ["pedidos", { atas: 0, oportunidades: 0, pedidosNegociacao: 2 }],
+  ])("com %s no histórico não exclui: manda desativar", async (_nome, contagem) => {
+    dobles.vendedorFindUnique.mockResolvedValue({ ...SEM_HISTORIA, _count: contagem });
+    const r = await excluirVendedor({}, formulario({ vendedorId: "v1" }));
+    expect(r.erro).toContain("Desative a conta");
+    expect(dobles.transaction).not.toHaveBeenCalled();
+    expect(dobles.registrarAuditoria).not.toHaveBeenCalled();
+  });
+
+  it("falha do banco na exclusão vira aviso, sem auditar; consultor inexistente também", async () => {
+    dobles.vendedorFindUnique.mockResolvedValue(SEM_HISTORIA);
+    dobles.transaction.mockRejectedValue(new Error("fk"));
+    expect((await excluirVendedor({}, formulario({ vendedorId: "v1" }))).erro).toContain("Desative a conta");
+    expect(dobles.registrarAuditoria).not.toHaveBeenCalled();
+    dobles.vendedorFindUnique.mockResolvedValue(null);
+    expect(await excluirVendedor({}, formulario({ vendedorId: "v1" }))).toEqual({ erro: "Consultor não encontrado." });
   });
 });

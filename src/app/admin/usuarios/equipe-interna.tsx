@@ -10,6 +10,7 @@ import {
   alternarAtivoMembro,
   atualizarMembroEquipe,
   criarMembroEquipe,
+  excluirMembroEquipe,
   type EstadoEquipe,
 } from "./equipe-actions";
 
@@ -122,13 +123,17 @@ function EditarMembro({ membro }: { membro: MembroEquipe }) {
 
   return (
     <details>
-      <summary className="botao-atas secundario pequeno cursor-pointer list-none">Editar permissões</summary>
+      <summary className="botao-atas secundario pequeno cursor-pointer list-none">Editar</summary>
       <form action={formAction} className="mt-3 flex flex-col gap-3">
         <input type="hidden" name="adminId" value={membro.id} />
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <Campo label="Nome" name="nome" required defaultValue={membro.nome} />
+          <Campo label="E-mail" name="email" type="email" required defaultValue={membro.email} />
+        </div>
         <Campo label="Cargo" name="cargo" defaultValue={membro.cargo ?? ""} />
         <ListaPermissoes marcadas={marcadas} aoMudar={setMarcadas} />
         {estado.erro && <Aviso tom="critico">{estado.erro}</Aviso>}
-        {estado.ok && <Aviso tom="atencao">Permissões salvas.</Aviso>}
+        {estado.ok && <Aviso tom="atencao">Dados salvos.</Aviso>}
         <button type="submit" disabled={pendente} className="botao-atas pequeno self-start">
           {pendente ? "Salvando..." : "Salvar"}
         </button>
@@ -145,6 +150,30 @@ function BotaoAtivo({ membro, ehVoce }: { membro: MembroEquipe; ehVoce: boolean 
       <input type="hidden" name="adminId" value={membro.id} />
       <button type="submit" disabled={pendente} className={`botao-atas pequeno ${membro.ativo ? "critico" : ""}`}>
         {membro.ativo ? "Desativar" : "Reativar"}
+      </button>
+      {estado.erro && <Aviso tom="critico">{estado.erro}</Aviso>}
+    </form>
+  );
+}
+
+/** Excluir a conta da equipe, em definitivo (nunca a própria). Para quem já trabalhou no sistema, desativar costuma ser melhor. */
+function BotaoExcluirMembro({ membro, ehVoce }: { membro: MembroEquipe; ehVoce: boolean }) {
+  const [estado, formAction, pendente] = useActionState(excluirMembroEquipe, estadoInicial);
+  if (ehVoce) return null;
+  return (
+    <form action={formAction} className="flex flex-col gap-1">
+      <input type="hidden" name="adminId" value={membro.id} />
+      <button
+        type="submit"
+        disabled={pendente}
+        className="botao-atas critico pequeno"
+        onClick={(e) => {
+          if (!window.confirm(`Excluir a conta de ${membro.nome} em definitivo? Isso não pode ser desfeito. Para só impedir o acesso, use Desativar.`)) {
+            e.preventDefault();
+          }
+        }}
+      >
+        {pendente ? "Excluindo..." : "Excluir"}
       </button>
       {estado.erro && <Aviso tom="critico">{estado.erro}</Aviso>}
     </form>
@@ -179,6 +208,7 @@ export function EquipeInterna({ membros, adminLogadoId }: { membros: MembroEquip
                     {m.totpAtivo && <Badge tom="neutro">2FA</Badge>}
                     {m.acessoFinanceiro && <Badge tom="marca">Financeiro SCP</Badge>}
                     <BotaoAtivo membro={m} ehVoce={m.id === adminLogadoId} />
+                    <BotaoExcluirMembro membro={m} ehVoce={m.id === adminLogadoId} />
                   </div>
                 </div>
                 <p className="text-[13px]" style={{ color: "var(--cor-texto-2)" }}>

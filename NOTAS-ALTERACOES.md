@@ -172,3 +172,13 @@ que interessa nos pontos parcialmente corretos. Um commit + push por etapa.
 - **Limite conhecido:** o sistema guarda o valor unitário com 2 casas decimais, mas há itens com preço de 4 casas (R$ 0,1005 por grama). O aviso conta quantos itens serão arredondados. Ampliar para 4 casas é uma mudança do banco: decisão pendente.
 - **Página inicial:** cada tarefa agora mostra as primeiras atas, municípios ou cartões que esperam (uma linha cada, com o link direto) e "e mais N · ver todas".
 - **Testes:** 2.649 passando (eram 2.624).
+
+## Gestão de usuários: criar, editar, desativar e excluir (14/11/2026)
+- **Pedido de Carlos:** todos os usuários criados, com troca de senha obrigatória, e as opções de **criar, editar, desativar e excluir** à disposição dele (Carlos Eduardo).
+- **Contas:** a lista de implantação (`seed:equipe`) agora inclui o **Carlos Eduardo** (Gestão, todas as permissões); as sete contas (Carlos Eduardo, estagiário, Dr. Almério, Dr. Marcelo, Dr. Rui, Jorge e Leide) nascem com a senha inicial combinada e **troca obrigatória no primeiro acesso**. O e-mail do Carlos Eduardo na lista (`e-mail padrao da conta, editavel em Usuarios`) é um padrão: ele corrige em **Equipe e conta → Usuários → Editar**.
+- **Equipe interna:** o botão **Editar** agora muda **nome, e-mail**, cargo e permissões (antes só cargo e permissões); novo botão **Excluir** (definitivo, com confirmação). Regras: ninguém exclui nem desativa a própria conta; nunca se exclui, desativa ou tira a permissão do último gestor de usuários ativo; e-mail repetido é recusado. A trilha de auditoria guarda quem fez e o que mudou, **sem repetir nome ou e-mail novos**.
+- **Consultores de vendas:** novos **Editar** (nome, e-mail e tipo) e **Excluir**. A exclusão só vale para consultor **sem história** (nenhuma ata, município ou pedido de negociação); com história, o caminho é **Desativar**.
+- **Quem pode:** quem tem a permissão "Cuidar da gestão de usuários". No perfil de Gestão ela vem junto, então Carlos Eduardo e Jorge podem; para tirar só do Jorge, basta **Editar** e desmarcar.
+- **Não mudou:** órgãos e fornecedores (contas públicas) continuam só com ativar/desativar e liberar o cadastro; excluir conta que já tem pedidos ou atas apagaria história.
+- **Conferido na tela como Carlos Eduardo:** primeiro acesso pede a troca de senha; na tela de Usuários criei, editei (nome e e-mail) e excluí uma conta de teste; a linha dele mostra "(você)" e só o botão Editar.
+- **Testes:** 2.672 passando (eram 2.649).

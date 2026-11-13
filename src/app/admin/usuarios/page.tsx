@@ -27,6 +27,7 @@ import {
 } from "@/lib/credenciamento";
 import { resumoParaAdmin } from "@/lib/credenciamento-view";
 import { AcoesCredenciamento } from "./acoes-credenciamento";
+import { BotaoExcluirVendedor, EditarVendedor } from "./acoes-vendedor";
 import { FormularioNovoVendedor } from "./formulario-vendedor";
 import { EquipeInterna } from "./equipe-interna";
 import { BotaoRedefinirSenha } from "./redefinir-senha";
@@ -151,7 +152,11 @@ export default async function GestaoUsuariosPage() {
                         </form>
                       </div>
                     </div>
-                    <BotaoRedefinirSenha tipo="vendedor" id={v.id} />
+                    <div className="flex flex-wrap items-start gap-3">
+                      <EditarVendedor id={v.id} nome={v.nome} email={v.email} tipo={v.tipo} />
+                      <BotaoRedefinirSenha tipo="vendedor" id={v.id} />
+                      <BotaoExcluirVendedor id={v.id} nome={v.nome} />
+                    </div>
                     {atas.length > 0 && (
                       <div className="flex flex-wrap gap-2">
                         {atas.map((a) => (
