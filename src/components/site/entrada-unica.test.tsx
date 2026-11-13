@@ -46,11 +46,25 @@ describe("formulário de entrada", () => {
     for (const [id, rotulo] of [
       ["email", "E-mail"],
       ["senha", "Senha"],
-      ["codigo", "Código do autenticador (se tiver)"],
     ]) {
       expect(html).toContain(`<label for="${id}">${rotulo}</label>`);
       expect(html).toMatch(new RegExp(`<input[^>]*id="${id}"`));
     }
+  });
+
+  it("o campo do código do autenticador não aparece de saída", () => {
+    const html = desenhar();
+    expect(html).not.toContain("autenticador");
+    expect(html).not.toMatch(/<input[^>]*id="codigo"/);
+    expect(html).not.toContain("se tiver");
+  });
+
+  it("quando o servidor pede o código (conta com 2FA), o campo aparece com rótulo ligado ao campo", () => {
+    d.estado = { erro: "Informe o código de verificação do aplicativo autenticador.", exigeCodigo: true };
+    const html = desenhar();
+    expect(html).toContain('<label for="codigo">Código do autenticador</label>');
+    expect(html).toMatch(/<input[^>]*id="codigo"[^>]*name="codigo"/);
+    expect(html).toContain("Informe o código de verificação do aplicativo autenticador.");
   });
 
   it("o destino do órgão vai escondido no formulário; sem seletor de perfil na etapa inicial", () => {

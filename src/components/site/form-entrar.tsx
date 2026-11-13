@@ -21,8 +21,9 @@ const ESTADO_INICIAL: EstadoEntrar = {};
 type Erros = { email?: string; senha?: string; perfil?: string };
 
 /**
- * Formulário único de entrada: e-mail, senha e, se a pessoa tiver, o código do
- * autenticador. O sistema descobre a área; a tela não pergunta o perfil, a não
+ * Formulário único de entrada: e-mail e senha. O campo do código do autenticador
+ * (2FA) NÃO aparece de saída: só entra na tela depois de o servidor confirmar a
+ * senha e dizer que a conta tem 2FA (retorno com exigeCodigo). O sistema descobre a área; a tela não pergunta o perfil, a não
  * ser quando a mesma senha serve em mais de um (etapa "Escolher perfil", cujos
  * nomes vêm do servidor, só depois de a senha conferir).
  *
@@ -47,6 +48,8 @@ export function FormEntrar({
   const [perfil, setPerfil] = useState("");
   const [opcoes, setOpcoes] = useState<OpcaoPerfilEntrada[] | null>(estado.escolher ?? null);
   const [estadoVisto, setEstadoVisto] = useState(estado);
+  // O campo do código só aparece quando o servidor pede (conta com 2FA, depois de a senha conferir).
+  const [pedirCodigo, setPedirCodigo] = useState(Boolean(estado.exigeCodigo));
   const [mostrar, setMostrar] = useState(false);
   const [caps, setCaps] = useState(false);
   const [erros, setErros] = useState<Erros>({});
@@ -60,6 +63,7 @@ export function FormEntrar({
   if (estado !== estadoVisto) {
     setEstadoVisto(estado);
     if (estado.escolher) setOpcoes(estado.escolher);
+    if (estado.exigeCodigo) setPedirCodigo(true);
   }
 
   useEffect(() => {
@@ -97,6 +101,10 @@ export function FormEntrar({
     if (opcoes) {
       setOpcoes(null);
       setPerfil("");
+    }
+    if (pedirCodigo) {
+      setPedirCodigo(false);
+      setCodigo("");
     }
   }
 
@@ -183,21 +191,23 @@ export function FormEntrar({
               {erros.senha}
             </span>
           </div>
-          <div className="campo">
-            <label htmlFor="codigo">Código do autenticador (se tiver)</label>
-            <input
-              className="entrada"
-              id="codigo"
-              name="codigo"
-              type="text"
-              ref={campoCodigo}
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              maxLength={7}
-              value={codigo}
-              onChange={(e) => setCodigo(e.target.value)}
-            />
-          </div>
+          {pedirCodigo ? (
+            <div className="campo">
+              <label htmlFor="codigo">Código do autenticador</label>
+              <input
+                className="entrada"
+                id="codigo"
+                name="codigo"
+                type="text"
+                ref={campoCodigo}
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength={7}
+                value={codigo}
+                onChange={(e) => setCodigo(e.target.value)}
+              />
+            </div>
+          ) : null}
 
           {opcoes ? (
             <fieldset
