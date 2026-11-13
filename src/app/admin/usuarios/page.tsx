@@ -231,14 +231,16 @@ export default async function GestaoUsuariosPage() {
                     <td className="codigo whitespace-nowrap text-[12.5px]">{f.cnpj}</td>
                     <td>
                       <div className="flex items-center gap-2">
-                        <Badge tom={f.ativo ? "neutro" : "critico"}>{f.ativo ? "Ativo" : "Desativado"}</Badge>
+                        <Badge tom={f.ativo ? "neutro" : f.aguardaLiberacao ? "atencao" : "critico"}>
+                          {f.ativo ? "Ativo" : f.aguardaLiberacao ? "Aguardando liberação" : "Desativado"}
+                        </Badge>
                         <form action={alternarStatusFornecedor}>
                           <input type="hidden" name="fornecedorId" value={f.id} />
                           <button
                             type="submit"
                             className={f.ativo ? "botao-atas critico" : "botao-atas secundario"}
                           >
-                            {f.ativo ? "Desativar" : "Reativar"}
+                            {f.ativo ? "Desativar" : f.aguardaLiberacao ? "Liberar" : "Reativar"}
                           </button>
                         </form>
                       </div>
@@ -282,14 +284,16 @@ export default async function GestaoUsuariosPage() {
                     </td>
                     <td>
                       <div className="flex items-center gap-2">
-                        <Badge tom={o.ativo ? "neutro" : "critico"}>{o.ativo ? "Ativo" : "Desativado"}</Badge>
+                        <Badge tom={o.ativo ? "neutro" : o.aguardaLiberacao ? "atencao" : "critico"}>
+                          {o.ativo ? "Ativo" : o.aguardaLiberacao ? "Aguardando liberação" : "Desativado"}
+                        </Badge>
                         <form action={alternarStatusOrgao}>
                           <input type="hidden" name="orgaoId" value={o.id} />
                           <button
                             type="submit"
                             className={o.ativo ? "botao-atas critico" : "botao-atas secundario"}
                           >
-                            {o.ativo ? "Desativar" : "Reativar"}
+                            {o.ativo ? "Desativar" : o.aguardaLiberacao ? "Liberar" : "Reativar"}
                           </button>
                         </form>
                       </div>

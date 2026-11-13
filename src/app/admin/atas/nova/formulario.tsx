@@ -12,16 +12,35 @@ import { NAV_ADMIN } from "@/app/admin/nav";
 
 const estadoInicial: EstadoCadastroAtaAdmin = {};
 
-export function FormularioNovaAtaAdmin() {
+/** O que o cartão da Captação já sabe (botão "Fechou: cadastrar a ata"): vem preenchido, a equipe confere. */
+export interface InicialNovaAta {
+  captacaoId: string;
+  nomeDoCartao: string;
+  fornecedorNome?: string;
+  fornecedorCnpj?: string;
+  fornecedorEmail?: string;
+  orgaoNome?: string;
+  orgaoUf?: string;
+  orgaoMunicipio?: string;
+  numero?: string;
+  objeto?: string;
+  ataCategoria?: string;
+  /** AAAA-MM-DD. */
+  dataVigenciaFim?: string;
+  linkPncp?: string;
+}
+
+export function FormularioNovaAtaAdmin({ inicial }: { inicial?: InicialNovaAta }) {
   const [estado, formAction, pendente] = useActionState(cadastrarAtaComoAdmin, estadoInicial);
-  const [itens, setItens] = useState(() => [criarChaveItem()]);
+  // Os itens são opcionais aqui: o estagiário cadastra os itens e os saldos na etapa 3.
+  const [itens, setItens] = useState<string[]>([]);
 
   function adicionarItem() {
     setItens((atual) => [...atual, criarChaveItem()]);
   }
 
   function removerItem(chave: string) {
-    setItens((atual) => (atual.length > 1 ? atual.filter((c) => c !== chave) : atual));
+    setItens((atual) => atual.filter((c) => c !== chave));
   }
 
   return (
@@ -41,30 +60,38 @@ export function FormularioNovaAtaAdmin() {
         titulo="Cadastrar"
         destaque="nova ata"
         descricao="Fornecedor, órgão gerenciador, dados da ata e ao menos um item — a ata entra como PENDENTE até ser aprovada na fila de moderação."
-        voltar={{ href: "/atas", rotulo: "Atas" }}
+        voltar={{ href: "/admin/captacao", rotulo: "Captação" }}
       />
 
+      {inicial && (
+        <Aviso tom="info" titulo="Vindo da captação.">
+          Os dados do cartão “{inicial.nomeDoCartao}” já estão aqui. Confira, complete o que falta (número, datas e itens) e
+          cadastre: o cartão fecha sozinho.
+        </Aviso>
+      )}
+
       <form action={formAction} className="flex flex-col gap-6" encType="multipart/form-data">
+        {inicial && <input type="hidden" name="captacaoId" value={inicial.captacaoId} />}
         <Secao
           titulo="Fornecedor"
           descricao="Se já existe um fornecedor com esse CNPJ, os dados dele são atualizados — essa ata entra vinculada a ele, sem duplicar cadastro."
         >
           <div className="flex flex-col gap-4">
-            <Campo label="Razão social" name="fornecedorNome" required />
+            <Campo label="Razão social" name="fornecedorNome" required defaultValue={inicial?.fornecedorNome} />
             <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
-              <Campo label="CNPJ" name="fornecedorCnpj" required />
-              <Campo label="E-mail" name="fornecedorEmail" type="email" required />
+              <Campo label="CNPJ" name="fornecedorCnpj" required defaultValue={inicial?.fornecedorCnpj} />
+              <Campo label="E-mail" name="fornecedorEmail" type="email" required defaultValue={inicial?.fornecedorEmail} />
             </div>
           </div>
         </Secao>
 
         <Secao titulo="Órgão gerenciador">
           <div className="flex flex-col gap-4">
-            <Campo label="Nome" name="orgaoNome" required />
+            <Campo label="Nome" name="orgaoNome" required defaultValue={inicial?.orgaoNome} />
             <Campo label="CNPJ" name="orgaoCnpj" required />
             <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-[120px_1fr]">
-              <Campo label="UF" name="orgaoUf" required />
-              <Campo label="Município" name="orgaoMunicipio" required />
+              <Campo label="UF" name="orgaoUf" required defaultValue={inicial?.orgaoUf} />
+              <Campo label="Município" name="orgaoMunicipio" required defaultValue={inicial?.orgaoMunicipio} />
             </div>
             <label className="block text-sm">
               <span className="rotulo-campo">Esfera</span>
@@ -85,8 +112,8 @@ export function FormularioNovaAtaAdmin() {
         <Secao titulo="Ata" destaque>
           <div className="flex flex-col gap-4">
             <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-[200px_1fr]">
-              <Campo label="Número" name="numero" required />
-              <Campo label="Objeto (uso interno, não aparece no site)" name="objeto" required />
+              <Campo label="Número" name="numero" required defaultValue={inicial?.numero} />
+              <Campo label="Objeto (uso interno, não aparece no site)" name="objeto" required defaultValue={inicial?.objeto} />
             </div>
             <label className="block text-sm">
               <span className="rotulo-campo">Título público (aparece no site)</span>
@@ -112,7 +139,7 @@ export function FormularioNovaAtaAdmin() {
               </label>
               <label className="block text-sm">
                 <span className="rotulo-campo">Tema da ata</span>
-                <select name="ataCategoria" required className="campo-atas" defaultValue="">
+                <select name="ataCategoria" required className="campo-atas" defaultValue={inicial?.ataCategoria ?? ""}>
                   <option value="" disabled>
                     Selecione...
                   </option>
@@ -124,9 +151,16 @@ export function FormularioNovaAtaAdmin() {
                 </select>
               </label>
             </div>
+            <Campo
+              label="Link da ata no PNCP"
+              name="linkPncp"
+              opcional
+              defaultValue={inicial?.linkPncp}
+              ajuda="Endereço da ata em pncp.gov.br (ou o número de controle). Só a equipe vê: serve para conferir a versão oficial da ata. Nunca aparece para o órgão, o fornecedor nem o público."
+            />
             <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
               <Campo label="Data de assinatura" name="dataAssinatura" type="date" required />
-              <Campo label="Vigência até" name="dataVigenciaFim" type="date" required />
+              <Campo label="Vigência até" name="dataVigenciaFim" type="date" required defaultValue={inicial?.dataVigenciaFim} />
             </div>
             <label className="block text-sm">
               <span className="rotulo-campo">
@@ -139,7 +173,7 @@ export function FormularioNovaAtaAdmin() {
                 className="campo-atas"
               />
               <span className="mt-1.5 block text-xs" style={{ color: "var(--cor-texto-3)" }}>
-                PDF ou imagem, até 10MB.
+                PDF ou imagem, até 10MB. É por ele que o estagiário cadastra os itens e os saldos.
               </span>
             </label>
           </div>
@@ -147,6 +181,7 @@ export function FormularioNovaAtaAdmin() {
 
         <Secao
           titulo={`Itens (${itens.length})`}
+          descricao="Opcional. O estagiário cadastra os itens e os saldos na etapa seguinte (item a item ou por planilha), a partir do documento que você anexar acima. Se você já tem a lista, pode adicionar aqui."
           acao={
             <button type="button" onClick={adicionarItem} className="botao-atas secundario">
               + Adicionar item
@@ -162,16 +197,14 @@ export function FormularioNovaAtaAdmin() {
               >
                 <div className="flex items-center justify-between">
                   <span className="eyebrow">Item {indice + 1}</span>
-                  {itens.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => removerItem(chave)}
-                      className="botao-atas link"
-                      style={{ color: "var(--cor-critico)" }}
-                    >
-                      Remover
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => removerItem(chave)}
+                    className="botao-atas link"
+                    style={{ color: "var(--cor-critico)" }}
+                  >
+                    Remover
+                  </button>
                 </div>
                 <Campo label="Descrição" name="itemDescricao[]" required />
                 <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
@@ -247,6 +280,7 @@ function Campo({
   opcional,
   inputMode,
   ajuda,
+  defaultValue,
 }: {
   label: string;
   name: string;
@@ -257,6 +291,7 @@ function Campo({
   opcional?: boolean;
   inputMode?: "numeric";
   ajuda?: string;
+  defaultValue?: string;
 }) {
   return (
     <label className="block text-sm">
@@ -276,6 +311,7 @@ function Campo({
         min={min}
         step={step}
         inputMode={inputMode}
+        defaultValue={defaultValue}
         className="campo-atas"
       />
       {ajuda && (

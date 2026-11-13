@@ -13,6 +13,7 @@ import {
   urlAtaPncp,
 } from "@/lib/radar-atas-view";
 import { resumir } from "@/lib/sinais-preditivos";
+import { captarAtaDoRadar } from "../captacao/actions";
 
 /** Uma ata do radar como a tela a mostra. */
 export interface DadosAtaRadar {
@@ -55,10 +56,19 @@ function LinkAta({ numeroControle }: { numeroControle: string }) {
  * Tabela do radar. Fornecedor: nome já sem dado pessoal e CNPJ só quando é
  * empresa; o nome leva ao radar filtrado por aquele fornecedor.
  */
-export function TabelaAtasRadar({ atas, agora }: { atas: DadosAtaRadar[]; agora: Date }) {
+export function TabelaAtasRadar({
+  atas,
+  agora,
+  captacoes = {},
+}: {
+  atas: DadosAtaRadar[];
+  agora: Date;
+  /** Número de controle do PNCP → id do cartão da Captação (as atas que já estão no quadro). */
+  captacoes?: Record<string, string>;
+}) {
   return (
     <div className="moldura-tabela">
-      <table className="tabela-atas min-w-[1040px]">
+      <table className="tabela-atas min-w-[1140px]">
         <thead>
           <tr>
             <th>Ata</th>
@@ -69,6 +79,7 @@ export function TabelaAtasRadar({ atas, agora }: { atas: DadosAtaRadar[]; agora:
             <th>Fornecedor</th>
             <th>Municípios com demanda</th>
             <th>Pontuação</th>
+            <th>Captação</th>
           </tr>
         </thead>
         <tbody>
@@ -140,6 +151,23 @@ export function TabelaAtasRadar({ atas, agora }: { atas: DadosAtaRadar[]; agora:
                 <td className="numero align-top">{a.municipiosComDemanda}</td>
                 <td className="numero align-top text-[15px] font-extrabold" style={{ color: "var(--cor-texto)" }}>
                   {a.pontuacao}
+                </td>
+                <td className="whitespace-nowrap align-top">
+                  {captacoes[a.numeroControlePncpAta] ? (
+                    <Link
+                      href={`/admin/captacao/${captacoes[a.numeroControlePncpAta]}`}
+                      className="botao-atas link text-[13px]"
+                    >
+                      No quadro →
+                    </Link>
+                  ) : (
+                    <form action={captarAtaDoRadar}>
+                      <input type="hidden" name="radarId" value={a.id} />
+                      <button type="submit" className="botao-atas secundario pequeno">
+                        Captar
+                      </button>
+                    </form>
+                  )}
                 </td>
               </tr>
             );

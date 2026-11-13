@@ -13,6 +13,8 @@ const d = vi.hoisted(() => ({
   ataFindUnique: vi.fn(),
   itemCreate: vi.fn(),
   transaction: vi.fn(),
+  documentoFindFirst: vi.fn(),
+  lerArquivo: vi.fn(),
 }));
 
 vi.mock("next/cache", () => ({ revalidatePath: d.revalidatePath }));
@@ -21,8 +23,20 @@ vi.mock("@/lib/auth", () => ({ adminIdLogado: d.adminIdLogado }));
 vi.mock("@/lib/auditoria", () => ({ registrarAuditoria: d.registrarAuditoria }));
 vi.mock("@/lib/permissoes-db", () => ({ exigirPermissaoDe: d.exigirPermissaoDe }));
 vi.mock("@/lib/prisma", () => ({
-  prisma: { ata: { findUnique: d.ataFindUnique }, item: { create: d.itemCreate }, $transaction: d.transaction },
+  prisma: {
+    ata: { findUnique: d.ataFindUnique },
+    item: { create: d.itemCreate },
+    documentoAta: { findFirst: d.documentoFindFirst },
+    $transaction: d.transaction,
+  },
 }));
+// A leitura de Excel e PDF é testada em src/lib/importar-itens-arquivo.test.ts; aqui o leitor real vale por
+// padrão (o CSV passa por ele) e cada teste pode trocá-lo para provar o que a ação faz com o resultado.
+vi.mock("@/lib/importar-itens-arquivo", async (importOriginal) => {
+  const real = await importOriginal<typeof import("@/lib/importar-itens-arquivo")>();
+  d.lerArquivo.mockImplementation(real.lerArquivoDeItens);
+  return { ...real, lerArquivoDeItens: d.lerArquivo };
+});
 
 import { conferirItens, gravarItens } from "./actions";
 
@@ -85,11 +99,68 @@ describe("conferirItens", () => {
     expect(r.previa?.itens).toHaveLength(2);
   });
 
-  it("recusa arquivo do Excel com instrução clara", async () => {
-    const arquivo = new File(["x"], "itens.xlsx");
+  it("Excel enviado: o texto lido vai para a conferência, com o recado do que foi lido", async () => {
+    d.lerArquivo.mockResolvedValueOnce({ ok: true, formato: "xlsx", texto: PLANILHA, aviso: "Li o Excel.", naoLidas: [] });
+    const arquivo = new File([new Uint8Array([80, 75, 3, 4])], "itens.xlsx");
     const r = await conferirItens(ATA, {}, formulario({ arquivo }));
-    expect(r.erro).toContain("CSV");
+    expect(d.lerArquivo).toHaveBeenCalledWith("itens.xlsx", expect.any(Uint8Array));
+    expect(r.previa?.itens).toHaveLength(2);
+    expect(r.texto).toBe(PLANILHA);
+    expect(r).toMatchObject({ formato: "xlsx", aviso: "Li o Excel." });
+    expect(r.naoLidas).toBeUndefined();
+    expect(d.transaction).not.toHaveBeenCalled();
+  });
+
+  it("PDF enviado: devolve também as linhas que não pareciam item", async () => {
+    d.lerArquivo.mockResolvedValueOnce({ ok: true, formato: "pdf", texto: PLANILHA, aviso: "Li 2 item(ns) do PDF.", naoLidas: ["Rodapé estranho"] });
+    const r = await conferirItens(ATA, {}, formulario({ arquivo: new File([new Uint8Array([37, 80, 68, 70])], "ata.pdf") }));
+    expect(r).toMatchObject({ formato: "pdf", naoLidas: ["Rodapé estranho"] });
+  });
+
+  it("arquivo que o leitor recusa (imagem, Excel antigo, PDF escaneado) vira erro, sem prévia", async () => {
+    d.lerArquivo.mockResolvedValueOnce({ ok: false, erro: "Este PDF não tem texto." });
+    const r = await conferirItens(ATA, {}, formulario({ arquivo: new File([new Uint8Array([1, 2, 3])], "scan.pdf") }));
+    expect(r).toEqual({ erro: "Este PDF não tem texto." });
+  });
+
+  it("arquivo acima de 10 MB é recusado sem ser lido", async () => {
+    const grande = new File([new Uint8Array(10 * 1024 * 1024 + 1)], "enorme.xlsx");
+    const r = await conferirItens(ATA, {}, formulario({ arquivo: grande }));
+    expect(r.erro).toContain("10 MB");
+    expect(d.lerArquivo).not.toHaveBeenCalled();
+  });
+
+  it("texto lido grande demais é recusado antes de conferir", async () => {
+    d.lerArquivo.mockResolvedValueOnce({ ok: true, formato: "xlsx", texto: "a".repeat(200_001), aviso: null, naoLidas: [] });
+    const r = await conferirItens(ATA, {}, formulario({ arquivo: new File([new Uint8Array([1])], "a.xlsx") }));
+    expect(r.erro).toContain("texto demais");
     expect(r.previa).toBeUndefined();
+  });
+
+  it("documento já anexado à ata: lê o conteúdo guardado e vale mais que o arquivo e o texto colado", async () => {
+    d.documentoFindFirst.mockResolvedValue({ nomeArquivo: "ata-12.pdf", conteudo: Buffer.from([37, 80, 68, 70]) });
+    d.lerArquivo.mockResolvedValueOnce({ ok: true, formato: "pdf", texto: PLANILHA, aviso: "Li 2 item(ns) do PDF.", naoLidas: [] });
+    const r = await conferirItens(
+      ATA,
+      {},
+      formulario({ documentoId: "cmdoc0000000000000001", planilha: "lixo", arquivo: new File(["x"], "outro.csv") }),
+    );
+    expect(d.documentoFindFirst).toHaveBeenCalledWith({
+      where: { id: "cmdoc0000000000000001", ataId: ATA },
+      select: { nomeArquivo: true, conteudo: true },
+    });
+    expect(d.lerArquivo).toHaveBeenCalledWith("ata-12.pdf", expect.any(Uint8Array));
+    expect(r.previa?.itens).toHaveLength(2);
+    expect(r.formato).toBe("pdf");
+  });
+
+  it("documento de outra ata (ou que sumiu) e id fora do formato são recusados", async () => {
+    d.documentoFindFirst.mockResolvedValue(null);
+    const a = await conferirItens(ATA, {}, formulario({ documentoId: "cmdoc0000000000000001" }));
+    expect(a.erro).toContain("não está mais na ata");
+    const b = await conferirItens(ATA, {}, formulario({ documentoId: "x y; drop" }));
+    expect(b.erro).toContain("Documento inválido");
+    expect(d.lerArquivo).not.toHaveBeenCalled();
   });
 
   it("usa a categoria da ata quando a planilha não traz", async () => {

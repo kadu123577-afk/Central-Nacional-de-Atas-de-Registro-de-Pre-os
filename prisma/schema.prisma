@@ -97,6 +97,10 @@ model Fornecedor {
   // intactos, só a conta para de conseguir entrar).
   ativo        Boolean  @default(true)
   sessaoVersao Int      @default(0)
+  // Cadastro público (14/11/2026): quem se cadastra sozinho fica INATIVO até a equipe conferir e liberar
+  // (Usuários > Reativar). Marca "ainda não foi liberado", para a equipe e a tela de entrada distinguirem
+  // de uma conta desativada depois de ter sido usada.
+  aguardaLiberacao Boolean @default(false)
 
   // Canal de contato técnico (2026-10-01) — pedido explícito: o vendedor
   // precisa conseguir falar com alguém técnico da empresa que venceu a
@@ -126,6 +130,10 @@ model Orgao {
   // Gestão de usuários (admin, 2026-09-04) — mesma regra do Fornecedor.
   ativo        Boolean  @default(true)
   sessaoVersao Int      @default(0)
+  // Cadastro público (14/11/2026): quem se cadastra sozinho fica INATIVO até a equipe conferir e liberar
+  // (Usuários > Reativar). Marca "ainda não foi liberado", para a equipe e a tela de entrada distinguirem
+  // de uma conta desativada depois de ter sido usada.
+  aguardaLiberacao Boolean @default(false)
 
   atasGerenciadas Ata[]    @relation("OrgaoGerenciador")
   adesoes         Adesao[] @relation("OrgaoAderente")
@@ -151,6 +159,10 @@ model Ata {
   // Chave de deduplicação do rastreador do PNCP (Sprint 7) — nula para
   // atas cadastradas manualmente.
   numeroControlePncp String?   @unique
+  // Link da ata no PNCP (14/11/2026): a fonte oficial, para a equipe conferir a versão vigente (aditivo,
+  // cancelamento, vigência). Só a equipe interna vê; nunca o público, o órgão nem o fornecedor, porque o
+  // PNCP permite o município contratar direto (ver tituloPublico). Sempre de pncp.gov.br (src/lib/link-pncp.ts).
+  linkPncp           String?
   // Título genérico que aparece no site para quem não é da equipe (ex.: "Ata de
   // material de limpeza"). O objeto original costuma ser o mesmo texto do PNCP e
   // permitiria achar a ata lá e contratar direto, então nunca sai para o público.
@@ -1117,4 +1129,93 @@ model Feriado {
   criadoEm  DateTime @default(now())
 
   @@map("feriados")
+}
+
+// Captação de atas (2026-11-14): o Kanban do captador (Dr. Almério, Dr. Marcelo). Um cartão
+// por ATA que a Central quer trazer para dentro do sistema, venha ela do Radar de atas
+// (botão "Captar") ou de um contato do próprio captador (cadastro manual, "indicação").
+// O cartão guarda uma CÓPIA dos dados da ata: o radar é recalculado a cada rodada e a linha
+// dele pode sumir, o trabalho do captador não. estagio (texto, vocabulário em
+// src/lib/captacao.ts): identificada → em_contato → interessada → fechada, ou perdida.
+// "fechada" só se alcança cadastrando a ata no sistema (ataId preenchido).
+// Quem mexeu e quem é o responsável ficam como id solto do Admin, igual a ProspeccaoFornecedor.
+model Captacao {
+  id                    String    @id @default(cuid())
+  // Nome interno, fácil de reconhecer: "Ata de material de limpeza · Pref. de Rio Verde/GO · vence 03/2027".
+  nome                  String
+  // "radar" ou "indicacao".
+  origem                String
+  // Chave do radar; um cartão por ata do PNCP. Nulo na indicação.
+  numeroControlePncpAta String?   @unique
+  estagio               String    @default("identificada")
+  // Empresa dona da ata. Nulos enquanto o radar não identificou o fornecedor: a equipe preenche.
+  fornecedorCnpj        String?
+  fornecedorNome        String?
+  orgaoNome             String?
+  uf                    String?
+  municipioNome         String?
+  objeto                String
+  categoria             String?
+  numeroAta             String?
+  vigenciaFim           DateTime?
+  responsavelId         String?
+  proximoContatoEm      DateTime?
+  observacoes           String?
+  // Por que saiu do funil (só em "perdida").
+  motivoPerda           String?
+  // A ata criada no sistema (cadastro), quando a captação fecha.
+  ataId                 String?   @unique
+  criadoPorId           String
+  criadoEm              DateTime  @default(now())
+  atualizadoEm          DateTime  @updatedAt
+
+  interacoes InteracaoCaptacao[]
+
+  @@index([estagio])
+  @@index([responsavelId])
+  @@index([fornecedorCnpj])
+  @@map("captacoes")
+}
+
+// Histórico de contatos de um cartão: quem falou com a empresa, por qual canal, o que ficou.
+// O texto é do captador; o log de auditoria nunca o copia.
+model InteracaoCaptacao {
+  id         String   @id @default(cuid())
+  captacaoId String
+  autorId    String
+  // telefone | whatsapp | email | presencial | outro (src/lib/captacao.ts).
+  canal      String
+  resumo     String
+  // Quando o contato aconteceu (o captador pode registrar depois).
+  quando     DateTime @default(now())
+  criadoEm   DateTime @default(now())
+
+  captacao Captacao @relation(fields: [captacaoId], references: [id], onDelete: Cascade)
+
+  @@index([captacaoId])
+  @@map("interacoes_captacao")
+}
+
+// Cartão de contato de uma EMPRESA (2026-11-14), por CNPJ: quem atende na empresa que detém ou
+// pode trazer a ata. Serve à captação, aos vendedores e à cobrança. Dado pessoal de contato
+// profissional, tratado com LGPD: só o necessário (nome, cargo, telefone, e-mail), sempre com
+// "de onde veio" (comoObteve), visível só a quem trabalha com a empresa, e apagável por
+// completo (a exclusão é definitiva). Nunca CPF, endereço residencial nem dado sensível.
+model ContatoEmpresa {
+  id          String   @id @default(cuid())
+  cnpj        String
+  nome        String
+  cargo       String?
+  telefone    String?
+  // O telefone tem WhatsApp.
+  whatsapp    Boolean  @default(false)
+  email       String?
+  // Como o contato chegou até a Central (site da empresa, indicação de fulano, ligação...).
+  comoObteve  String
+  criadoPorId String
+  criadoEm    DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  @@index([cnpj])
+  @@map("contatos_empresa")
 }

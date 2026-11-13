@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { adminIdLogado } from "@/lib/auth";
-import { bloqueioDaAcao } from "@/lib/ciclo-ata";
+import { bloqueioDaAcao, situacaoDoCiclo } from "@/lib/ciclo-ata";
 import { carregarAtaNoCiclo } from "@/lib/ciclo-ata-db";
-import { exigirPermissaoDe } from "@/lib/permissoes-db";
+import { temAlguma } from "@/lib/permissoes";
+import { exigirPermissaoDe, permissoesDoAdmin } from "@/lib/permissoes-db";
 import { prisma } from "@/lib/prisma";
 import { logoutAdmin } from "../../../actions";
 import { NAV_ADMIN } from "../../../nav";
@@ -66,6 +67,11 @@ export default async function ContratoAtaPage({ params }: { params: Promise<{ at
   // O contrato (etapa 4) só abre depois da empresa fechada (2) e dos itens e saldos cadastrados (3).
   const noCiclo = await carregarAtaNoCiclo(ata.id);
   const bloqueio = noCiclo ? bloqueioDaAcao("contrato", noCiclo.dados) : null;
+  // O que vem depois do contrato: a conformidade (etapa 5) e, feita ela, a aprovação (etapa 6). O botão só
+  // aparece para quem pode agir nessas etapas.
+  const permissoes = (await permissoesDoAdmin(adminId)) ?? [];
+  const podeSeguir = temAlguma(permissoes, ["atas.conformidade", "atas.aprovar"]);
+  const proximaEtapa = noCiclo ? situacaoDoCiclo(noCiclo.dados).etapaAtual : null;
   const { faixas, falhou } = await carregarFaixasAtivas();
   const sugestao = montarSugestaoContrato({
     itens: ata.itens.map((i) => ({ quantidadeRegistrada: i.quantidadeRegistrada, valorUnitario: Number(i.valorUnitario) })),
@@ -134,6 +140,29 @@ export default async function ContratoAtaPage({ params }: { params: Promise<{ at
           />
         )}
       </Secao>
+
+      {contrato && !bloqueio && (
+        <Secao
+          titulo="Próximo passo"
+          descricao={
+            proximaEtapa === 5
+              ? "Contrato feito. Agora vem a conformidade da ata: o checklist jurídico."
+              : proximaEtapa === 6
+                ? "Contrato e conformidade feitos. Falta a aprovação da ata."
+                : "Contrato feito. A ata já passou das etapas seguintes: veja a análise."
+          }
+        >
+          {podeSeguir ? (
+            <Link href={`/admin/atas/${ata.id}/analise`} className="botao-atas">
+              {proximaEtapa === 5 ? "Fazer a conformidade da ata" : "Abrir a análise da ata"}
+            </Link>
+          ) : (
+            <p className="text-sm" style={{ color: "var(--cor-texto-2)" }}>
+              A ata segue para quem faz a conformidade e a aprovação.
+            </p>
+          )}
+        </Secao>
+      )}
     </AppShell>
   );
 }

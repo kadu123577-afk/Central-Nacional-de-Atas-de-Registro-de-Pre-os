@@ -124,6 +124,18 @@ export default async function RadarAtasPage({
     .sort((a, b) => a.valor.localeCompare(b.valor, "pt-BR"));
   if (filtros.uf && !opcoesUf.some((o) => o.valor === filtros.uf)) opcoesUf.push({ valor: filtros.uf, quantidade: 0 });
 
+  // Quais destas atas já estão no quadro de captação (o botão vira "No quadro →").
+  const jaCaptadas =
+    atas.length === 0
+      ? []
+      : await prisma.captacao.findMany({
+          where: { numeroControlePncpAta: { in: atas.map((a) => a.numeroControlePncpAta) } },
+          select: { id: true, numeroControlePncpAta: true },
+        });
+  const captacoes: Record<string, string> = Object.fromEntries(
+    jaCaptadas.flatMap((c) => (c.numeroControlePncpAta ? [[c.numeroControlePncpAta, c.id]] : [])),
+  );
+
   const cnpjDoFiltro = cnpjParaTela(filtros.fornecedor);
 
   return (
@@ -143,10 +155,10 @@ export default async function RadarAtasPage({
         rotulo="Rede"
         titulo="Radar de"
         destaque="atas"
-        descricao="Atas vigentes que municípios publicaram no PNCP e que podem ser oferecidas a outros municípios com necessidade da mesma categoria. A pontuação soma a demanda desses municípios, o prazo que a ata ainda tem e se o fornecedor foi identificado."
+        descricao="Atas vigentes que municípios publicaram no PNCP e que podem ser oferecidas a outros municípios com necessidade da mesma categoria. Clique em “Captar” na ata que você quer trazer: ela vira um cartão no quadro de captação, no seu nome. A pontuação soma a demanda desses municípios, o prazo que a ata ainda tem e se o fornecedor foi identificado."
         acoes={
-          <Link href="/admin/prospeccao-fornecedores" className="botao-atas secundario">
-            Ver a prospecção de fornecedores
+          <Link href="/admin/captacao" className="botao-atas secundario">
+            Ver o quadro de captação
           </Link>
         }
       />
@@ -180,8 +192,8 @@ export default async function RadarAtasPage({
                   <br />
                   Com <span className="codigo">--dry-run</span> ela só mostra o que gravaria, sem gravar.
                 </p>
-                <Link href="/admin/prospeccao-fornecedores" className="botao-atas secundario">
-                  Ver a prospecção de fornecedores
+                <Link href="/admin/captacao" className="botao-atas secundario">
+                  Ver o quadro de captação
                 </Link>
               </div>
             }
@@ -253,7 +265,7 @@ export default async function RadarAtasPage({
                 />
               ) : (
                 <>
-                  <TabelaAtasRadar atas={atas} agora={agora} />
+                  <TabelaAtasRadar atas={atas} agora={agora} captacoes={captacoes} />
 
                   <nav aria-label="Páginas do radar" className="flex flex-wrap items-center justify-between gap-3">
                     <p className="text-[13px]" style={{ color: "var(--cor-texto-2)" }}>

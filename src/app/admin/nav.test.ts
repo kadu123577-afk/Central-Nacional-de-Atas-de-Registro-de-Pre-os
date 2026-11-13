@@ -13,7 +13,7 @@ const TELAS_DO_MENU_ANTIGO = [
   "/admin/contratos-detectados",
   "/admin/demandas",
   "/admin/radar-atas",
-  "/admin/prospeccao-fornecedores",
+  "/admin/captacao",
   "/admin/recebiveis-vendedores",
   "/admin/faturamento",
   "/admin/comissao",
@@ -82,6 +82,7 @@ describe("menu do admin reunido em abas", () => {
     expect(entradaDe("/admin/indicadores")).toBe("Desempenho");
     expect(entradaDe("/admin/recebiveis-vendedores")).toBe("Financeiro");
     expect(entradaDe("/admin/atas/nova")).toBe("Atas");
+    expect(entradaDe("/admin/captacao")).toBe("Atas");
     expect(entradaDe("/admin/feriados")).toBe("Equipe e conta");
   });
 

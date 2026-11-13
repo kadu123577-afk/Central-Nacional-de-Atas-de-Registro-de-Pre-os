@@ -7,16 +7,19 @@ import { NAV_ADMIN } from "../../../nav";
 import { AppShell } from "@/components/ui/app-shell";
 import { CabecalhoPagina } from "@/components/ui/cabecalho-pagina";
 import { Secao } from "@/components/ui/secao";
+import { Badge } from "@/components/ui/badge";
 import { CATEGORIAS_ATAS, rotuloDaCategoria } from "@/lib/categorias";
+import { linkPncpDaAta } from "@/lib/link-pncp";
+import { diasRestantesBrasilia, textoDiasRestantes, tomDiasRestantes } from "@/lib/radar-atas-view";
 import { FormularioAdicionarItem } from "../completar/formulario-item";
 import { ImportarItens } from "./importar-itens";
 
 export const dynamic = "force-dynamic";
 
 /**
- * Itens e saldos da ata (2026-11-14), a tela do estagiário da captação (atividade 3 do
- * workflow): ver os itens já cadastrados, adicionar um item ou importar vários por planilha.
- * Exige "atas.itens" (ou "atas.captar").
+ * Itens e saldos da ata (2026-11-14), a tela do estagiário (atividade 3 do workflow): ver a ata e o
+ * documento que o captador anexou, ver os itens já cadastrados, importar o Excel ou o PDF com os itens
+ * (ou o próprio documento da ata) ou adicionar um item à mão. Exige "atas.itens" (ou "atas.captar").
  */
 export default async function ItensDaAtaPage({ params }: { params: Promise<{ ataId: string }> }) {
   const adminId = await adminIdLogado();
@@ -27,11 +30,17 @@ export default async function ItensDaAtaPage({ params }: { params: Promise<{ ata
   const ata = await prisma.ata.findUnique({
     where: { id: ataId },
     include: {
-      orgaoGerenciador: { select: { nome: true } },
+      orgaoGerenciador: { select: { nome: true, uf: true, municipio: true } },
+      fornecedor: { select: { razaoSocial: true } },
+      documentos: { select: { id: true, nomeArquivo: true, tipoMime: true, tamanhoBytes: true }, orderBy: { id: "asc" } },
       itens: { orderBy: { descricao: "asc" } },
     },
   });
   if (!ata) notFound();
+
+  const agora = new Date();
+  const dias = diasRestantesBrasilia(ata.dataVigenciaFim, agora);
+  const linkPncp = linkPncpDaAta(ata);
 
   const total = ata.itens.reduce((soma, i) => soma + Number(i.valorUnitario) * i.quantidadeRegistrada, 0);
 
@@ -49,12 +58,46 @@ export default async function ItensDaAtaPage({ params }: { params: Promise<{ ata
       }
     >
       <CabecalhoPagina
-        rotulo="Captação"
+        rotulo="Itens e saldos"
         titulo="Itens e saldos da ata"
         destaque={ata.numero}
-        descricao={`${ata.orgaoGerenciador.nome} · ${ata.itens.length} item(ns) · valor total registrado R$ ${total.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-        voltar={{ href: "/admin", rotulo: "Minhas tarefas" }}
+        descricao={`${ata.itens.length} item(ns) · valor total registrado R$ ${total.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+        voltar={{ href: "/admin/atas-itens", rotulo: "Itens das atas" }}
       />
+
+      <Secao titulo="A ata" descricao="O que o captador cadastrou. Os itens vêm do documento anexado ou da planilha da empresa.">
+        <dl className="grid grid-cols-1 gap-x-8 gap-y-3 text-[14px] sm:grid-cols-2">
+          <div>
+            <dt className="eyebrow">Empresa</dt>
+            <dd>{ata.fornecedor.razaoSocial}</dd>
+          </div>
+          <div>
+            <dt className="eyebrow">Órgão gerenciador</dt>
+            <dd>
+              {ata.orgaoGerenciador.nome} · {ata.orgaoGerenciador.municipio}/{ata.orgaoGerenciador.uf}
+            </dd>
+          </div>
+          <div>
+            <dt className="eyebrow">Vigência até</dt>
+            <dd className="inline-flex flex-wrap items-center gap-2">
+              <span className="numero">{ata.dataVigenciaFim.toLocaleDateString("pt-BR", { timeZone: "UTC" })}</span>
+              <Badge tom={tomDiasRestantes(dias)}>{textoDiasRestantes(dias)}</Badge>
+            </dd>
+          </div>
+          <div>
+            <dt className="eyebrow">Ata oficial no PNCP</dt>
+            <dd>
+              {linkPncp ? (
+                <a href={linkPncp} target="_blank" rel="noopener noreferrer" className="botao-atas link text-[13.5px]">
+                  Abrir no PNCP →<span className="sr-only"> (abre em nova aba)</span>
+                </a>
+              ) : (
+                <span style={{ color: "var(--cor-texto-3)" }}>link não informado</span>
+              )}
+            </dd>
+          </div>
+        </dl>
+      </Secao>
 
       <Secao titulo={`Itens cadastrados (${ata.itens.length})`}>
         {ata.itens.length === 0 ? (
@@ -100,8 +143,17 @@ export default async function ItensDaAtaPage({ params }: { params: Promise<{ ata
         )}
       </Secao>
 
-      <Secao titulo="Importar itens por planilha" descricao="Para ata com muitos itens: confira antes de gravar. Se houver um erro, nada é gravado.">
-        <ImportarItens ataId={ata.id} itensNaAta={ata.itens.length} />
+      <Secao titulo="Importar os itens (Excel ou PDF)" descricao="Para ata com muitos itens: o que for lido aparece para você conferir antes de gravar. Se houver um erro, nada é gravado.">
+        <ImportarItens
+          ataId={ata.id}
+          itensNaAta={ata.itens.length}
+          documentos={ata.documentos.map((d) => ({
+            id: d.id,
+            nomeArquivo: d.nomeArquivo,
+            tamanhoKb: Math.max(1, Math.round(d.tamanhoBytes / 1024)),
+            legivel: d.tipoMime === "application/pdf",
+          }))}
+        />
       </Secao>
 
       <Secao titulo="Adicionar um item">

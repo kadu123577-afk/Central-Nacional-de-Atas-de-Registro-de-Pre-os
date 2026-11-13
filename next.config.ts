@@ -45,6 +45,12 @@ const cabecalhosDeSeguranca = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // As ações do servidor aceitam 1 MB por padrão. O cadastro da ata anexa documento de até 10 MB e a
+  // importação de itens lê Excel e PDF de até 10 MB, então o corpo precisa de folga para o arquivo
+  // mais o resto do formulário (cada ação confere o tamanho do seu arquivo).
+  experimental: {
+    serverActions: { bodySizeLimit: "12mb" },
+  },
   // Um link só (14/11/2026): o endereço raiz abre a tela de entrada, e depois do login a pessoa
   // vai para a área dela. O catálogo público continua em /catalogo. RAIZ_ABRE_LOGIN=nao devolve a
   // vitrine à raiz. O valor é lido na hora do build.

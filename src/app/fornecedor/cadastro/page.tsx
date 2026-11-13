@@ -40,6 +40,16 @@ export default function CadastroFornecedorPage() {
           </p>
         </div>
 
+        {estado.sucesso ? (
+          <div className="painel flex flex-col gap-4 p-7" style={{ borderRadius: 18 }}>
+            <Aviso tom="sucesso" titulo="Cadastro recebido.">
+              {estado.sucesso}
+            </Aviso>
+            <Link href="/entrar" className="botao-atas secundario self-start">
+              Voltar para a entrada
+            </Link>
+          </div>
+        ) : (
         <form action={formAction} className="painel flex flex-col gap-4 p-7" style={{ borderRadius: 18 }}>
           <p className="marca text-lg" style={{ color: "var(--cor-texto)" }}>
             Criar conta
@@ -69,6 +79,7 @@ export default function CadastroFornecedorPage() {
             </Link>
           </div>
         </form>
+        )}
       </div>
     </main>
   );

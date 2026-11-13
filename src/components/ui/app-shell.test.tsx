@@ -61,18 +61,19 @@ describe("casca do admin: cada função só vê o que é dela", () => {
     ]);
   });
 
-  it("o estagiário vê só o Painel, as Adesões e o Perfil: nada de ciclos, pipeline, atas, vendas ou financeiro", () => {
-    expect(menu(desenhar("/admin", ESTAGIARIO))).toEqual(["Painel", "Adesões", "Perfil"]);
+  it("o estagiário vê só o Painel, os Itens das atas, as Adesões e o Perfil: nada de ciclos, pipeline, vendas ou financeiro", () => {
+    expect(menu(desenhar("/admin", ESTAGIARIO))).toEqual(["Painel", "Itens das atas", "Adesões", "Perfil"]);
   });
 
-  it("o captador vê o Painel, as Atas (cadastrar, radar, fornecedores, prospecção) e o Perfil", () => {
+  it("o captador vê o Painel, as Atas (captação, radar, cadastrar, fornecedores) e o Perfil", () => {
     const html = desenhar("/admin", CAPTADOR);
     expect(menu(html)).toEqual(["Painel", "Atas", "Perfil"]);
     expect(abas(desenhar("/admin/radar-atas", CAPTADOR))).toEqual([
-      "Cadastrar ata",
+      "Captação",
       "Radar de atas",
+      "Cadastrar ata",
+      "Itens das atas",
       "Fornecedores",
-      "Prospecção de fornecedores",
     ]);
   });
 
@@ -101,7 +102,8 @@ describe("casca do admin: cada função só vê o que é dela", () => {
     expect(hrefDoMenu(desenhar("/admin", ESTAGIARIO), "Adesões")).toBe("/admin/adesoes");
     // A Gestão vê tudo: a entrada leva à primeira.
     expect(hrefDoMenu(desenhar("/admin", GESTAO), "Negociações e adesões")).toBe("/admin/negociacoes");
-    expect(hrefDoMenu(desenhar("/admin", CAPTADOR), "Atas")).toBe("/admin/atas/nova");
+    // O captador começa pelo quadro de captação.
+    expect(hrefDoMenu(desenhar("/admin", CAPTADOR), "Atas")).toBe("/admin/captacao");
   });
 
   it("quem não vê nenhuma aba de uma entrada não vê a entrada", () => {
@@ -128,15 +130,55 @@ describe("casca do admin: cada função só vê o que é dela", () => {
     ]);
     expect(abas(desenhar("/admin/atas/xyz/contrato", GESTAO))).toEqual([
       "Catálogo",
-      "Cadastrar ata",
+      "Captação",
       "Radar de atas",
+      "Cadastrar ata",
+      "Itens das atas",
       "Fornecedores",
-      "Prospecção de fornecedores",
     ]);
   });
 
   it("'Cadastrar ata' marca a própria aba, não a do Catálogo (que casa por prefixo)", () => {
     expect(desenhar("/admin/atas/nova", GESTAO)).toMatch(/aria-current="page"[^>]*>Cadastrar ata</);
+  });
+
+  describe("telas de uma ata (contrato, análise, itens...)", () => {
+    /** O texto da aba marcada na barra do topo, ou null se nenhuma está marcada. */
+    function abaMarcada(html: string): string | null {
+      const nav = html.match(/<nav aria-label="Seções"[\s\S]*?<\/nav>/)?.[0] ?? "";
+      return nav.match(/aria-current="page"[^>]*>([^<]*)</)?.[1] ?? null;
+    }
+    const entradaMarcada = (html: string) => {
+      const aside = html.match(/<aside[\s\S]*?<\/aside>/)?.[0] ?? "";
+      return aside.match(/aria-current="page"[^>]*>([^<]*)</)?.[1] ?? null;
+    };
+
+    it("contrato e análise ficam na entrada Atas sem marcar nenhuma aba (antes marcavam o Catálogo)", () => {
+      for (const caminho of ["/admin/atas/xyz/contrato", "/admin/atas/xyz/analise"]) {
+        const html = desenhar(caminho, GESTAO);
+        expect(entradaMarcada(html), caminho).toBe("Atas");
+        expect(abaMarcada(html), caminho).toBeNull();
+        expect(abas(html), caminho).toContain("Catálogo");
+      }
+    });
+
+    it("itens da ata marca a aba “Itens das atas”; o estagiário (uma aba só) continua na entrada certa", () => {
+      expect(abaMarcada(desenhar("/admin/atas/xyz/itens", GESTAO))).toBe("Itens das atas");
+      expect(abaMarcada(desenhar("/admin/atas-itens", CAPTADOR))).toBe("Itens das atas");
+      expect(entradaMarcada(desenhar("/admin/atas/xyz/itens", ESTAGIARIO))).toBe("Itens das atas");
+    });
+
+    it("completar os dados da empresa marca a Captação; o ciclo e os municípios da ata marcam o Catálogo", () => {
+      expect(abaMarcada(desenhar("/admin/atas/xyz/completar", CAPTADOR))).toBe("Captação");
+      expect(abaMarcada(desenhar("/admin/atas/xyz/ciclo", GESTAO))).toBe("Catálogo");
+      expect(abaMarcada(desenhar("/admin/atas/xyz/municipios", GESTAO))).toBe("Catálogo");
+    });
+
+    it("o padrão com asterisco casa um trecho só: a tela de cadastro continua marcando a própria aba", () => {
+      expect(abaMarcada(desenhar("/admin/atas/nova", GESTAO))).toBe("Cadastrar ata");
+      // Sem o trecho do meio, o padrão /admin/atas/*/itens não casa.
+      expect(abaMarcada(desenhar("/admin/atas/itens", GESTAO))).toBeNull();
+    });
   });
 
   it("o ciclo da ata e o da adesão são abas da mesma entrada e não se confundem pelo prefixo", () => {

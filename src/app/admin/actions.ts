@@ -54,6 +54,8 @@ import { ITENS_CONFORMIDADE, itensPendentes, type RespostasConformidade } from "
 import { MENSAGEM_CODIGO_CATALOGO_INVALIDO, interpretarCodigoCatalogo } from "@/lib/vantajosidade-db";
 import { podeAtuar } from "@/lib/credenciamento";
 import { PERMISSAO_POR_ACAO } from "@/lib/permissoes";
+import { vincularAtaACaptacao } from "@/lib/captacao-db";
+import { lerLinkPncp } from "@/lib/link-pncp";
 import { ACAO_PERMISSAO_NEGADA, CAMINHO_SEM_PERMISSAO, adminTemPermissao, exigirPermissaoDe } from "@/lib/permissoes-db";
 
 export interface EstadoLoginAdmin {
@@ -484,9 +486,10 @@ export async function alternarStatusFornecedor(formData: FormData): Promise<void
   const fornecedor = await prisma.fornecedor.findUnique({ where: { id: fornecedorId } });
   if (!fornecedor) return;
 
+  // Reativar libera o cadastro que esperava a liberação da equipe.
   await prisma.fornecedor.update({
     where: { id: fornecedorId },
-    data: { ativo: !fornecedor.ativo },
+    data: { ativo: !fornecedor.ativo, ...(fornecedor.ativo ? {} : { aguardaLiberacao: false }) },
   });
   revalidatePath("/admin/usuarios");
 }
@@ -891,9 +894,10 @@ export async function alternarStatusOrgao(formData: FormData): Promise<void> {
   const orgao = await prisma.orgao.findUnique({ where: { id: orgaoId } });
   if (!orgao) return;
 
+  // Reativar libera o cadastro que esperava a liberação da equipe.
   await prisma.orgao.update({
     where: { id: orgaoId },
-    data: { ativo: !orgao.ativo },
+    data: { ativo: !orgao.ativo, ...(orgao.ativo ? {} : { aguardaLiberacao: false }) },
   });
   revalidatePath("/admin/usuarios");
 }
@@ -1426,12 +1430,19 @@ export async function cadastrarAtaComoAdmin(
   _estadoAnterior: EstadoCadastroAtaAdmin,
   formData: FormData,
 ): Promise<EstadoCadastroAtaAdmin> {
-  await exigirAdmin("admin.cadastrarAtaComoAdmin");
+  const adminId = await exigirAdmin("admin.cadastrarAtaComoAdmin");
+
+  // Cartão da Captação de onde o cadastro partiu ("Fechou: cadastrar a ata"); vem do navegador,
+  // então só vale com a forma de um id.
+  const captacaoIdBruto = String(formData.get("captacaoId") ?? "").trim();
+  const captacaoId = /^c[a-z0-9]{15,40}$/.test(captacaoIdBruto) ? captacaoIdBruto : null;
 
   const fornecedorNome = String(formData.get("fornecedorNome") ?? "").trim();
   const fornecedorCnpj = String(formData.get("fornecedorCnpj") ?? "").trim();
   const fornecedorEmail = String(formData.get("fornecedorEmail") ?? "").trim();
 
+  // Os itens são opcionais no cadastro (14/11/2026): quem cadastra a ata é o captador; os itens e os
+  // saldos são a etapa 3, do estagiário (planilha ou item a item). Item que vier tem de vir completo.
   const orgaoNome = String(formData.get("orgaoNome") ?? "").trim();
   const orgaoCnpj = String(formData.get("orgaoCnpj") ?? "").trim();
   const orgaoUf = String(formData.get("orgaoUf") ?? "").trim().toUpperCase();
@@ -1445,6 +1456,11 @@ export async function cadastrarAtaComoAdmin(
   const erroTitulo = validarTituloPublico(tituloPublico);
   if (erroTitulo) {
     return { erro: erroTitulo };
+  }
+  // Link da ata no PNCP (opcional): só endereço de pncp.gov.br, para a equipe conferir a fonte oficial.
+  const linkPncp = lerLinkPncp(String(formData.get("linkPncp") ?? ""));
+  if (!linkPncp.ok) {
+    return { erro: linkPncp.erro };
   }
   const dataAssinatura = String(formData.get("dataAssinatura") ?? "");
   const dataVigenciaFim = String(formData.get("dataVigenciaFim") ?? "");
@@ -1474,8 +1490,7 @@ export async function cadastrarAtaComoAdmin(
     !ataCategoria ||
     !CATEGORIAS_ATAS.some((c) => c.slug === ataCategoria) ||
     !dataAssinatura ||
-    !dataVigenciaFim ||
-    itensDescricao.length === 0
+    !dataVigenciaFim
   ) {
     return { erro: "Preencha todos os campos obrigatórios com valores válidos." };
   }
@@ -1552,6 +1567,7 @@ export async function cadastrarAtaComoAdmin(
         objeto,
         categoria: ataCategoria,
         tituloPublico: tituloPublico || null,
+        linkPncp: linkPncp.url,
         origem,
         dataAssinatura: new Date(dataAssinatura),
         dataVigenciaFim: new Date(dataVigenciaFim),
@@ -1587,8 +1603,32 @@ export async function cadastrarAtaComoAdmin(
     return { erro: "Já existe uma ata com esse número para esse órgão gerenciador." };
   }
 
+  // A ata entra na Captação como cartão fechado (ou fecha o cartão de onde veio). Se isso falhar,
+  // a ata já existe e o cadastro vale: só o atalho para o cartão se perde.
+  let destino = "/admin/captacao?ataCriada=1";
+  try {
+    const cartaoId = await vincularAtaACaptacao({
+      ataId,
+      adminId,
+      captacaoId,
+      fornecedorCnpj: fornecedorCnpj.replace(/\D/g, ""),
+      fornecedorNome,
+      orgaoNome,
+      uf: orgaoUf,
+      municipioNome: orgaoMunicipio,
+      numeroAta: numero,
+      objeto,
+      categoria: ataCategoria,
+      vigenciaFim: new Date(dataVigenciaFim),
+    });
+    destino = `/admin/captacao/${cartaoId}?ataCriada=1`;
+  } catch {
+    // segue para a lista
+  }
+
   revalidatePath("/atas");
-  redirect(`/atas?ataCriada=${ataId}`);
+  revalidatePath("/admin/captacao");
+  redirect(destino);
 }
 
 /**

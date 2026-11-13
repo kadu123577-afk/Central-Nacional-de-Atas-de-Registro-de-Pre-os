@@ -42,15 +42,77 @@ export interface ResultadoImportacao {
 
 type Coluna = "descricao" | "unidade" | "quantidade" | "valor" | "marca" | "categoria" | "codigo";
 
-const SINONIMOS: Record<Coluna, string[]> = {
-  descricao: ["descricao", "descricao do item", "item", "objeto", "produto"],
-  unidade: ["unidade", "un", "und", "unid", "unidade de medida"],
-  quantidade: ["quantidade", "qtd", "qtde", "qtd.", "quantidade registrada", "quantidade total"],
-  valor: ["valor unitario", "valor unit", "valor unit.", "preco unitario", "preco", "valor", "vl unitario", "vlr unitario"],
+// Sinônimos em ordem de preferência: "descrição" vale mais que "item", porque em muita planilha a
+// coluna "Item" é só o número da linha. Os cabeçalhos são comparados sem acento, sem pontuação e sem
+// "(R$)" (ver normalizarCabecalho).
+const SINONIMOS_BRUTOS: Record<Coluna, string[]> = {
+  descricao: [
+    "descricao",
+    "descricao do item",
+    "descricao do produto",
+    "descricao resumida",
+    "descricao do objeto",
+    "descricao/especificacao",
+    "descricao especificacao",
+    "especificacao",
+    "item",
+    "objeto",
+    "produto",
+  ],
+  unidade: ["unidade", "unidade de medida", "unidade de fornecimento", "unid medida", "unid", "und", "un"],
+  quantidade: ["quantidade", "quantidade registrada", "quantidade total", "qtd total", "qtde total", "qtd", "qtde", "quant"],
+  valor: [
+    "valor unitario",
+    "valor unitario registrado",
+    "preco unitario",
+    "valor unit",
+    "preco unit",
+    "vl unitario",
+    "vlr unitario",
+    "valor un",
+    "preco",
+    "valor",
+  ],
   marca: ["marca", "fabricante"],
   categoria: ["categoria", "tema"],
-  codigo: ["codigo do catalogo", "codigo catalogo", "catmat", "catser", "catmat/catser", "codigo", "cod catalogo"],
+  codigo: ["codigo do catalogo", "codigo catalogo", "codigo catmat", "cod catmat", "catmat/catser", "catmat", "catser", "cod catalogo", "codigo"],
 };
+
+/** Cabeçalho comparável: sem acento, sem maiúscula, sem pontuação e sem "(R$)"; espaços reduzidos a um. */
+export function normalizarCabecalho(texto: string): string {
+  return semAcento(texto)
+    .replace(/r\$/g, " ")
+    .replace(/[().:*]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+const SINONIMOS = Object.fromEntries(
+  (Object.keys(SINONIMOS_BRUTOS) as Coluna[]).map((c) => [c, SINONIMOS_BRUTOS[c].map(normalizarCabecalho)]),
+) as Record<Coluna, string[]>;
+
+/** Índice de cada coluna conhecida no cabeçalho (já normalizado), pela ordem de preferência dos sinônimos. */
+function indicesDoCabecalho(cabecalho: string[]): Partial<Record<Coluna, number>> {
+  const indice: Partial<Record<Coluna, number>> = {};
+  const usados = new Set<number>();
+  for (const coluna of Object.keys(SINONIMOS) as Coluna[]) {
+    for (const sinonimo of SINONIMOS[coluna]) {
+      const i = cabecalho.findIndex((c, pos) => c === sinonimo && !usados.has(pos));
+      if (i >= 0) {
+        indice[coluna] = i;
+        usados.add(i);
+        break;
+      }
+    }
+  }
+  return indice;
+}
+
+/** A linha é um cabeçalho de itens: tem as quatro colunas obrigatórias (descrição, unidade, quantidade e valor unitário). */
+export function cabecalhoReconhecido(celulas: string[]): boolean {
+  const indice = indicesDoCabecalho(celulas.map(normalizarCabecalho));
+  return OBRIGATORIAS.every((c) => indice[c] !== undefined);
+}
 
 const OBRIGATORIAS: Coluna[] = ["descricao", "unidade", "quantidade", "valor"];
 const ROTULO_COLUNA: Record<Coluna, string> = {
@@ -145,12 +207,8 @@ export function interpretarPlanilhaDeItens(texto: string, categoriaPadrao: strin
   }
 
   const separador = detectarSeparador(linhas[0].texto);
-  const cabecalho = dividirLinha(linhas[0].texto, separador).map(semAcento);
-  const indice: Partial<Record<Coluna, number>> = {};
-  (Object.keys(SINONIMOS) as Coluna[]).forEach((coluna) => {
-    const i = cabecalho.findIndex((c) => SINONIMOS[coluna].includes(c));
-    if (i >= 0) indice[coluna] = i;
-  });
+  const cabecalho = dividirLinha(linhas[0].texto, separador).map(normalizarCabecalho);
+  const indice = indicesDoCabecalho(cabecalho);
   const faltando = OBRIGATORIAS.filter((c) => indice[c] === undefined);
   if (faltando.length > 0) {
     resultado.erros.push({

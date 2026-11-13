@@ -31,12 +31,15 @@ export const NAV_ADMIN: ItemNav[] = [
   {
     rotulo: "Atas",
     href: "/atas",
+    // As telas de uma ata (contrato, análise, itens...) ficam nesta entrada; só as que têm aba marcam a aba.
+    ativoEm: ["/admin/atas"],
     abas: [
-      { rotulo: "Catálogo", href: "/atas", ativoEm: ["/admin/atas"], permissoes: ["visao.geral"] },
-      { rotulo: "Cadastrar ata", href: "/admin/atas/nova", permissoes: ["atas.captar"] },
+      { rotulo: "Catálogo", href: "/atas", ativoEm: ["/admin/atas/*/ciclo", "/admin/atas/*/municipios"], permissoes: ["visao.geral"] },
+      { rotulo: "Captação", href: "/admin/captacao", ativoEm: ["/admin/atas/*/completar"], permissoes: ["atas.captar"] },
       { rotulo: "Radar de atas", href: "/admin/radar-atas", permissoes: ["atas.captar"] },
+      { rotulo: "Cadastrar ata", href: "/admin/atas/nova", permissoes: ["atas.captar"] },
+      { rotulo: "Itens das atas", href: "/admin/atas-itens", ativoEm: ["/admin/atas/*/itens"], permissoes: ["atas.itens"] },
       { rotulo: "Fornecedores", href: "/admin/fornecedores", permissoes: ["atas.captar"] },
-      { rotulo: "Prospecção de fornecedores", href: "/admin/prospeccao-fornecedores", permissoes: ["atas.captar"] },
     ],
   },
 

@@ -20,10 +20,18 @@ import { registrarAuditoria } from "@/lib/auditoria";
 import { destinoSeguro } from "@/lib/destino-login";
 import { validarSenhaNova } from "@/lib/senha";
 import { esferaValida } from "@/lib/esferas";
+import {
+  MENSAGEM_CADASTRO_RECEBIDO,
+  lerCnpjDoCadastro,
+  mensagemDeContaInativa,
+  variantesDoCnpj,
+} from "@/lib/cadastro-publico";
 import type { EstadoTrocarSenha } from "@/components/ui/formulario-trocar-senha";
 
 export interface EstadoFormularioOrgao {
   erro?: string;
+  /** Cadastro recebido: a conta fica aguardando a liberação da equipe (não há sessão). */
+  sucesso?: string;
 }
 
 export async function cadastrarOrgao(
@@ -31,16 +39,21 @@ export async function cadastrarOrgao(
   formData: FormData,
 ): Promise<EstadoFormularioOrgao> {
   const nome = String(formData.get("nome") ?? "").trim();
-  const cnpj = String(formData.get("cnpj") ?? "").trim();
+  const cnpjDigitado = String(formData.get("cnpj") ?? "").trim();
   const uf = String(formData.get("uf") ?? "").trim().toUpperCase();
   const municipio = String(formData.get("municipio") ?? "").trim();
   const esfera = String(formData.get("esfera") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim();
   const senha = String(formData.get("senha") ?? "");
 
-  if (!nome || !cnpj || !uf || !municipio || !esfera || !email) {
+  if (!nome || !cnpjDigitado || !uf || !municipio || !esfera || !email) {
     return { erro: "Preencha todos os campos." };
   }
+  const cnpjLido = lerCnpjDoCadastro(cnpjDigitado);
+  if (!cnpjLido.ok) {
+    return { erro: cnpjLido.erro };
+  }
+  const cnpj = cnpjLido.digitos;
   const erroSenha = validarSenhaNova(senha, email);
   if (erroSenha) {
     return { erro: erroSenha };
@@ -54,20 +67,20 @@ export async function cadastrarOrgao(
   }
 
   const jaExiste = await prisma.orgao.findFirst({
-    where: { OR: [{ cnpj }, { email }] },
+    where: { OR: [{ cnpj: { in: variantesDoCnpj(cnpj) } }, { email }] },
   });
   if (jaExiste) {
     return { erro: "Já existe um órgão cadastrado com esse CNPJ ou e-mail." };
   }
 
   const senhaHash = await hashSenha(senha);
+  // Fica inativo até a equipe conferir e liberar (Usuários > Reativar): nada de sessão aqui.
   const orgao = await prisma.orgao.create({
-    data: { nome, cnpj, uf, municipio, esfera, email, senhaHash },
+    data: { nome, cnpj, uf, municipio, esfera, email, senhaHash, ativo: false, aguardaLiberacao: true },
   });
 
   await registrarAuditoria({ ator: `orgao:${orgao.id}`, acao: "orgao.cadastro" });
-  await criarSessaoOrgao(orgao.id);
-  redirect("/orgao");
+  return { sucesso: MENSAGEM_CADASTRO_RECEBIDO };
 }
 
 export async function loginOrgao(
@@ -101,7 +114,7 @@ export async function loginOrgao(
   }
 
   if (!orgao.ativo) {
-    return { erro: "Esta conta foi desativada. Fale com a ARCA Capital para reativar o acesso." };
+    return { erro: mensagemDeContaInativa(orgao.aguardaLiberacao) };
   }
 
   await registrarSucessoLogin("orgao", email);

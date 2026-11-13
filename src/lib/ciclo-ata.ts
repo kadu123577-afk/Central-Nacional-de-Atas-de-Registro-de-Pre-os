@@ -52,7 +52,7 @@ export const ETAPAS_DO_CICLO: readonly EtapaDoCiclo[] = [
     titulo: "Cadastrar itens e saldos",
     papel: "Captação (estagiário)",
     prazoDiasUteis: 1,
-    permissao: "atas.captar",
+    permissao: "atas.itens",
     acao: "Cadastrar ou importar os itens",
     caminho: (id) => `/admin/atas/${id}/itens`,
   },

@@ -17,6 +17,11 @@ const dobles = vi.hoisted(() => ({
   fornecedorUpsert: vi.fn(),
   orgaoUpsert: vi.fn(),
   ataCreate: vi.fn(),
+  vincularAtaACaptacao: vi.fn(),
+  orgaoFindUnique: vi.fn(),
+  orgaoUpdate: vi.fn(),
+  fornecedorFindUnique: vi.fn(),
+  fornecedorUpdate: vi.fn(),
 }));
 
 vi.mock("next/cache", () => ({ revalidatePath: dobles.revalidatePath }));
@@ -30,16 +35,17 @@ vi.mock("@/lib/permissoes-db", () => ({
   CAMINHO_SEM_PERMISSAO: "/admin?acesso=negado",
 }));
 vi.mock("@/lib/auditoria", () => ({ registrarAuditoria: dobles.registrarAuditoria }));
+vi.mock("@/lib/captacao-db", () => ({ vincularAtaACaptacao: dobles.vincularAtaACaptacao }));
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     item: { create: dobles.itemCreate },
-    fornecedor: { upsert: dobles.fornecedorUpsert },
-    orgao: { upsert: dobles.orgaoUpsert },
+    fornecedor: { upsert: dobles.fornecedorUpsert, findUnique: dobles.fornecedorFindUnique, update: dobles.fornecedorUpdate },
+    orgao: { upsert: dobles.orgaoUpsert, findUnique: dobles.orgaoFindUnique, update: dobles.orgaoUpdate },
     ata: { create: dobles.ataCreate },
   },
 }));
 
-import { adicionarItemNaAta, cadastrarAtaComoAdmin } from "./actions";
+import { adicionarItemNaAta, alternarStatusFornecedor, alternarStatusOrgao, cadastrarAtaComoAdmin } from "./actions";
 
 function formulario(campos: Record<string, string | string[]>): FormData {
   const f = new FormData();
@@ -96,6 +102,7 @@ beforeEach(() => {
   dobles.fornecedorUpsert.mockResolvedValue({ id: "f1" });
   dobles.orgaoUpsert.mockResolvedValue({ id: "o1" });
   dobles.ataCreate.mockResolvedValue({ id: "ata-nova" });
+  dobles.vincularAtaACaptacao.mockResolvedValue("cap1");
 });
 
 describe("adicionarItemNaAta: código do catálogo", () => {
@@ -156,7 +163,7 @@ describe("cadastrarAtaComoAdmin: código do catálogo dos itens", () => {
   it("grava o código de cada item (vazio vira null) e mantém os outros campos", async () => {
     await expect(
       cadastrarAtaComoAdmin({}, formulario(camposDaAta({ "itemCodigoCatalogo[]": ["123", "", "00456"] }))),
-    ).rejects.toThrow("NEXT_REDIRECT:/atas?ataCriada=ata-nova");
+    ).rejects.toThrow("NEXT_REDIRECT:/admin/captacao/cap1?ataCriada=1");
 
     expect(dobles.ataCreate).toHaveBeenCalledTimes(1);
     const criados = dobles.ataCreate.mock.calls[0][0].data.itens.create;
@@ -192,7 +199,7 @@ describe("cadastrarAtaComoAdmin: código do catálogo dos itens", () => {
   });
 
   it("formulário sem o campo de código (versão antiga da tela): todos os itens ficam com null", async () => {
-    await expect(cadastrarAtaComoAdmin({}, formulario(camposDaAta()))).rejects.toThrow("NEXT_REDIRECT:/atas?ataCriada=ata-nova");
+    await expect(cadastrarAtaComoAdmin({}, formulario(camposDaAta()))).rejects.toThrow("NEXT_REDIRECT:/admin/captacao/cap1?ataCriada=1");
     const criados = dobles.ataCreate.mock.calls[0][0].data.itens.create as Array<{ codigoCatalogo: string | null }>;
     expect(criados.map((i) => i.codigoCatalogo)).toEqual([null, null, null]);
   });
@@ -212,5 +219,99 @@ describe("cadastrarAtaComoAdmin: código do catálogo dos itens", () => {
     );
     expect(estado).toEqual({ erro: "Preencha todos os campos obrigatórios de cada item com valores válidos." });
     expect(dobles.ataCreate).not.toHaveBeenCalled();
+  });
+});
+
+describe("cadastrarAtaComoAdmin: ligação com a Captação", () => {
+  it("entrega a ata cadastrada à Captação (com o cartão de origem, quando vem dele) e vai para o cartão", async () => {
+    await expect(
+      cadastrarAtaComoAdmin({}, formulario(camposDaAta({ captacaoId: "cm1abc23d0000xyz98765432", fornecedorCnpj: "12.345.678/0001-90" }))),
+    ).rejects.toThrow("NEXT_REDIRECT:/admin/captacao/cap1?ataCriada=1");
+    expect(dobles.vincularAtaACaptacao).toHaveBeenCalledTimes(1);
+    expect(dobles.vincularAtaACaptacao.mock.calls[0][0]).toMatchObject({
+      ataId: "ata-nova",
+      adminId: "admin1",
+      captacaoId: "cm1abc23d0000xyz98765432",
+      fornecedorCnpj: "12345678000190",
+      fornecedorNome: "Papelaria Exemplo Ltda",
+      orgaoNome: "Prefeitura de Exemplo",
+      uf: "GO",
+      numeroAta: "10/2026",
+      categoria: "material-escritorio",
+    });
+  });
+
+  it("sem cartão de origem, ou com id fora do formato, o cadastro vale como direto", async () => {
+    await expect(cadastrarAtaComoAdmin({}, formulario(camposDaAta()))).rejects.toThrow("NEXT_REDIRECT");
+    expect(dobles.vincularAtaACaptacao.mock.calls[0][0].captacaoId).toBeNull();
+    await expect(cadastrarAtaComoAdmin({}, formulario(camposDaAta({ captacaoId: "'; drop table" })))).rejects.toThrow("NEXT_REDIRECT");
+    expect(dobles.vincularAtaACaptacao.mock.calls[1][0].captacaoId).toBeNull();
+  });
+
+  it("se a ligação falhar, a ata já existe: segue para a lista da Captação, sem erro", async () => {
+    dobles.vincularAtaACaptacao.mockRejectedValue(new Error("banco fora"));
+    await expect(cadastrarAtaComoAdmin({}, formulario(camposDaAta()))).rejects.toThrow(
+      "NEXT_REDIRECT:/admin/captacao?ataCriada=1",
+    );
+    expect(dobles.ataCreate).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("cadastrarAtaComoAdmin: itens opcionais e link do PNCP", () => {
+  const SEM_ITENS = {
+    "itemDescricao[]": [],
+    "itemCategoria[]": [],
+    "itemUnidade[]": [],
+    "itemQuantidade[]": [],
+    "itemValorUnitario[]": [],
+  };
+
+  it("sem nenhum item a ata é cadastrada: os itens e os saldos são do estagiário, na etapa seguinte", async () => {
+    await expect(cadastrarAtaComoAdmin({}, formulario(camposDaAta(SEM_ITENS)))).rejects.toThrow("NEXT_REDIRECT:/admin/captacao/cap1?ataCriada=1");
+    expect(dobles.ataCreate).toHaveBeenCalledTimes(1);
+    expect(dobles.ataCreate.mock.calls[0][0].data.itens.create).toEqual([]);
+  });
+
+  it("item que veio pela metade continua recusado", async () => {
+    const estado = await cadastrarAtaComoAdmin({}, formulario(camposDaAta({ ...SEM_ITENS, "itemDescricao[]": ["Papel"] })));
+    expect(estado).toEqual({ erro: "Preencha todos os campos obrigatórios de cada item com valores válidos." });
+    expect(dobles.ataCreate).not.toHaveBeenCalled();
+  });
+
+  it("guarda o link da ata no PNCP (também o número de controle, que vira o endereço)", async () => {
+    await expect(
+      cadastrarAtaComoAdmin({}, formulario(camposDaAta({ linkPncp: "pncp.gov.br/app/atas/03532661000156/2024/75/1" }))),
+    ).rejects.toThrow("NEXT_REDIRECT");
+    expect(dobles.ataCreate.mock.calls[0][0].data.linkPncp).toBe("https://pncp.gov.br/app/atas/03532661000156/2024/75/1");
+    await expect(
+      cadastrarAtaComoAdmin({}, formulario(camposDaAta({ linkPncp: "03532661000156-1-000075/2024-000001" }))),
+    ).rejects.toThrow("NEXT_REDIRECT");
+    expect(dobles.ataCreate.mock.calls[1][0].data.linkPncp).toBe("https://pncp.gov.br/app/atas/03532661000156/2024/75/1");
+  });
+
+  it("sem link, grava null; link de outro site é recusado antes de tocar no banco", async () => {
+    await expect(cadastrarAtaComoAdmin({}, formulario(camposDaAta()))).rejects.toThrow("NEXT_REDIRECT");
+    expect(dobles.ataCreate.mock.calls[0][0].data.linkPncp).toBeNull();
+
+    dobles.fornecedorUpsert.mockClear();
+    const estado = await cadastrarAtaComoAdmin({}, formulario(camposDaAta({ linkPncp: "https://golpe.example/ata" })));
+    expect(estado.erro).toContain("pncp.gov.br");
+    expect(dobles.fornecedorUpsert).not.toHaveBeenCalled();
+    expect(dobles.ataCreate).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("liberar o cadastro de órgão e de fornecedor (Usuários)", () => {
+  it.each([
+    ["órgão", alternarStatusOrgao, "orgaoId", () => dobles.orgaoFindUnique, () => dobles.orgaoUpdate],
+    ["fornecedor", alternarStatusFornecedor, "fornecedorId", () => dobles.fornecedorFindUnique, () => dobles.fornecedorUpdate],
+  ])("%s: reativar (ou liberar) limpa a marca de aguardando liberação; desativar não mexe nela", async (_nome, acao, campo, achar, atualizar) => {
+    achar().mockResolvedValue({ id: "x1", ativo: false, aguardaLiberacao: true });
+    await acao(formulario({ [campo]: "x1" }));
+    expect(atualizar()).toHaveBeenLastCalledWith({ where: { id: "x1" }, data: { ativo: true, aguardaLiberacao: false } });
+
+    achar().mockResolvedValue({ id: "x1", ativo: true, aguardaLiberacao: false });
+    await acao(formulario({ [campo]: "x1" }));
+    expect(atualizar()).toHaveBeenLastCalledWith({ where: { id: "x1" }, data: { ativo: false } });
   });
 });

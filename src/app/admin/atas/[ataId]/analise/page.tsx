@@ -198,10 +198,13 @@ export default async function AnaliseAtaPage({ params }: { params: Promise<{ ata
 
       <Secao
         titulo="Contrato de intermediação"
+        // Só quem faz o contrato (atas.contrato) vê o botão; o aprovador só lê o contrato.
         acao={
-          <Link href={`/admin/atas/${ata.id}/contrato`} className="botao-atas secundario">
-            {ata.contrato ? "Editar contrato" : "Cadastrar contrato"}
-          </Link>
+          temPermissao(permissoes, "atas.contrato") ? (
+            <Link href={`/admin/atas/${ata.id}/contrato`} className="botao-atas secundario">
+              {ata.contrato ? "Editar contrato" : "Cadastrar contrato"}
+            </Link>
+          ) : undefined
         }
       >
         <p className="text-sm" style={{ color: "var(--cor-texto-2)" }}>

@@ -44,6 +44,7 @@ vi.mock("@/lib/prisma", () => ({
   },
 }));
 
+import { permissoesDoAdmin } from "@/lib/permissoes-db";
 import ContratoAtaPage from "./page";
 
 // Total da ata de teste: R$ 110.025,00.
@@ -208,5 +209,48 @@ describe("página do contrato de intermediação", () => {
     expect(saida).not.toContain("Nenhuma faixa de comissão está configurada");
     expect(erro).toHaveBeenCalled();
     erro.mockRestore();
+  });
+});
+
+describe("próximo passo depois do contrato", () => {
+  const contrato = { percentualComissao: "0.08", dataAssinatura: new Date("2026-11-14T00:00:00Z"), vigenciaFim: null, observacoes: null };
+
+  it("contrato feito e conformidade pendente (etapa 5): leva à análise de quem pode fazê-la", async () => {
+    dobles.ataFindUnique.mockResolvedValue(ata({ contrato }));
+    dobles.carregarAtaNoCiclo.mockResolvedValue(noCiclo({ contratoEm: new Date("2026-11-14T12:00:00Z") }));
+    vi.mocked(permissoesDoAdmin).mockResolvedValueOnce(["atas.contrato", "atas.conformidade"]);
+    const html = await paginaHtml();
+    expect(html).toContain("Próximo passo");
+    expect(html).toContain("Agora vem a conformidade da ata");
+    expect(html).toContain('href="/admin/atas/ata1/analise"');
+    expect(html).toContain("Fazer a conformidade da ata");
+  });
+
+  it("conformidade já feita (etapa 6): o botão passa a abrir a análise para aprovar", async () => {
+    dobles.ataFindUnique.mockResolvedValue(ata({ contrato }));
+    dobles.carregarAtaNoCiclo.mockResolvedValue(
+      noCiclo({ contratoEm: new Date("2026-11-14T12:00:00Z"), conformidadeEm: new Date("2026-11-14T13:00:00Z") }),
+    );
+    vi.mocked(permissoesDoAdmin).mockResolvedValueOnce(["atas.contrato", "atas.aprovar"]);
+    const html = await paginaHtml();
+    expect(html).toContain("Falta a aprovação da ata");
+    expect(html).toContain("Abrir a análise da ata");
+  });
+
+  it("quem só faz o contrato não recebe o botão: a ata segue para quem faz a conformidade", async () => {
+    dobles.ataFindUnique.mockResolvedValue(ata({ contrato }));
+    dobles.carregarAtaNoCiclo.mockResolvedValue(noCiclo({ contratoEm: new Date("2026-11-14T12:00:00Z") }));
+    vi.mocked(permissoesDoAdmin).mockResolvedValueOnce(["atas.contrato"]);
+    const html = await paginaHtml();
+    expect(html).toContain("Próximo passo");
+    expect(html).not.toContain("/admin/atas/ata1/analise");
+    expect(html).toContain("A ata segue para quem faz a conformidade e a aprovação");
+  });
+
+  it("sem contrato cadastrado, ou com o contrato bloqueado, não há próximo passo", async () => {
+    expect(await paginaHtml()).not.toContain("Próximo passo");
+    dobles.ataFindUnique.mockResolvedValue(ata({ contrato }));
+    dobles.carregarAtaNoCiclo.mockResolvedValue(noCiclo({ totalItens: 0 }));
+    expect(await paginaHtml()).not.toContain("Próximo passo");
   });
 });

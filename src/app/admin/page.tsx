@@ -22,7 +22,7 @@ import { ONDE_LIQUIDACAO_A_COBRAR } from "@/lib/recebiveis";
 import { expirarOportunidadesVencidas } from "@/lib/negociacao-expiracao";
 import { montarPainel, resumirPorVendedor } from "@/lib/painel-vendedor";
 import { carregarLinhasOportunidades } from "@/lib/painel-vendedor-db";
-import { filtroContatoVencido } from "@/lib/radar-atas-view";
+import { hojeBrasilia } from "@/lib/radar-atas-view";
 import { ONDE_PRONTA_PARA_REGISTRAR } from "@/lib/registrar-adesao-db";
 import { etapaPorNumero } from "@/lib/ciclo-ata";
 import { carregarAtasEmAndamento } from "@/lib/ciclo-ata-db";
@@ -114,9 +114,11 @@ export default async function PainelAdminPage({
     linhasPipeline,
     contratosDetectadosParaConfirmar,
     aditivosAAcompanhar,
-    fornecedoresComContatoVencido,
+    captacoesComContatoVencido,
+    captacoesParaPrimeiroContato,
     adesoesProntasParaRegistrar,
     atasSemItens,
+    cadastrosAguardandoLiberacao,
   ] = await Promise.all([
     prisma.ata.count({ where: { status: "APROVADA" } }),
     // Funil de conversão (mapa do núcleo de atas, 2026-09-05): quantas atas
@@ -169,17 +171,33 @@ export default async function PainelAdminPage({
     prisma.termoContratoPublico.count({
       where: { cobrancaStatus: "a_acompanhar", contrato: { vinculo: { is: { status: "confirmado" } } } },
     }),
-    // Funil de prospecção de fornecedores (Projeto RNA, etapa 5): contatado ou
-    // interessado cujo próximo contato marcado já passou.
-    prisma.prospeccaoFornecedor.count({ where: filtroContatoVencido(new Date()) }),
+    // Captação de atas (14/11/2026): os cartões DESTA pessoa cujo próximo contato marcado já passou, e os
+    // que ela assumiu e ainda não procurou. Cada captador vê só o que é dele.
+    prisma.captacao.count({
+      where: {
+        responsavelId: adminId,
+        estagio: { in: ["identificada", "em_contato", "interessada"] },
+        proximoContatoEm: { lt: hojeBrasilia(new Date()) },
+      },
+    }),
+    prisma.captacao.count({ where: { responsavelId: adminId, estagio: "identificada" } }),
     // Registro da adesão (2026-11-14): declaração do jurídico feita, contrato na ata, ainda não aderida.
     prisma.oportunidadeVenda.count({ where: ONDE_PRONTA_PARA_REGISTRAR }),
-    // Captação (2026-11-14): ata cadastrada ou aprovada que ainda não tem itens.
+    // Itens e saldos (2026-11-14): ata cadastrada ou aprovada, com a empresa já confirmada (etapa 3 do ciclo),
+    // que ainda não tem itens. É a lista da tela "Itens das atas" (/admin/atas-itens).
     prisma.ata.findMany({
-      where: { status: { in: ["PENDENTE", "APROVADA"] }, itens: { none: {} } },
+      where: {
+        status: { in: ["PENDENTE", "APROVADA"] },
+        itens: { none: {} },
+        fornecedor: { cnpj: { not: CNPJ_FORNECEDOR_A_CONFIRMAR } },
+      },
       select: { id: true },
       orderBy: { createdAt: "asc" },
     }),
+    // Cadastro público (14/11/2026): órgãos e fornecedores que se cadastraram e esperam a equipe liberar.
+    Promise.all([prisma.orgao.count({ where: { aguardaLiberacao: true } }), prisma.fornecedor.count({ where: { aguardaLiberacao: true } })]).then(
+      ([orgaos, fornecedores]) => orgaos + fornecedores,
+    ),
   ]);
 
   const taxaConversao = totalAtas > 0 ? Math.round((atasComAdesao / totalAtas) * 100) : null;
@@ -238,9 +256,9 @@ export default async function PainelAdminPage({
     {
       rotulo: "Atas sem itens cadastrados",
       permissao: ["atas.itens"],
-      descricao: "Sem itens e saldos a ata não pode ser analisada nem negociada.",
+      descricao: "O captador já cadastrou a ata: faltam os itens e os saldos (importe o Excel ou o PDF).",
       n: atasSemItens.length,
-      href: atasSemItens[0] ? `/admin/atas/${atasSemItens[0].id}/itens` : "/admin",
+      href: "/admin/atas-itens",
       tom: "atencao",
     },
     {
@@ -292,6 +310,14 @@ export default async function PainelAdminPage({
       tom: "alerta",
     },
     {
+      rotulo: "Cadastros aguardando liberação",
+      permissao: ["usuarios.gerir"],
+      descricao: "Órgãos e fornecedores que se cadastraram sozinhos: confira os dados e libere o acesso em Usuários.",
+      n: cadastrosAguardandoLiberacao,
+      href: "/admin/usuarios",
+      tom: "atencao",
+    },
+    {
       rotulo: "Contatos marcados como errados",
       permissao: ["base.editar"],
       descricao: "Vendedores sinalizaram telefone, e-mail ou pessoa incorretos.",
@@ -324,12 +350,20 @@ export default async function PainelAdminPage({
       tom: "atencao",
     },
     {
-      rotulo: "Fornecedores com contato vencido",
+      rotulo: "Atas suas para o primeiro contato",
       permissao: ["atas.captar"],
-      descricao: "Fornecedores contatados ou interessados cujo próximo contato já passou.",
-      n: fornecedoresComContatoVencido,
-      href: "/admin/prospeccao-fornecedores",
+      descricao: "Atas que você assumiu na captação e ainda não procurou a empresa.",
+      n: captacoesParaPrimeiroContato,
+      href: "/admin/captacao?so=meus",
       tom: "atencao",
+    },
+    {
+      rotulo: "Captações com contato vencido",
+      permissao: ["atas.captar"],
+      descricao: "Atas suas cujo próximo contato com a empresa já passou.",
+      n: captacoesComContatoVencido,
+      href: "/admin/captacao?so=meus",
+      tom: "critico",
     },
     {
       rotulo: "Prazos de negociação vencendo",

@@ -19,10 +19,18 @@ import {
 import { registrarAuditoria } from "@/lib/auditoria";
 import { destinoSeguro } from "@/lib/destino-login";
 import { validarSenhaNova } from "@/lib/senha";
+import {
+  MENSAGEM_CADASTRO_RECEBIDO,
+  lerCnpjDoCadastro,
+  mensagemDeContaInativa,
+  variantesDoCnpj,
+} from "@/lib/cadastro-publico";
 import type { EstadoTrocarSenha } from "@/components/ui/formulario-trocar-senha";
 
 export interface EstadoLoginFornecedor {
   erro?: string;
+  /** Cadastro recebido: a conta fica aguardando a liberação da equipe (não há sessão). */
+  sucesso?: string;
 }
 
 export async function cadastrarFornecedor(
@@ -30,14 +38,19 @@ export async function cadastrarFornecedor(
   formData: FormData,
 ): Promise<EstadoLoginFornecedor> {
   const razaoSocial = String(formData.get("razaoSocial") ?? "").trim();
-  const cnpj = String(formData.get("cnpj") ?? "").trim();
+  const cnpjDigitado = String(formData.get("cnpj") ?? "").trim();
   const telefone = String(formData.get("telefone") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim();
   const senha = String(formData.get("senha") ?? "");
 
-  if (!razaoSocial || !cnpj || !email) {
+  if (!razaoSocial || !cnpjDigitado || !email) {
     return { erro: "Preencha razão social, CNPJ e e-mail." };
   }
+  const cnpjLido = lerCnpjDoCadastro(cnpjDigitado);
+  if (!cnpjLido.ok) {
+    return { erro: cnpjLido.erro };
+  }
+  const cnpj = cnpjLido.digitos;
   const erroSenha = validarSenhaNova(senha, email);
   if (erroSenha) {
     return { erro: erroSenha };
@@ -48,7 +61,8 @@ export async function cadastrarFornecedor(
     return { erro: limiteCadastro };
   }
 
-  const existentePorCnpj = await prisma.fornecedor.findUnique({ where: { cnpj } });
+  // O CNPJ pode estar guardado só com dígitos ou com máscara (cadastros antigos): olha as duas formas.
+  const existentePorCnpj = await prisma.fornecedor.findFirst({ where: { cnpj: { in: variantesDoCnpj(cnpj) } } });
   // Uma ata pode ter sido cadastrada por alguém da Tech 10 antes do fornecedor
   // ter conta própria (fluxo antigo de /atas/nova) — nesse caso o registro já
   // existe mas sem senha, e este cadastro "reivindica" a conta. Se já tem
@@ -66,19 +80,25 @@ export async function cadastrarFornecedor(
     return { erro: "Já existe um fornecedor cadastrado com esse e-mail." };
   }
 
+  // A conta fica inativa até a equipe conferir e liberar (Usuários > Reativar): nada de sessão aqui. Quem
+  // reivindica um fornecedor que a equipe já cadastrou também espera a liberação, e não troca a razão social
+  // do registro existente (a equipe confere quem é).
   const senhaHash = await hashSenha(senha);
-  const fornecedor = await prisma.fornecedor.upsert({
-    where: { cnpj },
-    update: { razaoSocial, telefone: telefone || null, email, senhaHash },
-    create: { razaoSocial, cnpj, telefone: telefone || null, email, senhaHash },
-  });
+  const pendente = { ativo: false, aguardaLiberacao: true };
+  const fornecedor = existentePorCnpj
+    ? await prisma.fornecedor.update({
+        where: { id: existentePorCnpj.id },
+        data: { telefone: telefone || null, email, senhaHash, ...pendente },
+      })
+    : await prisma.fornecedor.create({
+        data: { razaoSocial, cnpj, telefone: telefone || null, email, senhaHash, ...pendente },
+      });
 
   await registrarAuditoria({
     ator: `fornecedor:${fornecedor.id}`,
     acao: "fornecedor.cadastro",
   });
-  await criarSessaoFornecedor(fornecedor.id);
-  redirect("/fornecedor");
+  return { sucesso: MENSAGEM_CADASTRO_RECEBIDO };
 }
 
 export async function loginFornecedor(
@@ -115,7 +135,7 @@ export async function loginFornecedor(
   }
 
   if (!fornecedor.ativo) {
-    return { erro: "Esta conta foi desativada. Fale com a ARCA Capital para reativar o acesso." };
+    return { erro: mensagemDeContaInativa(fornecedor.aguardaLiberacao) };
   }
 
   await registrarSucessoLogin("fornecedor", email);

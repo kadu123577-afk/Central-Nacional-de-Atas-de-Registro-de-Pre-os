@@ -34,12 +34,22 @@ export interface ItemNav {
   abas?: readonly AbaDoItem[];
 }
 
+/** O padrão de `ativoEm` vale para o endereço e para as páginas filhas; um asterisco vale por um trecho do caminho (o id da ata, por exemplo). */
+function casaComPadrao(padrao: string, pathname: string): boolean {
+  if (!padrao.includes("*")) return pathname === padrao || pathname.startsWith(`${padrao}/`);
+  // Compara trecho por trecho: "*" casa com qualquer trecho não vazio; trechos a mais no caminho são páginas filhas.
+  const doPadrao = padrao.split("/");
+  const doCaminho = pathname.split("/");
+  if (doCaminho.length < doPadrao.length) return false;
+  return doPadrao.every((trecho, i) => (trecho === "*" ? doCaminho[i] !== "" : trecho === doCaminho[i]));
+}
+
 /** Raízes ("/admin", "/vendedor") só ficam ativas na página exata; as demais valem pras páginas filhas. */
 function rotaAtiva(href: string, ativoEm: readonly string[] | undefined, pathname: string): boolean {
   if (pathname === href) return true;
   const raiz = href === "/admin" || href === "/vendedor";
   if (!raiz && pathname.startsWith(`${href}/`)) return true;
-  return (ativoEm ?? []).some((prefixo) => pathname === prefixo || pathname.startsWith(`${prefixo}/`));
+  return (ativoEm ?? []).some((padrao) => casaComPadrao(padrao, pathname));
 }
 
 /**
@@ -71,8 +81,12 @@ export function AppShell({
     .map((item) => (item.abas ? { ...item, abas: item.abas.filter((aba) => pode(aba.permissoes)) } : item))
     .filter((item) => (item.abas ? item.abas.length > 0 : pode(item.permissoes)));
 
+  // Entrada com abas fica ativa quando alguma aba casa OU quando a página é uma tela da entrada que não é aba
+  // (o contrato e a análise de uma ata, por exemplo, ficam em "Atas" sem marcar nenhuma aba).
   const ativoDoItem = (item: ItemNav) =>
-    item.abas ? item.abas.some((aba) => rotaAtiva(aba.href, aba.ativoEm, pathname)) : rotaAtiva(item.href, item.ativoEm, pathname);
+    item.abas
+      ? item.abas.some((aba) => rotaAtiva(aba.href, aba.ativoEm, pathname)) || (item.ativoEm ?? []).some((p) => casaComPadrao(p, pathname))
+      : rotaAtiva(item.href, item.ativoEm, pathname);
 
   // As abas da página: as da entrada onde a pessoa está, se tiver mais de uma que ela possa ver.
   const entradaAtual = itens.find((item) => item.abas && ativoDoItem(item));
