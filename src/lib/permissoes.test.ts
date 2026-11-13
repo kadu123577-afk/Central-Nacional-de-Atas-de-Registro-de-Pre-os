@@ -75,23 +75,38 @@ describe("perfis prontos", () => {
     }
   });
 
-  it("o administrador completo tem todas as permissões", () => {
-    expect(perfilPorChave("administrador")?.permissoes).toEqual(TODAS_AS_PERMISSOES);
+  it("administração, jurídico e gestão são um perfil só (a Gestão), com todas as permissões", () => {
+    expect(perfilPorChave("gestao")?.permissoes).toEqual(TODAS_AS_PERMISSOES);
+    expect(perfilPorChave("administrador")).toBeNull();
+    expect(perfilPorChave("juridico")).toBeNull();
   });
 
-  it("o aprovador só aprova e o jurídico não aprova: quem aprova não confere a própria conformidade", () => {
-    expect(perfilPorChave("aprovador")?.permissoes).toEqual(["atas.aprovar"]);
-    expect(perfilPorChave("juridico")?.permissoes).not.toContain("atas.aprovar");
+  it("só a Gestão tem a visão geral da operação e a gestão de usuários", () => {
+    for (const perfil of PERFIS) {
+      const tem = (c: string) => (perfil.permissoes as readonly string[]).includes(c);
+      expect(tem("visao.geral"), perfil.chave).toBe(perfil.chave === "gestao");
+      expect(tem("usuarios.gerir"), perfil.chave).toBe(perfil.chave === "gestao");
+    }
   });
 
-  it("captação (estagiário) não aprova, não cobra e não gere usuários", () => {
-    const captacao = perfilPorChave("captacao")?.permissoes ?? [];
-    expect(captacao).toContain("atas.captar");
-    expect(captacao).toContain("adesao.registrar");
-    expect(captacao).not.toContain("adesao.declarar");
-    expect(captacao).not.toContain("atas.aprovar");
-    expect(captacao).not.toContain("comissao.cobrar");
-    expect(captacao).not.toContain("usuarios.gerir");
+  it("o aprovador aprova e instrui a adesão, mas não confere a própria conformidade", () => {
+    const aprovador = perfilPorChave("aprovador")?.permissoes ?? [];
+    expect(aprovador).toEqual(["atas.aprovar", "adesao.instruir"]);
+    expect(aprovador).not.toContain("atas.conformidade");
+  });
+
+  it("o captador mapeia a ata e cadastra itens, mas não aprova, não declara e não cobra", () => {
+    const captador = perfilPorChave("captacao")?.permissoes ?? [];
+    expect(captador).toEqual(["atas.captar", "atas.itens"]);
+  });
+
+  it("o estagiário só cadastra itens e registra adesão: não abre o resto da captação", () => {
+    const estagiario = perfilPorChave("estagiario")?.permissoes ?? [];
+    expect(estagiario).toEqual(["atas.itens", "adesao.registrar"]);
+    expect(estagiario).not.toContain("atas.captar");
+    expect(estagiario).not.toContain("adesao.declarar");
+    expect(estagiario).not.toContain("atas.aprovar");
+    expect(estagiario).not.toContain("visao.geral");
   });
 
   it("perfilPorChave devolve null para chave desconhecida", () => {

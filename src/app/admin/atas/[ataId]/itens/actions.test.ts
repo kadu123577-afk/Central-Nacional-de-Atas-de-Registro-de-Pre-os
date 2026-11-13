@@ -63,7 +63,7 @@ describe("sessão e permissão primeiro", () => {
   ])("%s sem a permissão de captação para antes de tudo", async (_nome, chamar) => {
     d.exigirPermissaoDe.mockRejectedValue(new Error("NEXT_REDIRECT:/admin?acesso=negado"));
     await expect(chamar()).rejects.toThrow("NEXT_REDIRECT:/admin?acesso=negado");
-    expect(d.exigirPermissaoDe).toHaveBeenCalledWith("adm1", "atas.captar", "admin.importarItens");
+    expect(d.exigirPermissaoDe).toHaveBeenCalledWith("adm1", ["atas.itens", "atas.captar"], "admin.importarItens");
     expect(d.ataFindUnique).not.toHaveBeenCalled();
     expect(d.transaction).not.toHaveBeenCalled();
   });

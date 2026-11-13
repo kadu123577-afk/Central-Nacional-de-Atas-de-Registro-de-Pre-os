@@ -5,33 +5,25 @@ import type { ItemNav } from "@/components/ui/app-shell";
  * cada página tinha a sua cópia da lista, e um item novo exigia editar 17
  * arquivos.
  *
- * Reunido em 14/11/2026 (pedido de Carlos: "muita coisa que daria para reunir"): de 21 itens
- * soltos para 9 entradas. Cada entrada com várias telas vira uma linha no menu lateral e, na
- * página, uma barra de abas (montada pela casca, src/components/ui/app-shell.tsx). Os endereços
- * das telas não mudaram. O que a pessoa não pode usar some, aba por aba, e a entrada que ficar
- * sem aba some junto. O Pipeline fica logo abaixo do Painel. O financeiro da SCP continua fora.
+ * Reunido em abas em 14/11/2026 e ENGESSADO por função no mesmo dia (pedido de Carlos: "cada
+ * função só vê o que é para ela ver"): cada entrada e cada aba declara a permissão de quem a
+ * enxerga. Quem executa uma etapa vê só as telas dessa etapa; a visão geral da operação (ciclos,
+ * pipeline, desempenho, catálogo completo) exige "visao.geral", que só a Gestão tem. A entrada
+ * que ficar sem aba para a pessoa some; com uma aba só, o menu mostra o nome da aba. Os
+ * endereços das telas não mudaram, e cada tela confere a permissão de novo no servidor.
+ * O financeiro da SCP continua fora do menu.
  */
-const PERMISSOES_DO_CICLO_DA_ATA = ["atas.captar", "atas.contrato", "atas.conformidade", "atas.aprovar", "atas.publicar"] as const;
-const PERMISSOES_DO_CICLO_DA_ADESAO = [
-  "municipios.liberar",
-  "adesao.instruir",
-  "adesao.declarar",
-  "adesao.registrar",
-  "adesao.acompanhar",
-  "comissao.cobrar",
-] as const;
-
 export const NAV_ADMIN: ItemNav[] = [
   { rotulo: "Painel", href: "/admin" },
-  { rotulo: "Pipeline", href: "/admin/pipeline" },
+  { rotulo: "Pipeline", href: "/admin/pipeline", permissoes: ["visao.geral"] },
 
   // Atividades 1 a 7 (a ata) e 8 a 17 (a adesão do município).
   {
     rotulo: "Ciclos",
     href: "/admin/ciclo",
     abas: [
-      { rotulo: "Atas (1 a 7)", href: "/admin/ciclo", permissoes: PERMISSOES_DO_CICLO_DA_ATA },
-      { rotulo: "Adesões (8 a 17)", href: "/admin/ciclo-adesao", permissoes: PERMISSOES_DO_CICLO_DA_ADESAO },
+      { rotulo: "Atas (1 a 7)", href: "/admin/ciclo", permissoes: ["visao.geral"] },
+      { rotulo: "Adesões (8 a 17)", href: "/admin/ciclo-adesao", permissoes: ["visao.geral"] },
     ],
   },
 
@@ -40,7 +32,8 @@ export const NAV_ADMIN: ItemNav[] = [
     rotulo: "Atas",
     href: "/atas",
     abas: [
-      { rotulo: "Catálogo", href: "/atas", ativoEm: ["/admin/atas"] },
+      { rotulo: "Catálogo", href: "/atas", ativoEm: ["/admin/atas"], permissoes: ["visao.geral"] },
+      { rotulo: "Cadastrar ata", href: "/admin/atas/nova", permissoes: ["atas.captar"] },
       { rotulo: "Radar de atas", href: "/admin/radar-atas", permissoes: ["atas.captar"] },
       { rotulo: "Fornecedores", href: "/admin/fornecedores", permissoes: ["atas.captar"] },
       { rotulo: "Prospecção de fornecedores", href: "/admin/prospeccao-fornecedores", permissoes: ["atas.captar"] },
@@ -58,15 +51,8 @@ export const NAV_ADMIN: ItemNav[] = [
     ],
   },
 
-  // Desempenho: acompanhar cada consultor e o que ele tem a receber.
-  {
-    rotulo: "Desempenho",
-    href: "/admin/indicadores",
-    abas: [
-      { rotulo: "Indicadores", href: "/admin/indicadores" },
-      { rotulo: "Recebíveis — vendedores", href: "/admin/recebiveis-vendedores", permissoes: ["comissao.cobrar"] },
-    ],
-  },
+  // Desempenho: acompanhar cada consultor (só a gestão).
+  { rotulo: "Desempenho", href: "/admin/indicadores", permissoes: ["visao.geral"] },
 
   // Atividade 16: cobrar e receber a comissão.
   // O financeiro da SCP (/admin/financeiro-scp) NÃO entra neste menu de propósito: a lista é
@@ -77,6 +63,7 @@ export const NAV_ADMIN: ItemNav[] = [
     href: "/admin/faturamento",
     abas: [
       { rotulo: "Contas a receber", href: "/admin/faturamento", permissoes: ["comissao.cobrar"] },
+      { rotulo: "Recebíveis — vendedores", href: "/admin/recebiveis-vendedores", permissoes: ["comissao.cobrar"] },
       { rotulo: "Comissão", href: "/admin/comissao", permissoes: ["atas.contrato"] },
     ],
   },

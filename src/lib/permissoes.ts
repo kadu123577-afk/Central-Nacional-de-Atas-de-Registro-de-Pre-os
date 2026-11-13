@@ -19,8 +19,14 @@ export const PERMISSOES = [
   {
     chave: "atas.captar",
     rotulo: "Captar atas",
-    atividades: [1, 2, 3],
-    descricao: "Mapear e cadastrar a ata, cadastrar itens e saldos, cuidar do fornecedor e da prospecção.",
+    atividades: [1, 2],
+    descricao: "Mapear e cadastrar a ata, fechar com a empresa prestadora, cuidar do fornecedor e da prospecção.",
+  },
+  {
+    chave: "atas.itens",
+    rotulo: "Cadastrar itens e saldos",
+    atividades: [3],
+    descricao: "Cadastrar os itens da ata e o saldo de cada um, inclusive por planilha. É só isto: não abre o resto da captação.",
   },
   {
     chave: "atas.contrato",
@@ -89,6 +95,13 @@ export const PERMISSOES = [
     descricao: "Municípios, contatos, sinais de compra, parceiros, demandas do site e raio-X.",
   },
   {
+    chave: "visao.geral",
+    rotulo: "Visão geral da operação",
+    atividades: [],
+    descricao:
+      "Os ciclos, o Pipeline, os Indicadores e o desempenho dos vendedores, o catálogo completo e os painéis de números: a visão de quem gerencia, não de quem executa uma etapa.",
+  },
+  {
     chave: "usuarios.gerir",
     rotulo: "Gerir usuários",
     atividades: [],
@@ -126,24 +139,25 @@ export function temAlguma(permissoes: readonly string[] | null | undefined, chav
 
 export const PERFIS = [
   {
-    chave: "administrador",
-    rotulo: "Administrador completo",
+    // Administração, jurídico e gestão são a mesma pessoa (decisão de Carlos, 14/11/2026): um perfil só.
+    chave: "gestao",
+    rotulo: "Gestão (administração, jurídico e gestão)",
     permissoes: TODAS_AS_PERMISSOES,
-  },
-  {
-    chave: "juridico",
-    rotulo: "Jurídico",
-    permissoes: ["atas.contrato", "atas.conformidade", "adesao.declarar"],
   },
   {
     chave: "aprovador",
     rotulo: "Aprovador de atas",
-    permissoes: ["atas.aprovar"],
+    permissoes: ["atas.aprovar", "adesao.instruir"],
   },
   {
     chave: "captacao",
-    rotulo: "Captação (estagiário)",
-    permissoes: ["atas.captar", "adesao.registrar"],
+    rotulo: "Captador",
+    permissoes: ["atas.captar", "atas.itens"],
+  },
+  {
+    chave: "estagiario",
+    rotulo: "Estagiário",
+    permissoes: ["atas.itens", "adesao.registrar"],
   },
   {
     chave: "cobranca",
@@ -175,8 +189,8 @@ export const PERMISSAO_POR_ACAO: Record<string, Permissao | readonly Permissao[]
   "admin.definirTituloPublicoAta": "atas.publicar",
   "admin.cadastrarAtaComoAdmin": "atas.captar",
   "admin.completarFornecedorDaAta": "atas.captar",
-  "admin.adicionarItemNaAta": "atas.captar",
-  "admin.definirCodigoCatalogoItem": "atas.captar",
+  "admin.adicionarItemNaAta": ["atas.captar", "atas.itens"],
+  "admin.definirCodigoCatalogoItem": ["atas.captar", "atas.itens"],
   "admin.alternarStatusFornecedor": "atas.captar",
   "admin.atualizarContatoTecnicoFornecedor": "atas.captar",
   "admin.decidirPedidosNegociacao": "municipios.liberar",

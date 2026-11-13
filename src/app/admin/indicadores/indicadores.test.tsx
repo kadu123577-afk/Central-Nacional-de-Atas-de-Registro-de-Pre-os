@@ -18,6 +18,7 @@ const dobles = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/auth", () => ({ adminIdLogado: dobles.adminIdLogado }));
+vi.mock("@/lib/permissoes-db", () => ({ exigirPermissaoDe: vi.fn(async () => undefined) }));
 vi.mock("next/navigation", () => ({
   redirect: dobles.redirect,
   usePathname: () => "/admin/indicadores",

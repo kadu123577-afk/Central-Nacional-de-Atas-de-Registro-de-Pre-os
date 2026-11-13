@@ -6,6 +6,7 @@ vi.mock("next/navigation", () => ({ usePathname: () => d.pathname }));
 vi.mock("./logo", () => ({ Logo: () => null }));
 
 import { NAV_ADMIN } from "@/app/admin/nav";
+import { PERFIS, type Permissao } from "@/lib/permissoes";
 import { AppShell } from "./app-shell";
 import { PermissoesProvider } from "./permissoes-contexto";
 
@@ -37,25 +38,17 @@ function abas(html: string): string[] {
   return [...nav.matchAll(/<a [^>]*>([^<]*)<\/a>/g)].map((m) => m[1]);
 }
 
-const GESTOR = [
-  "atas.captar",
-  "atas.contrato",
-  "atas.conformidade",
-  "atas.aprovar",
-  "atas.publicar",
-  "municipios.liberar",
-  "adesao.instruir",
-  "adesao.declarar",
-  "adesao.registrar",
-  "adesao.acompanhar",
-  "comissao.cobrar",
-  "base.editar",
-  "usuarios.gerir",
-];
+/** As permissões de cada perfil pronto do sistema: o teste não inventa perfil, usa os de verdade. */
+const de = (chave: string): readonly Permissao[] => PERFIS.find((p) => p.chave === chave)!.permissoes;
+const GESTAO = de("gestao");
+const ESTAGIARIO = de("estagiario");
+const CAPTADOR = de("captacao");
+const APROVADOR = de("aprovador");
+const COBRANCA = de("cobranca");
 
-describe("casca do admin: menu reunido em abas", () => {
-  it("o gestor vê as 9 entradas, com o Pipeline logo abaixo do Painel", () => {
-    expect(menu(desenhar("/admin", GESTOR))).toEqual([
+describe("casca do admin: cada função só vê o que é dela", () => {
+  it("a Gestão vê as 9 entradas, com o Pipeline logo abaixo do Painel", () => {
+    expect(menu(desenhar("/admin", GESTAO))).toEqual([
       "Painel",
       "Pipeline",
       "Ciclos",
@@ -68,60 +61,93 @@ describe("casca do admin: menu reunido em abas", () => {
     ]);
   });
 
-  it("o estagiário (captação) só vê o que a permissão dele abre: entradas sem aba que ele possa ver somem", () => {
-    const html = desenhar("/admin", ["atas.captar", "adesao.registrar"]);
-    const itens = menu(html);
-    expect(itens).toEqual(["Painel", "Pipeline", "Ciclos", "Atas", "Negociações e adesões", "Desempenho", "Equipe e conta"]);
-    expect(itens).not.toContain("Financeiro");
-    expect(itens).not.toContain("Municípios");
+  it("o estagiário vê só o Painel, as Adesões e o Perfil: nada de ciclos, pipeline, atas, vendas ou financeiro", () => {
+    expect(menu(desenhar("/admin", ESTAGIARIO))).toEqual(["Painel", "Adesões", "Perfil"]);
+  });
+
+  it("o captador vê o Painel, as Atas (cadastrar, radar, fornecedores, prospecção) e o Perfil", () => {
+    const html = desenhar("/admin", CAPTADOR);
+    expect(menu(html)).toEqual(["Painel", "Atas", "Perfil"]);
+    expect(abas(desenhar("/admin/radar-atas", CAPTADOR))).toEqual([
+      "Cadastrar ata",
+      "Radar de atas",
+      "Fornecedores",
+      "Prospecção de fornecedores",
+    ]);
+  });
+
+  it("o Dr. Rui (aprova e instrui) vê o Painel, as Adesões e o Perfil: a ata chega pela tarefa, não pelo menu", () => {
+    expect(menu(desenhar("/admin", APROVADOR))).toEqual(["Painel", "Adesões", "Perfil"]);
+  });
+
+  it("o Jorge (cobrança) vê o Painel, o Financeiro (contas e recebíveis) e o Perfil", () => {
+    expect(menu(desenhar("/admin", COBRANCA))).toEqual(["Painel", "Financeiro", "Perfil"]);
+    expect(abas(desenhar("/admin/faturamento", COBRANCA))).toEqual(["Contas a receber", "Recebíveis — vendedores"]);
+  });
+
+  it("só a Gestão vê Pipeline, Ciclos, Catálogo e Desempenho (a visão geral)", () => {
+    for (const perfil of PERFIS) {
+      const itens = menu(desenhar("/admin", perfil.permissoes));
+      const ehGestao = perfil.chave === "gestao";
+      for (const rotulo of ["Pipeline", "Ciclos", "Desempenho"]) {
+        expect(itens.includes(rotulo), `${perfil.chave}: ${rotulo}`).toBe(ehGestao);
+      }
+    }
+    expect(abas(desenhar("/admin/radar-atas", CAPTADOR))).not.toContain("Catálogo");
   });
 
   it("a entrada leva à primeira aba que a pessoa pode ver (não a que ela não pode)", () => {
-    // O estagiário não vê "Negociações" (municipios.liberar): a entrada leva a Adesões.
-    const html = desenhar("/admin", ["atas.captar", "adesao.registrar"]);
-    expect(hrefDoMenu(html, "Negociações e adesões")).toBe("/admin/adesoes");
-    // O gestor vê tudo: leva à primeira.
-    expect(hrefDoMenu(desenhar("/admin", GESTOR), "Negociações e adesões")).toBe("/admin/negociacoes");
+    // Com uma aba só, o menu mostra o nome da aba e leva direto a ela.
+    expect(hrefDoMenu(desenhar("/admin", ESTAGIARIO), "Adesões")).toBe("/admin/adesoes");
+    // A Gestão vê tudo: a entrada leva à primeira.
+    expect(hrefDoMenu(desenhar("/admin", GESTAO), "Negociações e adesões")).toBe("/admin/negociacoes");
+    expect(hrefDoMenu(desenhar("/admin", CAPTADOR), "Atas")).toBe("/admin/atas/nova");
   });
 
   it("quem não vê nenhuma aba de uma entrada não vê a entrada", () => {
     const itens = menu(desenhar("/admin", ["atas.aprovar"]));
-    expect(itens).not.toContain("Negociações e adesões");
-    expect(itens).not.toContain("Financeiro");
-    expect(itens).not.toContain("Municípios");
+    expect(itens).toEqual(["Painel", "Perfil"]);
+  });
+
+  it("com uma aba só visível não aparece barra de abas", () => {
+    expect(abas(desenhar("/admin/adesoes", ESTAGIARIO))).toEqual([]);
   });
 
   it("na página de uma entrada com várias telas aparecem as abas, com a atual marcada", () => {
-    const html = desenhar("/admin/adesoes", GESTOR);
+    const html = desenhar("/admin/adesoes", GESTAO);
     expect(abas(html)).toEqual(["Negociações", "Adesões", "Contratos detectados"]);
     expect(html).toMatch(/aria-current="page"[^>]*>Adesões</);
   });
 
-  it("as abas só mostram o que a pessoa pode ver", () => {
-    expect(abas(desenhar("/admin/adesoes", ["adesao.registrar"]))).toEqual([]); // só uma aba visível: sem barra
-    expect(abas(desenhar("/admin/adesoes", ["adesao.registrar", "adesao.acompanhar"]))).toEqual(["Adesões", "Contratos detectados"]);
-  });
-
   it("páginas filhas ficam na entrada certa (município, ata, adesão de um município)", () => {
-    expect(abas(desenhar("/admin/entidades/abc123", GESTOR))).toEqual([
+    expect(abas(desenhar("/admin/entidades/abc123", GESTAO))).toEqual([
       "Municípios/Entidades",
       "Revisão de contatos",
       "Demandas do site",
       "Parceiros",
     ]);
-    expect(abas(desenhar("/admin/atas/xyz/contrato", GESTOR))).toEqual(["Catálogo", "Radar de atas", "Fornecedores", "Prospecção de fornecedores"]);
-    expect(abas(desenhar("/admin/adesoes/op1", GESTOR))).toContain("Adesões");
+    expect(abas(desenhar("/admin/atas/xyz/contrato", GESTAO))).toEqual([
+      "Catálogo",
+      "Cadastrar ata",
+      "Radar de atas",
+      "Fornecedores",
+      "Prospecção de fornecedores",
+    ]);
+  });
+
+  it("'Cadastrar ata' marca a própria aba, não a do Catálogo (que casa por prefixo)", () => {
+    expect(desenhar("/admin/atas/nova", GESTAO)).toMatch(/aria-current="page"[^>]*>Cadastrar ata</);
   });
 
   it("o ciclo da ata e o da adesão são abas da mesma entrada e não se confundem pelo prefixo", () => {
-    expect(abas(desenhar("/admin/ciclo", GESTOR))).toEqual(["Atas (1 a 7)", "Adesões (8 a 17)"]);
-    expect(desenhar("/admin/ciclo", GESTOR)).toMatch(/aria-current="page"[^>]*>Atas \(1 a 7\)</);
-    expect(desenhar("/admin/ciclo-adesao", GESTOR)).toMatch(/aria-current="page"[^>]*>Adesões \(8 a 17\)</);
+    expect(abas(desenhar("/admin/ciclo", GESTAO))).toEqual(["Atas (1 a 7)", "Adesões (8 a 17)"]);
+    expect(desenhar("/admin/ciclo", GESTAO)).toMatch(/aria-current="page"[^>]*>Atas \(1 a 7\)</);
+    expect(desenhar("/admin/ciclo-adesao", GESTAO)).toMatch(/aria-current="page"[^>]*>Adesões \(8 a 17\)</);
   });
 
   it("entradas simples (Painel, Pipeline) não têm barra de abas", () => {
-    expect(abas(desenhar("/admin", GESTOR))).toEqual([]);
-    expect(abas(desenhar("/admin/pipeline", GESTOR))).toEqual([]);
+    expect(abas(desenhar("/admin", GESTAO))).toEqual([]);
+    expect(abas(desenhar("/admin/pipeline", GESTAO))).toEqual([]);
   });
 
   it("sem permissões no contexto (área do vendedor) o menu aparece inteiro", () => {
@@ -129,6 +155,6 @@ describe("casca do admin: menu reunido em abas", () => {
   });
 
   it("o conteúdo da página continua aparecendo", () => {
-    expect(desenhar("/admin/adesoes", GESTOR)).toContain("conteúdo");
+    expect(desenhar("/admin/adesoes", GESTAO)).toContain("conteúdo");
   });
 });

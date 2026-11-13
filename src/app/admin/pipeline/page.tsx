@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { Prisma } from "@/generated/prisma/client";
 import { adminIdLogado } from "@/lib/auth";
+import { exigirPermissaoDe } from "@/lib/permissoes-db";
 import { prisma } from "@/lib/prisma";
 import { logoutAdmin } from "../actions";
 import { NAV_ADMIN } from "../nav";
@@ -38,6 +39,8 @@ interface Filtros {
 export default async function PipelineGestorPage({ searchParams }: { searchParams: Promise<Filtros> }) {
   const adminId = await adminIdLogado();
   if (!adminId) redirect("/admin/login");
+  // Visão geral: só da gestão (quem executa uma etapa não vê o funil dos outros).
+  await exigirPermissaoDe(adminId, "visao.geral");
 
   const filtros = await searchParams;
   await expirarOportunidadesVencidas();

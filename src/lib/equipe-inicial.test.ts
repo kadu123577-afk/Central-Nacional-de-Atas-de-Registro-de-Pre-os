@@ -5,13 +5,13 @@ describe("lerEquipeInicial", () => {
   it("lê equipe interna (por permissões ou por perfil) e consultor", () => {
     const { contas, problemas } = lerEquipeInicial([
       { nome: "Fulana", email: "Fulana@Exemplo.com.br", cargo: "Captação", permissoes: ["atas.captar", "adesao.registrar"] },
-      { nome: "Beltrano", email: "beltrano@exemplo.com.br", perfil: "juridico" },
+      { nome: "Beltrano", email: "beltrano@exemplo.com.br", perfil: "estagiario" },
       { tipo: "consultor", nome: "Ciclana", email: "ciclana@exemplo.com.br" },
     ]);
     expect(problemas).toEqual([]);
     expect(contas).toEqual([
       { tipo: "equipe", nome: "Fulana", email: "fulana@exemplo.com.br", cargo: "Captação", permissoes: ["atas.captar", "adesao.registrar"] },
-      { tipo: "equipe", nome: "Beltrano", email: "beltrano@exemplo.com.br", cargo: null, permissoes: ["atas.contrato", "atas.conformidade", "adesao.declarar"] },
+      { tipo: "equipe", nome: "Beltrano", email: "beltrano@exemplo.com.br", cargo: null, permissoes: ["atas.itens", "adesao.registrar"] },
       { tipo: "consultor", nome: "Ciclana", email: "ciclana@exemplo.com.br", tipoVendedor: "interno" },
     ]);
   });

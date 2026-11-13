@@ -16,7 +16,7 @@ import { prisma } from "@/lib/prisma";
 /**
  * Importação de itens da ata por planilha (2026-11-14), em duas etapas: "Conferir" lê o texto e
  * mostra o que entraria e o que está errado, sem gravar; "Gravar" lê de novo o mesmo texto e só
- * grava se não houver nenhum erro (tudo ou nada). Exige "atas.captar", conferida antes de ler o
+ * grava se não houver nenhum erro (tudo ou nada). Exige "atas.itens" (ou "atas.captar"), conferida antes de ler o
  * formulário. O id da ata vem do navegador: só passa o que tem forma de id e existe.
  */
 export interface EstadoImportacaoItens {
@@ -37,7 +37,7 @@ function idComFormaValida(id: unknown): id is string {
 async function exigirCaptacao(): Promise<string> {
   const adminId = await adminIdLogado();
   if (!adminId) redirect("/admin/login");
-  await exigirPermissaoDe(adminId, "atas.captar", "admin.importarItens");
+  await exigirPermissaoDe(adminId, ["atas.itens", "atas.captar"], "admin.importarItens");
   return adminId;
 }
 

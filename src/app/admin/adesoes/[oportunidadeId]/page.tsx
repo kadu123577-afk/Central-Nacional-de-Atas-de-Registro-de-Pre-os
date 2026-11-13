@@ -45,8 +45,9 @@ export default async function RegistrarAdesaoPage({ params }: { params: Promise<
   const { oportunidade: op, itens } = dados;
 
   // O cartão do Kanban traz a instrução da adesão (os itens e a declaração) no formato que a tela usa.
-  const { cartoes } = await carregarCartoes({ id: op.id }, { verDesvio: true });
-  const cartao = cartoes[0] ?? null;
+  // Só para quem instrui ou declara: o estagiário que registra vê a declaração e o formulário, não o painel inteiro.
+  const verInstrucao = podeInstruir || podeDeclarar;
+  const cartao = verInstrucao ? ((await carregarCartoes({ id: op.id }, { verDesvio: true })).cartoes[0] ?? null) : null;
 
   const registrada = op.estagio === "aderiu";
   const pendencias: string[] = [];

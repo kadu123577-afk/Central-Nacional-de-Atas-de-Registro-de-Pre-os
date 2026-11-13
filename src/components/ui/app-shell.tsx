@@ -77,7 +77,11 @@ export function AppShell({
   // As abas da página: as da entrada onde a pessoa está, se tiver mais de uma que ela possa ver.
   const entradaAtual = itens.find((item) => item.abas && ativoDoItem(item));
   const abasDaPagina = entradaAtual?.abas && entradaAtual.abas.length > 1 ? entradaAtual.abas : null;
-  const abaAtiva = abasDaPagina?.find((aba) => rotaAtiva(aba.href, aba.ativoEm, pathname))?.href ?? "";
+  // A aba da página: a de endereço exato; na falta dela, a que casa por prefixo (página filha).
+  const abaAtiva =
+    abasDaPagina?.find((aba) => aba.href === pathname)?.href ??
+    abasDaPagina?.find((aba) => rotaAtiva(aba.href, aba.ativoEm, pathname))?.href ??
+    "";
 
   return (
     <div className="flex min-h-screen flex-col md:flex-row">
@@ -102,7 +106,8 @@ export function AppShell({
                     aria-current={ativo ? "page" : undefined}
                     className="app-menu-item max-md:whitespace-nowrap"
                   >
-                    {item.rotulo}
+                    {/* Com uma aba só, o menu mostra o nome dela: "Adesões", não "Negociações e adesões". */}
+                    {item.abas?.length === 1 ? item.abas[0].rotulo : item.rotulo}
                   </Link>
                 </div>
               );

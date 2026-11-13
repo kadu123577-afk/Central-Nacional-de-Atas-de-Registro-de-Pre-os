@@ -15,7 +15,6 @@ import { Secao } from "@/components/ui/secao";
 
 export const dynamic = "force-dynamic";
 
-const PERMISSOES_DO_CICLO = ["atas.captar", "atas.contrato", "atas.conformidade", "atas.aprovar", "atas.publicar"] as const;
 const dataBr = (d: Date) => d.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });
 const dataHoraBr = (d: Date) => d.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", dateStyle: "short", timeStyle: "short" });
 const TOM_DO_PRAZO: Record<"ok" | "hoje" | "atrasado", Tom> = { ok: "neutro", hoje: "atencao", atrasado: "critico" };
@@ -27,7 +26,7 @@ const TOM_DO_PRAZO: Record<"ok" | "hoje" | "atrasado", Tom> = { ok: "neutro", ho
 export default async function CicloDaAtaPage({ params }: { params: Promise<{ ataId: string }> }) {
   const adminId = await adminIdLogado();
   if (!adminId) redirect("/admin/login");
-  await exigirPermissaoDe(adminId, [...PERMISSOES_DO_CICLO]);
+  await exigirPermissaoDe(adminId, "visao.geral");
   const permissoes = (await permissoesDoAdmin(adminId)) ?? [];
 
   const { ataId } = await params;

@@ -75,20 +75,21 @@ export default async function PainelAdminPage({
   const permissoes = await permissoesDoAdmin(adminId);
   if (permissoes === null) redirect("/admin/login");
   const podeAprovar = temPermissao(permissoes, "atas.aprovar");
-  // Cada botão da lista de atas só aparece para quem tem a permissão da tela para onde ele leva.
-  const podeCompletar = temPermissao(permissoes, "atas.captar");
-  const podeContrato = temPermissao(permissoes, "atas.contrato");
-  const podeAnalisar = temAlguma(permissoes, ["atas.conformidade", "atas.aprovar"]);
   // A página inicial é a fila de tarefas de cada perfil: cada pessoa vê só o que as permissões dela resolvem.
-  const ehGestor = temPermissao(permissoes, "usuarios.gerir");
-  const verCanalVendedores = temAlguma(permissoes, ["municipios.liberar", "usuarios.gerir"]);
-  const verModeracao = temAlguma(permissoes, ["atas.captar", "atas.contrato", "atas.conformidade", "atas.aprovar"]);
-  const verFinanceiro = temAlguma(permissoes, ["comissao.cobrar", "usuarios.gerir"]);
+  // Engessado por função (14/11/2026): quem executa uma etapa vê só o que está na vez dele; os painéis
+  // de números e a visão geral são da Gestão ("visao.geral").
+  const ehGestor = temPermissao(permissoes, "visao.geral");
+  const verCanalVendedores = ehGestor;
+  // A lista de atas esperando análise é de quem age sobre elas: contrato, conformidade ou aprovação.
+  const verModeracao = temAlguma(permissoes, ["atas.contrato", "atas.conformidade", "atas.aprovar"]);
+  // Os painéis de números (atas aprovadas, saldo, conversão, valores) são visão geral. Quem cobra a
+  // comissão trabalha na aba Financeiro, não neste painel.
+  const verFinanceiro = ehGestor;
 
   await expirarOportunidadesVencidas();
 
   // Ciclo da ata (2026-11-14): quantas atas esperam uma etapa que ESTA pessoa pode resolver.
-  const atasEmAndamento = verModeracao ? await carregarAtasEmAndamento() : [];
+  const atasEmAndamento = ehGestor || verModeracao ? await carregarAtasEmAndamento() : [];
   const atasNaSuaVez = atasEmAndamento.filter((a) => {
     const etapa = a.situacao.etapaAtual ? etapaPorNumero(a.situacao.etapaAtual) : undefined;
     return etapa ? temPermissao(permissoes, etapa.permissao) : false;
@@ -196,6 +197,23 @@ export default async function PainelAdminPage({
     .filter((f) => f.pago)
     .reduce((total, f) => total + Number(f.valorTaxaIntermediacao), 0);
 
+  // A ata só aparece para quem age sobre ela NESTA etapa (14/11/2026): contrato (4), conformidade (5)
+  // ou aprovação (6). Antes a lista mostrava toda ata pendente, até as que ainda não estavam na vez.
+  const etapaDaAta = new Map(atasEmAndamento.map((a) => [a.id, a.situacao.etapaAtual]));
+  const etapaDaVez = (id: string): 4 | 5 | 6 | null => {
+    const n = etapaDaAta.get(id);
+    return n === 4 || n === 5 || n === 6 ? n : null;
+  };
+  const podeAgirNaEtapa = (n: 4 | 5 | 6) =>
+    temPermissao(permissoes, n === 4 ? "atas.contrato" : n === 5 ? "atas.conformidade" : "atas.aprovar");
+  const atasNaMinhaVez = atasPendentes.filter((ata) => {
+    const n = etapaDaVez(ata.id);
+    return n !== null && podeAgirNaEtapa(n);
+  });
+
+  // Tarefa do captador: ata importada cuja empresa prestadora ainda não foi confirmada.
+  const atasParaCompletar = atasPendentes.filter((ata) => ata.fornecedor.cnpj === CNPJ_FORNECEDOR_A_CONFIRMAR);
+
   const painel = montarPainel(linhasPipeline);
   const porVendedor = resumirPorVendedor(linhasPipeline);
   const k = painel.kpis;
@@ -203,15 +221,23 @@ export default async function PainelAdminPage({
   const fila: ItemFila[] = [
     {
       rotulo: "Atas esperando uma etapa sua no ciclo",
-      permissao: ["atas.captar", "atas.contrato", "atas.conformidade", "atas.aprovar", "atas.publicar"],
+      permissao: ["visao.geral"],
       descricao: "Da captação à publicação: cada ata mostra em que etapa está e o prazo em dias úteis.",
       n: atasNaSuaVez,
       href: "/admin/ciclo",
       tom: "atencao",
     },
     {
-      rotulo: "Atas sem itens cadastrados",
+      rotulo: "Atas para completar os dados da empresa",
       permissao: ["atas.captar"],
+      descricao: "Atas importadas cuja empresa prestadora ainda não foi confirmada: feche com a empresa e complete os dados.",
+      n: atasParaCompletar.length,
+      href: atasParaCompletar[0] ? `/admin/atas/${atasParaCompletar[0].id}/completar` : "/admin",
+      tom: "atencao",
+    },
+    {
+      rotulo: "Atas sem itens cadastrados",
+      permissao: ["atas.itens"],
       descricao: "Sem itens e saldos a ata não pode ser analisada nem negociada.",
       n: atasSemItens.length,
       href: atasSemItens[0] ? `/admin/atas/${atasSemItens[0].id}/itens` : "/admin",
@@ -242,10 +268,10 @@ export default async function PainelAdminPage({
       tom: "atencao",
     },
     {
-      rotulo: "Atas aguardando análise",
-      permissao: ["atas.conformidade", "atas.aprovar"],
-      descricao: "Aprovar libera a ata no catálogo; sem contrato ela não chega ao vendedor.",
-      n: atasPendentes.length,
+      rotulo: "Atas na sua vez",
+      permissao: ["atas.contrato", "atas.conformidade", "atas.aprovar"],
+      descricao: "Contrato, conformidade ou aprovação: cada ata aparece aqui quando chega à etapa que é sua.",
+      n: atasNaMinhaVez.length,
       href: "#moderacao",
       tom: "atencao",
     },
@@ -307,14 +333,15 @@ export default async function PainelAdminPage({
     },
     {
       rotulo: "Prazos de negociação vencendo",
-      permissao: ["municipios.liberar"],
+      permissao: ["visao.geral"],
       descricao: "Municípios que expiram em até 3 dias sem avanço.",
       n: k.vencendo,
       href: "/admin/pipeline",
       tom: "critico",
     },
   ];
-  const filaDoPerfil = fila.filter((item) => temAlguma(permissoes, item.permissao));
+  // Só o que está na vez da pessoa: o que não tem nada esperando não aparece (sem linha "0 · Em dia").
+  const filaDoPerfil = fila.filter((item) => temAlguma(permissoes, item.permissao) && item.n > 0);
   const totalFila = filaDoPerfil.reduce((soma, item) => soma + item.n, 0);
 
   return (
@@ -340,6 +367,11 @@ export default async function PainelAdminPage({
       />
 
       <Secao titulo={ehGestor ? "Fila de ação" : "O que está esperando você"} destaque>
+        {filaDoPerfil.length === 0 && (
+          <p className="text-sm" style={{ color: "var(--cor-texto-2)" }}>
+            Nada esperando você agora. Quando chegar a sua vez em alguma etapa, ela aparece aqui.
+          </p>
+        )}
         <ul className="lista-linhas">
           {filaDoPerfil.map((item) => (
             <li key={item.rotulo} className="flex flex-wrap items-center justify-between gap-3">
@@ -498,7 +530,7 @@ export default async function PainelAdminPage({
       {verModeracao && (
       <div id="moderacao" className="scroll-mt-6">
         <Secao
-          titulo={`Atas aguardando moderação (${atasPendentes.length})`}
+          titulo={`Atas na sua vez (${atasNaMinhaVez.length})`}
           descricao={
             <>
               Uma ata só aparece no catálogo público depois de aprovada aqui — e só chega ao vendedor com contrato de
@@ -506,11 +538,11 @@ export default async function PainelAdminPage({
             </>
           }
         >
-          {atasPendentes.length === 0 ? (
-            <VazioComAcao titulo="Nada pendente" descricao="Nenhuma ata aguardando moderação no momento." />
+          {atasNaMinhaVez.length === 0 ? (
+            <VazioComAcao titulo="Nada na sua vez" descricao="Quando uma ata chegar à etapa que é sua (contrato, conformidade ou aprovação), ela aparece aqui." />
           ) : (
             <ul className="lista-linhas">
-              {atasPendentes.map((ata) => {
+              {atasNaMinhaVez.map((ata) => {
                 const confirmados = ITENS_CONFORMIDADE.filter((i) => ata.conformidade?.[i.campo]).length;
                 return (
                   <li key={ata.id} className="flex flex-col gap-3">
@@ -590,17 +622,17 @@ export default async function PainelAdminPage({
                     </div>
 
                     <div className="flex flex-wrap gap-2">
-                      {podeCompletar && ataImportadaIncompleta(ata) && (
-                        <Link href={`/admin/atas/${ata.id}/completar`} className="botao-atas secundario">
-                          Completar
+                      {etapaDaVez(ata.id) === 4 && (
+                        <Link href={`/admin/atas/${ata.id}/contrato`} className="botao-atas">
+                          Cadastrar o contrato
                         </Link>
                       )}
-                      {podeContrato && (
-                        <Link href={`/admin/atas/${ata.id}/contrato`} className="botao-atas secundario">
-                          Contrato
+                      {etapaDaVez(ata.id) === 5 && (
+                        <Link href={`/admin/atas/${ata.id}/analise`} className="botao-atas">
+                          Conferir a conformidade
                         </Link>
                       )}
-                      {podeAnalisar && (
+                      {etapaDaVez(ata.id) === 6 && (
                         <Link href={`/admin/atas/${ata.id}/analise`} className="botao-atas">
                           Analisar e aprovar
                         </Link>

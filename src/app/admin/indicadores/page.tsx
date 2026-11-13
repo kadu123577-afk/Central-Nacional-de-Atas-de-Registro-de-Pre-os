@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { adminIdLogado } from "@/lib/auth";
+import { exigirPermissaoDe } from "@/lib/permissoes-db";
 import { logoutAdmin } from "../actions";
 import { NAV_ADMIN } from "../nav";
 import { AppShell } from "@/components/ui/app-shell";
@@ -32,6 +33,8 @@ export default async function IndicadoresPage({
 }) {
   const adminId = await adminIdLogado();
   if (!adminId) redirect("/admin/login");
+  // Desempenho dos vendedores: só da gestão.
+  await exigirPermissaoDe(adminId, "visao.geral");
 
   const { semana: semanaDaUrl } = await searchParams;
   const agora = new Date();

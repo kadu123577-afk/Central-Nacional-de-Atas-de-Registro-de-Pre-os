@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Prisma } from "@/generated/prisma/client";
 import { adminIdLogado } from "@/lib/auth";
+import { exigirPermissaoDe } from "@/lib/permissoes-db";
 import { prisma } from "@/lib/prisma";
 import { limitePorOrgao, saldoAgregadoDisponivel } from "@/lib/saldo";
 import { percentualSaldoItem } from "@/lib/vitrine";
@@ -59,6 +60,8 @@ export default async function AtasPage({
   if (!adminId) {
     redirect("/admin/login");
   }
+  // O catálogo completo (com status, fornecedor e valores) é visão geral: só da gestão.
+  await exigirPermissaoDe(adminId, "visao.geral");
 
   const filtros = await searchParams;
   const objeto = filtros.objeto?.trim() ?? "";

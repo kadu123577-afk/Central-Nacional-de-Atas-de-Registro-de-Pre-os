@@ -80,13 +80,23 @@ describe("menu do admin reunido em abas", () => {
     expect(entradaDe("/admin/negociacoes")).toBe("Negociações e adesões");
     expect(entradaDe("/admin/adesoes")).toBe("Negociações e adesões");
     expect(entradaDe("/admin/indicadores")).toBe("Desempenho");
-    expect(entradaDe("/admin/recebiveis-vendedores")).toBe("Desempenho");
+    expect(entradaDe("/admin/recebiveis-vendedores")).toBe("Financeiro");
+    expect(entradaDe("/admin/atas/nova")).toBe("Atas");
     expect(entradaDe("/admin/feriados")).toBe("Equipe e conta");
   });
 
   it("a tela de adesões serve a quem registra (estagiário), a quem declara (jurídico) e a quem instrui (Dr. Rui)", () => {
     const aba = NAV_ADMIN.flatMap((i) => i.abas ?? []).find((a) => a.href === "/admin/adesoes");
     expect(aba?.permissoes).toEqual(["adesao.registrar", "adesao.declarar", "adesao.instruir"]);
+  });
+
+  it("as telas de visão geral só aparecem para quem tem \"visao.geral\" (a Gestão)", () => {
+    const geral = ["/admin/pipeline", "/admin/ciclo", "/admin/ciclo-adesao", "/atas", "/admin/indicadores"];
+    const itens = NAV_ADMIN.flatMap((i) => [{ href: i.href, permissoes: i.permissoes }, ...(i.abas ?? [])]);
+    for (const href of geral) {
+      const alvo = itens.find((i) => i.href === href && i.permissoes);
+      expect(alvo?.permissoes, href).toEqual(["visao.geral"]);
+    }
   });
 
   it("o financeiro da SCP continua fora do menu", () => {

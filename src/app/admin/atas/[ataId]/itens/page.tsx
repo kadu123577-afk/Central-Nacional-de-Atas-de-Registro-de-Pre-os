@@ -16,12 +16,12 @@ export const dynamic = "force-dynamic";
 /**
  * Itens e saldos da ata (2026-11-14), a tela do estagiário da captação (atividade 3 do
  * workflow): ver os itens já cadastrados, adicionar um item ou importar vários por planilha.
- * Exige "atas.captar".
+ * Exige "atas.itens" (ou "atas.captar").
  */
 export default async function ItensDaAtaPage({ params }: { params: Promise<{ ataId: string }> }) {
   const adminId = await adminIdLogado();
   if (!adminId) redirect("/admin/login");
-  await exigirPermissaoDe(adminId, "atas.captar");
+  await exigirPermissaoDe(adminId, ["atas.itens", "atas.captar"]);
 
   const { ataId } = await params;
   const ata = await prisma.ata.findUnique({

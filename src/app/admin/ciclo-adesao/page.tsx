@@ -16,14 +16,6 @@ import { Secao } from "@/components/ui/secao";
 
 export const dynamic = "force-dynamic";
 
-const PERMISSOES_DO_CICLO_DA_ADESAO = [
-  "municipios.liberar",
-  "adesao.instruir",
-  "adesao.declarar",
-  "adesao.registrar",
-  "adesao.acompanhar",
-  "comissao.cobrar",
-] as const;
 const PERMISSOES_DA_TELA_DE_ADESOES = ["adesao.instruir", "adesao.declarar", "adesao.registrar"] as const;
 
 /** Quantas linhas cada etapa mostra (a de "a contatar" é enorme e mostra menos). */
@@ -42,7 +34,7 @@ const TOM_DO_PRAZO: Record<"ok" | "hoje" | "atrasado", Tom> = { ok: "neutro", ho
 export default async function CicloDaAdesaoPage() {
   const adminId = await adminIdLogado();
   if (!adminId) redirect("/admin/login");
-  await exigirPermissaoDe(adminId, [...PERMISSOES_DO_CICLO_DA_ADESAO]);
+  await exigirPermissaoDe(adminId, "visao.geral");
   const permissoes = (await permissoesDoAdmin(adminId)) ?? [];
   const veTelaDeAdesoes = temAlguma(permissoes, PERMISSOES_DA_TELA_DE_ADESOES);
 

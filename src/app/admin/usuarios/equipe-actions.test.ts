@@ -118,7 +118,7 @@ describe("criarMembroEquipe", () => {
 
   it("sem nenhuma caixa marcada, usa as permissões do perfil pronto", async () => {
     await criarMembroEquipe({}, formulario({ ...base, perfil: "aprovador" }));
-    expect(dobles.adminCreate.mock.calls[0][0].data.permissoes).toEqual(["atas.aprovar"]);
+    expect(dobles.adminCreate.mock.calls[0][0].data.permissoes).toEqual(["atas.aprovar", "adesao.instruir"]);
   });
 
   it("sem caixa e sem perfil, a conta nasce sem permissão nenhuma", async () => {

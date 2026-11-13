@@ -32,6 +32,11 @@ export default async function AdesoesPage() {
   const permissoes = (await permissoesDoAdmin(adminId)) ?? [];
   const podeRegistrar = temPermissao(permissoes, "adesao.registrar");
   const podeDeclarar = temPermissao(permissoes, "adesao.declarar");
+  const podeInstruir = temPermissao(permissoes, "adesao.instruir");
+  // Cada pessoa vê só o bloco da etapa dela (14/11/2026): o estagiário não vê a fila de instrução.
+  const verProntas = podeRegistrar;
+  const verInstrucao = podeInstruir || podeDeclarar;
+  const verRegistradas = podeRegistrar || podeDeclarar;
 
   await expirarOportunidadesVencidas();
 
@@ -213,12 +218,20 @@ export default async function AdesoesPage() {
         rotulo="Adesão"
         titulo="Instruir e registrar"
         destaque="adesões"
-        descricao={`${fila.prontosParaDeclarar} município(s) prontos para o jurídico declarar · ${totalProntas} pronto(s) para o estagiário registrar.`}
+        descricao={[
+          verInstrucao ? `${fila.prontosParaDeclarar} município(s) com a instrução completa, esperando a declaração` : null,
+          verProntas ? `${totalProntas} pronto(s) para registrar` : null,
+        ]
+          .filter(Boolean)
+          .join(" · ")}
         voltar={{ href: "/admin", rotulo: "Minhas tarefas" }}
       />
 
-      {podeRegistrar ? [blocoPronto, blocoInstrucao] : [blocoInstrucao, blocoPronto]}
+      {podeRegistrar
+        ? [verProntas && blocoPronto, verInstrucao && blocoInstrucao]
+        : [verInstrucao && blocoInstrucao, verProntas && blocoPronto]}
 
+      {verRegistradas && (
       <Secao titulo="Registradas recentemente" descricao="As 30 últimas. Abra uma para ver as quantidades por item.">
         {registradas.length === 0 ? (
           <p className="text-sm" style={{ color: "var(--cor-texto-2)" }}>
@@ -268,6 +281,7 @@ export default async function AdesoesPage() {
           </div>
         )}
       </Secao>
+      )}
     </AppShell>
   );
 }

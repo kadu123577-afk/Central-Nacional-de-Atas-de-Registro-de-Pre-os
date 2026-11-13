@@ -6,10 +6,10 @@
     "permissoes": ["atas.captar"]
   },
   {
-    "nome": "Nome da Pessoa (jurídico)",
-    "email": "juridico@exemplo.com.br",
-    "cargo": "Jurídico",
-    "perfil": "juridico"
+    "nome": "Nome da Pessoa (estagiário)",
+    "email": "estagiario@exemplo.com.br",
+    "cargo": "Estagiário",
+    "perfil": "estagiario"
   },
   {
     "nome": "Nome da Pessoa (consultor de vendas)",
