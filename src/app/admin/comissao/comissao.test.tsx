@@ -154,11 +154,10 @@ describe("página /admin/comissao", () => {
 });
 
 describe("menu do administrador", () => {
-  it("tem o item Comissão, no grupo Financeiro, apontando para /admin/comissao", () => {
-    const item = NAV_ADMIN.find((i) => i.href === "/admin/comissao");
-    expect(item).toBeDefined();
-    expect(item?.rotulo).toBe("Comissão");
-    expect(item?.grupo).toBe("Financeiro");
+  it("tem a aba Comissão, na entrada Financeiro, apontando para /admin/comissao", () => {
+    const entrada = NAV_ADMIN.find((i) => i.abas?.some((a) => a.href === "/admin/comissao"));
+    expect(entrada?.rotulo).toBe("Financeiro");
+    expect(entrada?.abas?.find((a) => a.href === "/admin/comissao")?.rotulo).toBe("Comissão");
   });
 });
 

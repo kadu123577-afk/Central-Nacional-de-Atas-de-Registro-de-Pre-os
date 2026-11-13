@@ -1,9 +1,14 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { ABAS_DO_CICLO, AbasDePagina } from "./abas-de-pagina";
+import { AbasDePagina } from "./abas-de-pagina";
 
-const desenhar = (ativa: string) => renderToStaticMarkup(createElement(AbasDePagina, { abas: ABAS_DO_CICLO, ativa }));
+const ABAS = [
+  { href: "/admin/ciclo", rotulo: "Atas (1 a 7)" },
+  { href: "/admin/ciclo-adesao", rotulo: "Adesões (8 a 17)" },
+];
+
+const desenhar = (ativa: string) => renderToStaticMarkup(createElement(AbasDePagina, { abas: ABAS, ativa }));
 
 describe("AbasDePagina", () => {
   it("as duas visões do ciclo: a ata (1 a 7) e a adesão (8 a 17), cada uma em sua página", () => {

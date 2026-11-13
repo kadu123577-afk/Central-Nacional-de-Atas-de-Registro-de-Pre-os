@@ -619,8 +619,9 @@ describe("menu do administrador", () => {
   it("NÃO anuncia o financeiro da SCP no menu de todos os administradores", () => {
     // O menu é estático e vale para qualquer administrador; a área é de acesso restrito
     // (flag acessoFinanceiro + 2FA) e quem tem acesso chega por /admin/financeiro-scp.
-    expect(NAV_ADMIN.some((i) => i.href.includes("financeiro-scp"))).toBe(false);
-    expect(NAV_ADMIN.some((i) => /scp/i.test(i.rotulo))).toBe(false);
+    const telas = NAV_ADMIN.flatMap((i) => [{ rotulo: i.rotulo, href: i.href }, ...(i.abas ?? [])]);
+    expect(telas.some((i) => i.href.includes("financeiro-scp"))).toBe(false);
+    expect(telas.some((i) => /scp/i.test(i.rotulo))).toBe(false);
   });
 });
 

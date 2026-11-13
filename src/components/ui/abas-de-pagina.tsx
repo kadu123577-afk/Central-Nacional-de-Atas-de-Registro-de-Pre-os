@@ -25,9 +25,3 @@ export function AbasDePagina({ abas, ativa }: { abas: readonly AbaDePagina[]; at
     </nav>
   );
 }
-
-/** As duas visões do ciclo: a ata (atividades 1 a 7) e a adesão do município (8 a 17). */
-export const ABAS_DO_CICLO: readonly AbaDePagina[] = [
-  { href: "/admin/ciclo", rotulo: "Atas (1 a 7)" },
-  { href: "/admin/ciclo-adesao", rotulo: "Adesões (8 a 17)" },
-];

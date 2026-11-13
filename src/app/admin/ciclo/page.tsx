@@ -8,7 +8,6 @@ import { exigirPermissaoDe, permissoesDoAdmin } from "@/lib/permissoes-db";
 import { temPermissao } from "@/lib/permissoes";
 import { logoutAdmin } from "../actions";
 import { NAV_ADMIN } from "../nav";
-import { ABAS_DO_CICLO, AbasDePagina } from "@/components/ui/abas-de-pagina";
 import { AppShell } from "@/components/ui/app-shell";
 import { Badge, type Tom } from "@/components/ui/badge";
 import { CabecalhoPagina } from "@/components/ui/cabecalho-pagina";
@@ -117,8 +116,6 @@ export default async function CicloDasAtasPage() {
         </form>
       }
     >
-      <AbasDePagina abas={ABAS_DO_CICLO} ativa="/admin/ciclo" />
-
       <CabecalhoPagina
         rotulo="Captação e aprovação"
         titulo="Ciclo da"
