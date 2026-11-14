@@ -78,6 +78,10 @@ model Admin {
   // Conta criada ou redefinida pela gestão (2026-11-14): a pessoa entra com a senha
   // provisória e é obrigada a trocá-la antes de usar o sistema (/trocar-senha).
   senhaProvisoria  Boolean  @default(false)
+  // Celular do responsável (14/11/2026), só dígitos com o 55 na frente: a Renata avisa cada
+  // responsável pelo WhatsApp quando um prazo vence. Dado pessoal: só a Gestão vê, nunca vai
+  // para a trilha de auditoria. Formato e leitura em src/lib/telefone.ts.
+  telefone         String?
 
   @@map("admins")
 }
@@ -214,6 +218,8 @@ model Vendedor {
   tipo         String   @default("interno")
   // Igual a Admin.senhaProvisoria: senha criada ou redefinida pela gestão, a trocar no primeiro acesso.
   senhaProvisoria Boolean @default(false)
+  // Celular do consultor (14/11/2026): igual a Admin.telefone.
+  telefone     String?
   createdAt    DateTime @default(now())
   isSeed       Boolean  @default(false)
 

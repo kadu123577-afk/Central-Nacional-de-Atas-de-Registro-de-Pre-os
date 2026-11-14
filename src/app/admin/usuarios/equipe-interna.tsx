@@ -5,6 +5,7 @@ import { Aviso } from "@/components/ui/aviso";
 import { Badge } from "@/components/ui/badge";
 import { Secao } from "@/components/ui/secao";
 import { PERFIS, PERMISSOES, ROTULO_PERMISSAO, normalizarPermissoes, type Permissao } from "@/lib/permissoes";
+import { formatarTelefone } from "@/lib/telefone";
 import { AvisoSenhaProvisoria, BotaoRedefinirSenha } from "./redefinir-senha";
 import {
   alternarAtivoMembro,
@@ -21,6 +22,7 @@ export interface MembroEquipe {
   nome: string;
   email: string;
   cargo: string | null;
+  telefone: string | null;
   ativo: boolean;
   permissoes: string[];
   totpAtivo: boolean;
@@ -88,6 +90,7 @@ function FormularioNovoMembro() {
         <Campo label="Senha provisória (deixe em branco para o sistema gerar)" name="senha" type="password" />
         <Campo label="Cargo (aparece na tela)" name="cargo" />
       </div>
+      <Campo label="Celular com DDD (a Renata avisa os prazos pelo WhatsApp)" name="telefone" type="tel" />
       <label className="block">
         <span className="rotulo-campo">Perfil pronto (preenche as permissões abaixo)</span>
         <select
@@ -130,7 +133,10 @@ function EditarMembro({ membro }: { membro: MembroEquipe }) {
           <Campo label="Nome" name="nome" required defaultValue={membro.nome} />
           <Campo label="E-mail" name="email" type="email" required defaultValue={membro.email} />
         </div>
-        <Campo label="Cargo" name="cargo" defaultValue={membro.cargo ?? ""} />
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <Campo label="Cargo" name="cargo" defaultValue={membro.cargo ?? ""} />
+          <Campo label="Celular com DDD (WhatsApp)" name="telefone" type="tel" defaultValue={formatarTelefone(membro.telefone)} />
+        </div>
         <ListaPermissoes marcadas={marcadas} aoMudar={setMarcadas} />
         {estado.erro && <Aviso tom="critico">{estado.erro}</Aviso>}
         {estado.ok && <Aviso tom="atencao">Dados salvos.</Aviso>}
@@ -201,6 +207,7 @@ export function EquipeInterna({ membros, adminLogadoId }: { membros: MembroEquip
                     <p className="text-[13px]" style={{ color: "var(--cor-texto-2)" }}>
                       {m.email}
                       {m.cargo ? ` · ${m.cargo}` : ""}
+                      {m.telefone ? ` · ${formatarTelefone(m.telefone)}` : ""}
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">

@@ -131,6 +131,7 @@ describe("criarMembroEquipe", () => {
         cargo: "Analista de adesão",
         permissoes: ["adesao.instruir", "adesao.acompanhar"],
         senhaProvisoria: true,
+        telefone: null,
       },
       select: { id: true },
     });
@@ -502,5 +503,67 @@ describe("excluirVendedor", () => {
     expect(dobles.registrarAuditoria).not.toHaveBeenCalled();
     dobles.vendedorFindUnique.mockResolvedValue(null);
     expect(await excluirVendedor({}, formulario({ vendedorId: "v1" }))).toEqual({ erro: "Consultor não encontrado." });
+  });
+});
+
+describe("celular dos responsáveis (a Renata avisa os prazos pelo WhatsApp)", () => {
+  const BASE = { nome: "Dr. Almério Leão", email: "almerio@exemplo.com.br", senha: SENHA_BOA, cargo: "Captador", permissao: ["atas.captar"] };
+  const ALVO = { id: "adm2", ativo: true, cargo: null, permissoes: ["atas.captar"], nome: "Dr. Almério Leão", email: "almerio@exemplo.com.br", telefone: null };
+
+  it("criar: o celular digitado vai para o banco só com dígitos e o 55, e a trilha não repete o número", async () => {
+    const r = await criarMembroEquipe({}, formulario({ ...BASE, telefone: "(62) 99999-0000" }));
+    expect(r).toEqual({ ok: true });
+    expect(dobles.adminCreate.mock.calls[0][0].data.telefone).toBe("5562999990000");
+    const detalhe = dobles.registrarAuditoria.mock.calls[0][0].detalhe as string;
+    expect(detalhe).toContain("com celular");
+    expect(detalhe).not.toMatch(/d{8}/);
+  });
+
+  it("criar: celular inválido é recusado antes de gravar; vazio é aceito", async () => {
+    const ruim = await criarMembroEquipe({}, formulario({ ...BASE, telefone: "12345" }));
+    expect(ruim.erro).toContain("com DDD");
+    expect(dobles.adminCreate).not.toHaveBeenCalled();
+    const vazio = await criarMembroEquipe({}, formulario({ ...BASE, telefone: "" }));
+    expect(vazio).toEqual({ ok: true });
+    expect(dobles.adminCreate.mock.calls[0][0].data.telefone).toBeNull();
+  });
+
+  it("editar: grava o celular novo e a trilha diz só que mudou", async () => {
+    dobles.adminFindUnique.mockResolvedValue(ALVO);
+    const r = await atualizarMembroEquipe({}, formulario({ adminId: "adm2", nome: "Dr. Almério Leão", email: "almerio@exemplo.com.br", cargo: "", permissao: ["atas.captar"], telefone: "62 99999-0000" }));
+    expect(r).toEqual({ ok: true });
+    expect(dobles.adminUpdate.mock.calls[0][0].data).toMatchObject({ telefone: "5562999990000" });
+    const detalhe = dobles.registrarAuditoria.mock.calls[0][0].detalhe as string;
+    expect(detalhe).toContain("celular alterado");
+    expect(detalhe).not.toContain("99999");
+  });
+
+  it("editar: campo vazio apaga o celular; sem o campo no formulário, não mexe; igual ao que já está, não grava de novo", async () => {
+    dobles.adminFindUnique.mockResolvedValue({ ...ALVO, telefone: "5562999990000" });
+    await atualizarMembroEquipe({}, formulario({ adminId: "adm2", cargo: "", permissao: ["atas.captar"], telefone: "" }));
+    expect(dobles.adminUpdate.mock.calls[0][0].data.telefone).toBeNull();
+
+    dobles.adminUpdate.mockClear();
+    await atualizarMembroEquipe({}, formulario({ adminId: "adm2", cargo: "", permissao: ["atas.captar"] }));
+    expect("telefone" in dobles.adminUpdate.mock.calls[0][0].data).toBe(false);
+
+    dobles.adminUpdate.mockClear();
+    await atualizarMembroEquipe({}, formulario({ adminId: "adm2", cargo: "", permissao: ["atas.captar"], telefone: "(62) 99999-0000" }));
+    expect("telefone" in dobles.adminUpdate.mock.calls[0][0].data).toBe(false);
+  });
+
+  it("editar: celular inválido é recusado sem gravar", async () => {
+    dobles.adminFindUnique.mockResolvedValue(ALVO);
+    const r = await atualizarMembroEquipe({}, formulario({ adminId: "adm2", cargo: "", permissao: ["atas.captar"], telefone: "ligar depois" }));
+    expect(r.erro).toContain("com DDD");
+    expect(dobles.adminUpdate).not.toHaveBeenCalled();
+  });
+
+  it("consultor: o celular entra na edição e a trilha diz só \"celular\"", async () => {
+    dobles.vendedorFindUnique.mockResolvedValue({ id: "v1", nome: "Leide", email: "leide@exemplo.com", tipo: "interno", telefone: null });
+    const r = await atualizarVendedor({}, formulario({ vendedorId: "v1", nome: "Leide", email: "leide@exemplo.com", tipo: "interno", telefone: "(62) 98888-7777" }));
+    expect(r).toEqual({ ok: true });
+    expect(dobles.vendedorUpdate.mock.calls[0][0].data).toMatchObject({ telefone: "5562988887777" });
+    expect(dobles.registrarAuditoria.mock.calls[0][0].detalhe).toBe("alterado: celular");
   });
 });

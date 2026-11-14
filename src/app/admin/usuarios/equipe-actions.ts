@@ -9,6 +9,7 @@ import { normalizarPermissoes, perfilPorChave, type Permissao } from "@/lib/perm
 import { exigirPermissaoDe } from "@/lib/permissoes-db";
 import { prisma } from "@/lib/prisma";
 import { validarSenhaNova } from "@/lib/senha";
+import { lerTelefone } from "@/lib/telefone";
 import { tipoVendedorValido } from "@/lib/vendedores";
 
 /**
@@ -84,6 +85,8 @@ export async function criarMembroEquipe(_estadoAnterior: EstadoEquipe, formData:
 
   if (!nome || !email) return { erro: "Informe nome e e-mail." };
   if (!FORMATO_EMAIL.test(email)) return { erro: "Informe um e-mail válido." };
+  const telefone = lerTelefone(campo(formData, "telefone"));
+  if (!telefone.ok) return { erro: telefone.erro };
   const erroSenha = validarSenhaNova(senha, email);
   if (erroSenha) return { erro: erroSenha };
 
@@ -94,7 +97,7 @@ export async function criarMembroEquipe(_estadoAnterior: EstadoEquipe, formData:
   let criadoId: string;
   try {
     const criado = await prisma.admin.create({
-      data: { nome, email, senhaHash, cargo, permissoes, senhaProvisoria: true },
+      data: { nome, email, senhaHash, cargo, permissoes, senhaProvisoria: true, telefone: telefone.valor },
       select: { id: true },
     });
     criadoId = criado.id;
@@ -106,7 +109,7 @@ export async function criarMembroEquipe(_estadoAnterior: EstadoEquipe, formData:
     ator: `admin:${adminId}`,
     acao: "admin.criarMembroEquipe",
     alvo: criadoId,
-    detalhe: `cargo ${cargo ?? "—"}; permissões: ${permissoes.join(", ") || "nenhuma"}; senha ${senhaDigitada ? "digitada" : "gerada"}, a trocar no primeiro acesso`,
+    detalhe: `cargo ${cargo ?? "—"}; permissões: ${permissoes.join(", ") || "nenhuma"}; ${telefone.valor ? "com celular; " : ""}senha ${senhaDigitada ? "digitada" : "gerada"}, a trocar no primeiro acesso`,
   });
   revalidatePath("/admin/usuarios");
   return senhaDigitada ? { ok: true } : { ok: true, senhaProvisoria: senha };
@@ -119,7 +122,7 @@ export async function atualizarMembroEquipe(_estadoAnterior: EstadoEquipe, formD
   if (!idComFormaValida(alvoId)) return { erro: "Conta não encontrada." };
   const alvo = await prisma.admin.findUnique({
     where: { id: alvoId },
-    select: { id: true, ativo: true, cargo: true, permissoes: true, nome: true, email: true },
+    select: { id: true, ativo: true, cargo: true, permissoes: true, nome: true, email: true, telefone: true },
   });
   if (!alvo) return { erro: "Conta não encontrada." };
 
@@ -137,8 +140,16 @@ export async function atualizarMembroEquipe(_estadoAnterior: EstadoEquipe, formD
     email = campo(formData, "email").trim().toLowerCase();
     if (!FORMATO_EMAIL.test(email)) return { erro: "Informe um e-mail válido." };
   }
+  // O celular só muda quando o formulário o traz (a tela de edição traz); vazio apaga.
+  let telefone: string | null | undefined;
+  if (formData.has("telefone")) {
+    const lido = lerTelefone(campo(formData, "telefone"));
+    if (!lido.ok) return { erro: lido.erro };
+    telefone = lido.valor;
+  }
   const mudouNome = nome !== undefined && nome !== alvo.nome;
   const mudouEmail = email !== undefined && email !== alvo.email;
+  const mudouTelefone = telefone !== undefined && telefone !== alvo.telefone;
 
   if (alvo.ativo && !permissoes.includes("usuarios.gerir") && !(await existeOutroGestor(alvo.id))) {
     return { erro: ERRO_ULTIMO_GESTOR };
@@ -147,14 +158,22 @@ export async function atualizarMembroEquipe(_estadoAnterior: EstadoEquipe, formD
   try {
     await prisma.admin.update({
       where: { id: alvo.id },
-      data: { cargo, permissoes, ...(mudouNome ? { nome } : {}), ...(mudouEmail ? { email } : {}) },
+      data: {
+        cargo,
+        permissoes,
+        ...(mudouNome ? { nome } : {}),
+        ...(mudouEmail ? { email } : {}),
+        ...(mudouTelefone ? { telefone } : {}),
+      },
     });
   } catch (erro) {
     if (emailRepetido(erro)) return { erro: ERRO_EMAIL_REPETIDO };
     throw erro;
   }
-  // A trilha guarda o que mudou, não o e-mail nem o nome novos.
-  const outras = [mudouNome ? "nome alterado" : null, mudouEmail ? "e-mail alterado" : null].filter(Boolean).join("; ");
+  // A trilha guarda o que mudou, não o e-mail, o nome nem o celular novos.
+  const outras = [mudouNome ? "nome alterado" : null, mudouEmail ? "e-mail alterado" : null, mudouTelefone ? "celular alterado" : null]
+    .filter(Boolean)
+    .join("; ");
   await registrarAuditoria({
     ator: `admin:${adminId}`,
     acao: "admin.atualizarMembroEquipe",
@@ -225,13 +244,16 @@ export async function excluirMembroEquipe(_estadoAnterior: EstadoEquipe, formDat
   return { ok: true };
 }
 
-/** Edita nome, e-mail e tipo (interno ou externo) de um consultor de vendas. A senha não muda aqui (use Redefinir senha). */
+/** Edita nome, e-mail, celular e tipo (interno ou externo) de um consultor de vendas. A senha não muda aqui (use Redefinir senha). */
 export async function atualizarVendedor(_estadoAnterior: EstadoEquipe, formData: FormData): Promise<EstadoEquipe> {
   const adminId = await exigirGestor();
 
   const alvoId = campo(formData, "vendedorId");
   if (!idComFormaValida(alvoId)) return { erro: "Consultor não encontrado." };
-  const alvo = await prisma.vendedor.findUnique({ where: { id: alvoId }, select: { id: true, nome: true, email: true, tipo: true } });
+  const alvo = await prisma.vendedor.findUnique({
+    where: { id: alvoId },
+    select: { id: true, nome: true, email: true, tipo: true, telefone: true },
+  });
   if (!alvo) return { erro: "Consultor não encontrado." };
 
   const nome = campo(formData, "nome").trim().slice(0, LIMITE_NOME);
@@ -240,12 +262,26 @@ export async function atualizarVendedor(_estadoAnterior: EstadoEquipe, formData:
   if (!nome) return { erro: "Informe o nome." };
   if (!FORMATO_EMAIL.test(email)) return { erro: "Informe um e-mail válido." };
   if (!tipoVendedorValido(tipo)) return { erro: "Selecione um tipo de consultor válido." };
+  let telefone: string | null | undefined;
+  if (formData.has("telefone")) {
+    const lido = lerTelefone(campo(formData, "telefone"));
+    if (!lido.ok) return { erro: lido.erro };
+    telefone = lido.valor;
+  }
 
-  const mudou = [nome !== alvo.nome ? "nome" : null, email !== alvo.email ? "e-mail" : null, tipo !== alvo.tipo ? "tipo" : null].filter(Boolean);
+  const mudou = [
+    nome !== alvo.nome ? "nome" : null,
+    email !== alvo.email ? "e-mail" : null,
+    tipo !== alvo.tipo ? "tipo" : null,
+    telefone !== undefined && telefone !== alvo.telefone ? "celular" : null,
+  ].filter(Boolean);
   if (mudou.length === 0) return { ok: true };
 
   try {
-    await prisma.vendedor.update({ where: { id: alvo.id }, data: { nome, email, tipo } });
+    await prisma.vendedor.update({
+      where: { id: alvo.id },
+      data: { nome, email, tipo, ...(telefone !== undefined && telefone !== alvo.telefone ? { telefone } : {}) },
+    });
   } catch (erro) {
     if (emailRepetido(erro)) return { erro: ERRO_EMAIL_REPETIDO };
     throw erro;

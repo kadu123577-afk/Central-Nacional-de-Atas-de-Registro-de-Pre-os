@@ -3,7 +3,8 @@
     "nome": "Nome da Pessoa (captação)",
     "email": "captacao@exemplo.com.br",
     "cargo": "Captador",
-    "permissoes": ["atas.captar"]
+    "permissoes": ["atas.captar"],
+    "telefone": "(62) 99999-9999"
   },
   {
     "nome": "Nome da Pessoa (estagiário)",

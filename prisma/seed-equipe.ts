@@ -67,13 +67,22 @@ async function main() {
         : await prisma.vendedor.findUnique({ where: { email: c.email }, select: { id: true } });
 
     if (existente && !redefinir) {
-      resumo.push(`${c.email}: já existia (não mexi)`);
+      // Conta que já existe não é alterada, a não ser para completar o celular que ainda não tinha.
+      if (c.telefone) {
+        const alvo =
+          c.tipo === "equipe"
+            ? await prisma.admin.updateMany({ where: { id: existente.id, telefone: null }, data: { telefone: c.telefone } })
+            : await prisma.vendedor.updateMany({ where: { id: existente.id, telefone: null }, data: { telefone: c.telefone } });
+        resumo.push(`${c.email}: já existia${alvo.count > 0 ? " (completei o celular)" : " (não mexi)"}`);
+      } else {
+        resumo.push(`${c.email}: já existia (não mexi)`);
+      }
       continue;
     }
 
     let id: string;
     if (c.tipo === "equipe") {
-      const dados = { nome: c.nome, cargo: c.cargo, permissoes: c.permissoes };
+      const dados = { nome: c.nome, cargo: c.cargo, permissoes: c.permissoes, ...(c.telefone ? { telefone: c.telefone } : {}) };
       const salvo = existente
         ? await prisma.admin.update({
             where: { id: existente.id },
@@ -86,11 +95,11 @@ async function main() {
       const salvo = existente
         ? await prisma.vendedor.update({
             where: { id: existente.id },
-            data: { nome: c.nome, tipo: c.tipoVendedor, senhaHash, senhaProvisoria: true, ativo: true, sessaoVersao: { increment: 1 } },
+            data: { nome: c.nome, tipo: c.tipoVendedor, ...(c.telefone ? { telefone: c.telefone } : {}), senhaHash, senhaProvisoria: true, ativo: true, sessaoVersao: { increment: 1 } },
             select: { id: true },
           })
         : await prisma.vendedor.create({
-            data: { nome: c.nome, email: c.email, tipo: c.tipoVendedor, senhaHash, senhaProvisoria: true },
+            data: { nome: c.nome, email: c.email, tipo: c.tipoVendedor, telefone: c.telefone, senhaHash, senhaProvisoria: true },
             select: { id: true },
           });
       id = salvo.id;

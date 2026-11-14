@@ -1,4 +1,5 @@
 import { PERFIS, normalizarPermissoes, permissaoValida, type Permissao } from "@/lib/permissoes";
+import { lerTelefone } from "@/lib/telefone";
 import { TIPOS_VENDEDOR, type TipoVendedor } from "@/lib/vendedores";
 
 /**
@@ -13,6 +14,8 @@ export interface ContaDaEquipe {
   email: string;
   cargo: string | null;
   permissoes: Permissao[];
+  /** Celular só com dígitos e o 55 (ver src/lib/telefone.ts); null = sem celular. */
+  telefone: string | null;
 }
 
 export interface ContaDeConsultor {
@@ -20,6 +23,7 @@ export interface ContaDeConsultor {
   nome: string;
   email: string;
   tipoVendedor: TipoVendedor;
+  telefone: string | null;
 }
 
 export type ContaInicial = ContaDaEquipe | ContaDeConsultor;
@@ -63,13 +67,19 @@ export function lerEquipeInicial(json: unknown): { contas: ContaInicial[]; probl
     vistos.add(email);
     if (!nome || !FORMATO_EMAIL.test(email)) return;
 
+    const celular = lerTelefone(p.telefone);
+    if (!celular.ok) {
+      problemas.push(`${n} (${nome}): celular inválido (informe com DDD).`);
+      return;
+    }
+
     if (p.tipo === "consultor") {
       const tv = texto(p.tipoVendedor) || "interno";
       if (!(TIPOS_VENDEDOR as readonly string[]).includes(tv)) {
         problemas.push(`${n} (${nome}): tipoVendedor deve ser ${TIPOS_VENDEDOR.join(" ou ")}.`);
         return;
       }
-      contas.push({ tipo: "consultor", nome, email, tipoVendedor: tv as TipoVendedor });
+      contas.push({ tipo: "consultor", nome, email, tipoVendedor: tv as TipoVendedor, telefone: celular.valor });
       return;
     }
 
@@ -102,7 +112,7 @@ export function lerEquipeInicial(json: unknown): { contas: ContaInicial[]; probl
       return;
     }
 
-    contas.push({ tipo: "equipe", nome, email, cargo: texto(p.cargo) || null, permissoes });
+    contas.push({ tipo: "equipe", nome, email, cargo: texto(p.cargo) || null, permissoes, telefone: celular.valor });
   });
 
   return { contas, problemas };

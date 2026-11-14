@@ -4,16 +4,23 @@ import { lerEquipeInicial } from "./equipe-inicial";
 describe("lerEquipeInicial", () => {
   it("lê equipe interna (por permissões ou por perfil) e consultor", () => {
     const { contas, problemas } = lerEquipeInicial([
-      { nome: "Fulana", email: "Fulana@Exemplo.com.br", cargo: "Captação", permissoes: ["atas.captar", "adesao.registrar"] },
+      { nome: "Fulana", email: "Fulana@Exemplo.com.br", cargo: "Captação", permissoes: ["atas.captar", "adesao.registrar"], telefone: "(62) 99999-0000" },
       { nome: "Beltrano", email: "beltrano@exemplo.com.br", perfil: "estagiario" },
-      { tipo: "consultor", nome: "Ciclana", email: "ciclana@exemplo.com.br" },
+      { tipo: "consultor", nome: "Ciclana", email: "ciclana@exemplo.com.br", telefone: "62 98888-7777" },
     ]);
     expect(problemas).toEqual([]);
     expect(contas).toEqual([
-      { tipo: "equipe", nome: "Fulana", email: "fulana@exemplo.com.br", cargo: "Captação", permissoes: ["atas.captar", "adesao.registrar"] },
-      { tipo: "equipe", nome: "Beltrano", email: "beltrano@exemplo.com.br", cargo: null, permissoes: ["atas.itens", "adesao.registrar"] },
-      { tipo: "consultor", nome: "Ciclana", email: "ciclana@exemplo.com.br", tipoVendedor: "interno" },
+      { tipo: "equipe", nome: "Fulana", email: "fulana@exemplo.com.br", cargo: "Captação", permissoes: ["atas.captar", "adesao.registrar"], telefone: "5562999990000" },
+      { tipo: "equipe", nome: "Beltrano", email: "beltrano@exemplo.com.br", cargo: null, permissoes: ["atas.itens", "adesao.registrar"], telefone: null },
+      { tipo: "consultor", nome: "Ciclana", email: "ciclana@exemplo.com.br", tipoVendedor: "interno", telefone: "5562988887777" },
     ]);
+  });
+
+  it("celular inválido é problema da lista (e nada é criado); celular ausente é aceito", () => {
+    const ruim = lerEquipeInicial([{ nome: "A", email: "a@b.co", perfil: "estagiario", telefone: "12345" }]);
+    expect(ruim.contas).toEqual([]);
+    expect(ruim.problemas[0]).toContain("celular inválido");
+    expect(lerEquipeInicial([{ nome: "A", email: "a@b.co", perfil: "estagiario" }]).problemas).toEqual([]);
   });
 
   it("o e-mail vai para minúsculas e as permissões saem limpas, na ordem da tabela e sem repetição", () => {

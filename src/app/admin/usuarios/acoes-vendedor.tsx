@@ -2,13 +2,26 @@
 
 import { useActionState } from "react";
 import { Aviso } from "@/components/ui/aviso";
+import { formatarTelefone } from "@/lib/telefone";
 import { ROTULO_TIPO_VENDEDOR, TIPOS_VENDEDOR } from "@/lib/vendedores";
 import { atualizarVendedor, excluirVendedor, type EstadoEquipe } from "./equipe-actions";
 
 const estadoInicial: EstadoEquipe = {};
 
 /** Editar nome, e-mail e tipo do consultor. A senha não muda aqui: use "Redefinir senha". */
-export function EditarVendedor({ id, nome, email, tipo }: { id: string; nome: string; email: string; tipo: string }) {
+export function EditarVendedor({
+  id,
+  nome,
+  email,
+  tipo,
+  telefone = null,
+}: {
+  id: string;
+  nome: string;
+  email: string;
+  tipo: string;
+  telefone?: string | null;
+}) {
   const [estado, formAction, pendente] = useActionState(atualizarVendedor, estadoInicial);
 
   return (
@@ -26,6 +39,10 @@ export function EditarVendedor({ id, nome, email, tipo }: { id: string; nome: st
             <input name="email" type="email" required defaultValue={email} className="campo-atas" />
           </label>
         </div>
+        <label className="block max-w-xs">
+          <span className="rotulo-campo">Celular com DDD (a Renata avisa os prazos pelo WhatsApp)</span>
+          <input name="telefone" type="tel" defaultValue={formatarTelefone(telefone)} className="campo-atas" />
+        </label>
         <label className="block max-w-xs">
           <span className="rotulo-campo">Tipo</span>
           <select name="tipo" required defaultValue={tipo} className="campo-atas">

@@ -41,7 +41,7 @@ export default async function GestaoUsuariosPage() {
   const [equipe, fornecedores, orgaos, vendedores] = await Promise.all([
     prisma.admin.findMany({
       where: { isSeed: false },
-      select: { id: true, nome: true, email: true, cargo: true, ativo: true, permissoes: true, totpAtivo: true, acessoFinanceiro: true },
+      select: { id: true, nome: true, email: true, cargo: true, telefone: true, ativo: true, permissoes: true, totpAtivo: true, acessoFinanceiro: true },
       orderBy: { createdAt: "asc" },
     }),
     prisma.fornecedor.findMany({ orderBy: { razaoSocial: "asc" } }),
@@ -136,7 +136,7 @@ export default async function GestaoUsuariosPage() {
                       </div>
                     </div>
                     <div className="flex flex-wrap items-start gap-3">
-                      <EditarVendedor id={v.id} nome={v.nome} email={v.email} tipo={v.tipo} />
+                      <EditarVendedor id={v.id} nome={v.nome} email={v.email} tipo={v.tipo} telefone={v.telefone} />
                       <BotaoRedefinirSenha tipo="vendedor" id={v.id} />
                       <BotaoExcluirVendedor id={v.id} nome={v.nome} />
                     </div>

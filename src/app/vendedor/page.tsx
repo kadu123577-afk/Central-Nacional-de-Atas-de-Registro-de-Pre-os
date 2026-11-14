@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { AppShell } from "@/components/ui/app-shell";
 import { CabecalhoPagina } from "@/components/ui/cabecalho-pagina";
 import { Secao } from "@/components/ui/secao";
+import { Aviso } from "@/components/ui/aviso";
 import { Badge } from "@/components/ui/badge";
 import { VazioComAcao } from "@/components/ui/vazio-com-acao";
 import { KpisVendedor, TarefasHoje } from "@/components/vendedor/painel-resumo";
@@ -15,6 +16,7 @@ import { ESTAGIOS_COM_PRAZO } from "@/lib/negociacao";
 import { situacaoDoVencimento, textoDoPrazo } from "@/lib/ciclo-ata";
 import { carregarFeriadosExtras } from "@/lib/feriados-db";
 import { diaDaReserva, reservaDaAta } from "@/lib/reserva-ata";
+import { carregarPosVenda } from "@/lib/pos-venda-db";
 import { logoutVendedor } from "./actions";
 import { NAV_VENDEDOR } from "./nav";
 
@@ -56,7 +58,7 @@ export default async function PainelVendedorPage() {
   const limiteNegados = new Date();
   limiteNegados.setDate(limiteNegados.getDate() - DIAS_MOSTRAR_NEGADOS);
 
-  const [painel, minhasAtas, disponiveis, pedidosPendentes, pedidosNegados, feriados] = await Promise.all([
+  const [painel, minhasAtas, disponiveis, pedidosPendentes, pedidosNegados, feriados, posVenda] = await Promise.all([
     carregarPainelVendedor(vendedorId),
     prisma.ata.findMany({
       where: { oportunidades: { some: { vendedorId, expiradaEm: null } } },
@@ -96,7 +98,13 @@ export default async function PainelVendedorPage() {
       orderBy: { decididoEm: "desc" },
     }),
     carregarFeriadosExtras(),
+    // Falha no pós-venda não derruba o painel: o aviso só some.
+    carregarPosVenda(vendedorId).catch((erro: unknown) => {
+      console.error("Pós-venda indisponível no painel do consultor:", erro);
+      return [];
+    }),
   ]);
+  const posVendaPedeAcao = posVenda.filter((l) => l.urgente).length;
 
   // Atas reservadas por outro consultor ficam fora dos pedidos, com a data em que podem voltar.
   const agora = new Date();
@@ -133,6 +141,16 @@ export default async function PainelVendedorPage() {
         destaque="do vendedor"
         descricao="As atas em que você já tem municípios liberados, com o seu prazo, e as atas disponíveis para pedir municípios."
       />
+
+      {posVendaPedeAcao > 0 && (
+        <Aviso tom="atencao" titulo="Pós-venda.">
+          {posVendaPedeAcao === 1 ? "1 município que já aderiu pede" : `${posVendaPedeAcao} municípios que já aderiram pedem`} ação:
+          vigência chegando ao fim ou contato atrasado.{" "}
+          <Link href="/vendedor/pos-venda" className="font-bold underline underline-offset-2">
+            Ver o pós-venda →
+          </Link>
+        </Aviso>
+      )}
 
       <KpisVendedor kpis={painel.kpis} />
       {painel.tarefas.length > 0 && <TarefasHoje tarefas={painel.tarefas} />}
