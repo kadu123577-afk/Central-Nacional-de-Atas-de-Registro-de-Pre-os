@@ -25,11 +25,10 @@ export const GRUPOS_INSTRUCAO = [GRUPO_ORGAO_ADERENTE, GRUPO_ACEITES, GRUPO_AUTO
 export type GrupoInstrucao = (typeof GRUPOS_INSTRUCAO)[number];
 
 /**
- * Itens fixos do checklist, na ordem da tela. A ordem segue a sugestão de 14/11/2026 para a adesão
- * (carona) do art. 86, §§ 2º a 8º, da Lei 14.133/2021: a lei só exige que a consulta e o aceite do
- * gerenciador e do fornecedor sejam PRÉVIOS à contratação; a sequência entre justificativa, pesquisa de
- * preços e ofício é sugestão, e o jurídico fixa a ordem final. Redação literal do artigo a confirmar no
- * Planalto antes de citar em parecer.
+ * Itens fixos do checklist, na ordem da tela. A ordem e o conteúdo vêm do resumo que o JURÍDICO enviou
+ * em 14/11/2026 sobre a adesão (carona) do art. 86, §§ 2º a 8º, da Lei 14.133/2021, e Carlos o
+ * confirmou como verídico. A lei só exige que a consulta e o aceite do gerenciador e do fornecedor sejam
+ * PRÉVIOS à contratação; a sequência dos demais itens é a que o jurídico indicou.
  *
  * `obrigatorio` é só o que vale para a trava: publicação no PNCP, contrato (ou instrumento equivalente) e
  * fiscal acontecem DEPOIS da adesão, então não impedem a declaração.
