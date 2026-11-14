@@ -10,8 +10,17 @@ export function numero(n: number): string {
   return fmtNumero.format(n);
 }
 
+// Preço unitário com mais de duas casas (R$ 0,1005 por grama) aparece com até quatro, sem arredondar.
+const fmtMoedaPrecisa = new Intl.NumberFormat("pt-BR", {
+  style: "currency",
+  currency: "BRL",
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 4,
+});
+
 export function moeda(n: number): string {
-  return fmtMoeda.format(n);
+  const temMaisDeDuasCasas = Math.abs(n * 100 - Math.round(n * 100)) > 1e-6;
+  return temMaisDeDuasCasas ? fmtMoedaPrecisa.format(n) : fmtMoeda.format(n);
 }
 
 /** "1 item" / "12 itens". */

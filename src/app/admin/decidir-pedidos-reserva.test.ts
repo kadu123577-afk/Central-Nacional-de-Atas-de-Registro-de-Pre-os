@@ -16,7 +16,6 @@ const dobles = vi.hoisted(() => ({
   oportunidadeFindMany: vi.fn(),
   oportunidadeFindUnique: vi.fn(),
   oportunidadeCreate: vi.fn(),
-  credenciamentoFindUnique: vi.fn(),
   ataUpdateMany: vi.fn(),
 }));
 
@@ -38,7 +37,6 @@ vi.mock("@/lib/prisma", () => ({
       findUnique: dobles.oportunidadeFindUnique,
       create: dobles.oportunidadeCreate,
     },
-    credenciamentoConsultor: { findUnique: dobles.credenciamentoFindUnique },
     ata: { updateMany: dobles.ataUpdateMany },
   },
 }));
@@ -69,7 +67,6 @@ beforeEach(() => {
   dobles.oportunidadeFindMany.mockResolvedValue([]);
   dobles.oportunidadeFindUnique.mockResolvedValue(null);
   dobles.oportunidadeCreate.mockResolvedValue({});
-  dobles.credenciamentoFindUnique.mockResolvedValue({ status: "credenciado" });
   dobles.ataUpdateMany.mockResolvedValue({ count: 1 });
 });
 

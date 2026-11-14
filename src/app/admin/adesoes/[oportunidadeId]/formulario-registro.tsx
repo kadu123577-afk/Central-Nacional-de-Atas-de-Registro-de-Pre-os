@@ -7,6 +7,7 @@ import {
   registrarAdesaoPeloAdmin,
   type EstadoRegistroAdesao,
 } from "./actions";
+import { formatarValorUnitario } from "@/lib/valor-unitario";
 
 const estadoInicial: EstadoRegistroAdesao = {};
 
@@ -57,7 +58,7 @@ export function FormularioRegistro({ oportunidadeId, linhas }: { oportunidadeId:
                 <td className="numero align-top">{num(l.quantidadeRegistrada)}</td>
                 <td className="numero align-top">{num(l.jaAderidoTotal)}</td>
                 <td className="numero align-top">{num(l.maximoAgora)}</td>
-                <td className="numero align-top">R$ {Number(l.valorUnitario).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
+                <td className="numero align-top">{formatarValorUnitario(Number(l.valorUnitario))}</td>
                 <td className="align-top">
                   <input
                     name={`qtd_${l.itemId}`}

@@ -5,7 +5,6 @@ import { prisma } from "@/lib/prisma";
 import { AppShell } from "@/components/ui/app-shell";
 import { CabecalhoPagina } from "@/components/ui/cabecalho-pagina";
 import { Secao } from "@/components/ui/secao";
-import { Aviso } from "@/components/ui/aviso";
 import { Badge } from "@/components/ui/badge";
 import { VazioComAcao } from "@/components/ui/vazio-com-acao";
 import { KpisVendedor, TarefasHoje } from "@/components/vendedor/painel-resumo";
@@ -16,9 +15,6 @@ import { ESTAGIOS_COM_PRAZO } from "@/lib/negociacao";
 import { situacaoDoVencimento, textoDoPrazo } from "@/lib/ciclo-ata";
 import { carregarFeriadosExtras } from "@/lib/feriados-db";
 import { diaDaReserva, reservaDaAta } from "@/lib/reserva-ata";
-import { mensagemBloqueio, podeAtuar } from "@/lib/credenciamento";
-import { statusCredenciamentoDoVendedor } from "@/lib/credenciamento-db";
-import { CAMINHO_CREDENCIAMENTO, tituloAvisoCredenciamento } from "@/lib/credenciamento-view";
 import { logoutVendedor } from "./actions";
 import { NAV_VENDEDOR } from "./nav";
 
@@ -60,9 +56,8 @@ export default async function PainelVendedorPage() {
   const limiteNegados = new Date();
   limiteNegados.setDate(limiteNegados.getDate() - DIAS_MOSTRAR_NEGADOS);
 
-  const [painel, statusCredenciamento, minhasAtas, disponiveis, pedidosPendentes, pedidosNegados, feriados] = await Promise.all([
+  const [painel, minhasAtas, disponiveis, pedidosPendentes, pedidosNegados, feriados] = await Promise.all([
     carregarPainelVendedor(vendedorId),
-    statusCredenciamentoDoVendedor(vendedorId),
     prisma.ata.findMany({
       where: { oportunidades: { some: { vendedorId, expiradaEm: null } } },
       include: {
@@ -138,18 +133,6 @@ export default async function PainelVendedorPage() {
         destaque="do vendedor"
         descricao="As atas em que você já tem municípios liberados, com o seu prazo, e as atas disponíveis para pedir municípios."
       />
-
-      {!podeAtuar(statusCredenciamento) && (
-        <Aviso
-          tom={statusCredenciamento === "suspenso" ? "alerta" : "atencao"}
-          titulo={tituloAvisoCredenciamento(statusCredenciamento)}
-        >
-          {mensagemBloqueio(statusCredenciamento)}{" "}
-          <Link href={CAMINHO_CREDENCIAMENTO} className="font-bold underline underline-offset-2">
-            Ir para Credenciamento →
-          </Link>
-        </Aviso>
-      )}
 
       <KpisVendedor kpis={painel.kpis} />
       {painel.tarefas.length > 0 && <TarefasHoje tarefas={painel.tarefas} />}

@@ -98,3 +98,14 @@ describe("interpretarPlanilhaDeItens", () => {
     expect(interpretarPlanilhaDeItens(muitas, null).erros[0].mensagem).toContain("limite por importação");
   });
 });
+
+describe("preço com quatro casas decimais (14/11/2026)", () => {
+  it("o valor unitário guarda até quatro casas, no mínimo duas", () => {
+    const lido = interpretarPlanilhaDeItens(
+      ["Descrição\tUnidade\tQuantidade\tValor unitário", "Proteína em pó\tGrama\t1000\t0,1005", "Papel A4\tCaixa\t10\t25,9"].join("\n"),
+      "material-escritorio",
+    );
+    expect(lido.erros).toEqual([]);
+    expect(lido.itens.map((i) => i.valorUnitario)).toEqual(["0.1005", "25.90"]);
+  });
+});

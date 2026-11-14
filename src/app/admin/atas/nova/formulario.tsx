@@ -235,7 +235,7 @@ export function FormularioNovaAtaAdmin({ inicial }: { inicial?: InicialNovaAta }
                     label="Valor unitário (R$)"
                     name="itemValorUnitario[]"
                     type="number"
-                    step="0.01"
+                    step="0.0001"
                     min="0"
                     required
                   />

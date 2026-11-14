@@ -69,15 +69,15 @@ const desenhar = (c: CartaoView, somenteLeitura = false, podeDeclarar = !somente
 const contar = (html: string, trecho: string) => html.split(trecho).length - 1;
 
 describe("aba Instrução: quem marca e declara (o jurídico, no painel)", () => {
-  it("sem instrução iniciada mostra o cabeçalho, os 11 itens em 3 grupos e o progresso zerado", () => {
+  it("sem instrução iniciada mostra o cabeçalho, os 14 itens em 4 grupos e o progresso zerado", () => {
     const html = desenhar(cartao());
     expect(html).toContain("O que o órgão aderente precisa reunir.");
     expect(html).toContain("Marque conforme os documentos chegarem.");
-    expect(html).toContain("0 de 9");
+    expect(html).toContain("0 de 11");
     expect(html).toContain('role="progressbar"');
     expect(html).toContain('aria-valuenow="0"');
     expect(contar(html, 'type="checkbox"')).toBe(ITENS_INSTRUCAO.length);
-    for (const grupo of ["Instrução do órgão aderente", "Aceites", "Formalização"]) expect(html).toContain(grupo);
+    for (const grupo of ["Instrução do órgão aderente", "Aceites", "Autorização", "Formalização"]) expect(html).toContain(grupo);
     for (const item of ITENS_INSTRUCAO) {
       expect(html).toContain(item.ajuda);
     }
@@ -108,7 +108,7 @@ describe("aba Instrução: quem marca e declara (o jurídico, no painel)", () =>
     // Só o formulário da nota do item feito repete "true"; os outros dez repetem "false".
     expect(contar(html, 'name="feito" value="true"')).toBe(1);
     expect(contar(html, 'name="feito" value="false"')).toBe(ITENS_INSTRUCAO.length - 1);
-    expect(html).toContain("1 de 9");
+    expect(html).toContain("1 de 11");
     expect(html).toContain('aria-valuenow="1"');
   });
 
@@ -125,13 +125,13 @@ describe("aba Instrução: quem marca e declara (o jurídico, no painel)", () =>
     expect(html).toContain("Itens ainda não confirmados:");
     expect(html).toMatch(/<textarea[^>]*name="justificativaExcecao"[^>]*required|<textarea[^>]*required[^>]*name="justificativaExcecao"/);
     expect(html).toMatch(/<textarea[^>]*minLength="20"/);
-    expect(html).toContain("Faltam 9 itens obrigatórios");
+    expect(html).toContain("Faltam 11 itens obrigatórios");
     expect(html).not.toContain("Revogar declaração");
   });
 
   it("com todos os obrigatórios feitos não pede justificativa e o texto é o da declaração", () => {
     const html = desenhar(cartao({ instrucao: { itens: obrigatoriosFeitos() } }));
-    expect(html).toContain("9 de 9");
+    expect(html).toContain("11 de 11");
     expect(html).toContain("Registrar declaração");
     expect(html).not.toContain('name="justificativaExcecao"');
     expect(html).not.toContain("Itens ainda não confirmados");
@@ -232,13 +232,13 @@ describe("aba Instrução: quem marca e declara (o jurídico, no painel)", () =>
   });
 
   it("o progresso diz 'feitos' e a data da declaração sai por extenso curto, com 'às'", () => {
-    expect(desenhar(cartao())).toContain("0 de 9 feitos · 0%");
+    expect(desenhar(cartao())).toContain("0 de 11 feitos · 0%");
     const html = desenhar(
       cartao({
         instrucao: { itens: obrigatoriosFeitos(), declaracaoEm: new Date("2026-10-21T15:30:00Z"), declaracaoPorTipo: "vendedor", declaracaoVersao: 1 },
       }),
     );
-    expect(html).toContain("9 de 9 feitos · 100%");
+    expect(html).toContain("11 de 11 feitos · 100%");
     expect(html).toContain("21/10/2026 às 12:30");
   });
 
@@ -297,7 +297,7 @@ describe("aba Instrução: quem marca e declara (o jurídico, no painel)", () =>
       }),
     );
     expect(html).toContain("<li>Parecer jurídico do órgão, art. 53</li>");
-    expect(html).not.toContain("<li>Formalização da demanda assinada</li>");
+    expect(html).not.toContain("<li>Formalização da demanda e estudo da necessidade, com o quantitativo pretendido</li>");
   });
 
   it("a confirmação de revogar só aparece depois do clique (não está na primeira tela)", () => {
@@ -331,7 +331,7 @@ describe("aba Instrução: modo somente leitura (Pipeline do gestor)", () => {
       true,
     );
     expect(html).toContain("O vendedor marca conforme os documentos chegam.");
-    expect(html).toContain("1 de 9");
+    expect(html).toContain("1 de 11");
     expect(html).toContain("Feito");
     expect(html).toContain("Pendente");
     expect(html).toContain("Marcado em 05/10/2026");

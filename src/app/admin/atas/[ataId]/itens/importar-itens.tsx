@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { Aviso } from "@/components/ui/aviso";
 import { rotuloDaCategoria } from "@/lib/categorias";
 import { conferirItens, gravarItens, type EstadoImportacaoItens } from "./actions";
+import { formatarValorUnitario } from "@/lib/valor-unitario";
 
 const estadoInicial: EstadoImportacaoItens = {};
 
@@ -168,7 +169,7 @@ export function ImportarItens({
                       <td>{i.descricao}</td>
                       <td>{i.unidade}</td>
                       <td className="numero">{i.quantidadeRegistrada.toLocaleString("pt-BR")}</td>
-                      <td className="numero">R$ {Number(i.valorUnitario).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
+                      <td className="numero">{formatarValorUnitario(Number(i.valorUnitario))}</td>
                       <td>{rotuloDaCategoria(i.categoria)}</td>
                     </tr>
                   ))}

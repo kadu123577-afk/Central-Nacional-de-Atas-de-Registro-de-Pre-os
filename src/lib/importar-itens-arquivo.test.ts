@@ -178,7 +178,7 @@ describe("lerArquivoDeItens: Excel (.xlsx)", () => {
     expect(lido.erros).toEqual([]);
     expect(lido.itens.map((i) => [i.descricao, i.quantidadeRegistrada, i.valorUnitario])).toEqual([
       ["Papel sulfite A4", 100, "25.90"],
-      ["Caneta esferográfica azul", 500, "1.23"],
+      ["Caneta esferográfica azul", 500, "1.234"],
     ]);
   });
 
@@ -243,6 +243,11 @@ describe("interpretarLinhaDeItem", () => {
       quantidade: 20,
       valorUnitario: 350,
     });
+  });
+
+  it("preço de quatro casas (0,1005) é lido, e a conta quantidade × valor = total ainda confere", () => {
+    expect(interpretarLinhaDeItem("1 Proteína em pó GR 1.000 0,1005 100,50")).toMatchObject({ quantidade: 1000, valorUnitario: 0.1005 });
+    expect(interpretarLinhaDeItem("2 Cadeira de escritório UN 20 350,00 7.000,00")).toMatchObject({ quantidade: 20, valorUnitario: 350 });
   });
 
   it.each([

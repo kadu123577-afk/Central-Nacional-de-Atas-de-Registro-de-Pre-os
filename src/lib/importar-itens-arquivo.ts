@@ -1,4 +1,5 @@
 import { cabecalhoReconhecido, numeroDaPlanilha } from "@/lib/importar-itens";
+import { textoDoValorUnitario } from "@/lib/valor-unitario";
 
 /**
  * Leitura dos arquivos que o estagiário usa para cadastrar os itens da ata (14/11/2026): Excel
@@ -223,8 +224,11 @@ function ehLinhaIgnorada(linha: string): boolean {
 
 const proximo = (a: number, b: number) => Math.abs(a - b) <= Math.max(0.05, Math.abs(b) * 0.001);
 
-/** Escrito como dinheiro: termina em vírgula (ou ponto) e uma ou duas casas ("350,00"); "1.000" é milhar, não centavos. */
-const temCentavos = (token: string) => /[,.]\d{1,2}$/.test(token.replace(/^R\$\s*/i, ""));
+/**
+ * Escrito como dinheiro: termina em vírgula com uma a quatro casas ("350,00", "0,1005"), ou em ponto com
+ * uma ou duas casas ("350.00") ou quatro ("0.1005"); "1.000" é milhar, não centavos.
+ */
+const temCentavos = (token: string) => /(,\d{1,4}|\.\d{1,2}|\.\d{4})$/.test(token.replace(/^R\$\s*/i, ""));
 
 /**
  * Os números do fim da linha → quantidade e valor unitário; o total, se vier, tem de bater com a conta.
@@ -329,7 +333,7 @@ export function itensDoPdfParaTexto(itens: ItemDoPdf[]): string {
       campoDeTexto(i.descricao),
       campoDeTexto(i.unidade),
       String(i.quantidade),
-      i.valorUnitario.toFixed(2).replace(".", ","),
+      textoDoValorUnitario(i.valorUnitario).replace(".", ","),
       i.codigo ?? "",
     ].join("\t"),
   );

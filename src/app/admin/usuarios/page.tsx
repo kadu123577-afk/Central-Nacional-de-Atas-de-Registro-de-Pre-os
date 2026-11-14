@@ -15,17 +15,8 @@ import { CabecalhoPagina } from "@/components/ui/cabecalho-pagina";
 import { Secao } from "@/components/ui/secao";
 import { Badge } from "@/components/ui/badge";
 import { VazioComAcao } from "@/components/ui/vazio-com-acao";
-import { Aviso } from "@/components/ui/aviso";
 import { ROTULO_TIPO_VENDEDOR } from "@/lib/vendedores";
 import { moedaCurta } from "@/lib/formato";
-import {
-  acoesDisponiveis,
-  normalizarStatusCredenciamento,
-  rotuloStatusCredenciamento,
-  tomStatusCredenciamento,
-} from "@/lib/credenciamento";
-import { resumoParaAdmin } from "@/lib/credenciamento-view";
-import { AcoesCredenciamento } from "./acoes-credenciamento";
 import { BotaoExcluirVendedor, EditarVendedor } from "./acoes-vendedor";
 import { FormularioNovoVendedor } from "./formulario-vendedor";
 import { EquipeInterna } from "./equipe-interna";
@@ -57,7 +48,6 @@ export default async function GestaoUsuariosPage() {
     prisma.orgao.findMany({ orderBy: { nome: "asc" } }),
     prisma.vendedor.findMany({
       include: {
-        credenciamento: true,
         oportunidades: {
           where: { expiradaEm: null },
           select: { estagio: true, valorAderido: true, ata: { select: { id: true, numero: true } } },
@@ -93,15 +83,9 @@ export default async function GestaoUsuariosPage() {
           <VazioComAcao titulo="Nenhum vendedor cadastrado" descricao="" />
         ) : (
           <div className="flex flex-col gap-4">
-            <Aviso tom="atencao" titulo="Credenciamento do consultor.">
-              Só consultor credenciado pede municípios e leva uma negociação adiante. Quem credencia é você, depois do
-              aceite do compromisso de integridade.
-            </Aviso>
             <ul className="lista-linhas">
               {vendedores.map((v) => {
                 const atas = atasDoVendedor(v);
-                const statusCred = normalizarStatusCredenciamento(v.credenciamento?.status);
-                const acoesCred = acoesDisponiveis(statusCred, "admin");
                 return (
                   <li key={v.id} className="flex flex-col gap-3">
                     <div className="flex flex-wrap items-center justify-between gap-3">
@@ -181,25 +165,6 @@ export default async function GestaoUsuariosPage() {
                         ))}
                       </div>
                     )}
-                    <div
-                      className="flex flex-wrap items-start justify-between gap-3 rounded-[var(--raio)] border px-3 py-2.5"
-                      style={{ borderColor: "var(--cor-borda)", background: "var(--cor-superficie-2)" }}
-                    >
-                      <div className="min-w-0 max-w-xl">
-                        <p className="flex flex-wrap items-center gap-2">
-                          <span className="eyebrow">Credenciamento</span>
-                          <Badge tom={tomStatusCredenciamento(statusCred)}>{rotuloStatusCredenciamento(statusCred)}</Badge>
-                        </p>
-                        <p className="mt-1 text-xs leading-relaxed" style={{ color: "var(--cor-texto-3)" }}>
-                          {resumoParaAdmin(v.credenciamento)}
-                        </p>
-                      </div>
-                      <AcoesCredenciamento
-                        vendedorId={v.id}
-                        podeCredenciar={acoesCred.includes("credenciar")}
-                        podeSuspender={acoesCred.includes("suspender")}
-                      />
-                    </div>
                   </li>
                 );
               })}

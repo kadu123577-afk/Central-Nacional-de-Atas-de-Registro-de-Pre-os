@@ -10,6 +10,7 @@ import {
   type ResultadoItemPncpBruto,
 } from "@/lib/pncp";
 import { normalizarCnpj } from "@/lib/radar-atas";
+import { temMaisDeQuatroCasas } from "@/lib/valor-unitario";
 
 /**
  * Itens de uma ata a partir do PNCP (14/11/2026): o estagiário, em vez de digitar ou importar, pede "Buscar os
@@ -56,8 +57,8 @@ export interface ItensDoPncp {
   semResultado: number;
   /** Itens ganhos por OUTRA empresa: ficam fora da ata desta. */
   deOutraEmpresa: number;
-  /** Itens com preço de mais de duas casas decimais (o sistema guarda duas). */
-  comMaisDeDuasCasas: number;
+  /** Itens com preço de mais de quatro casas decimais (o sistema guarda até quatro). */
+  comMaisDeQuatroCasas: number;
   /** A compra tem mais itens que o teto desta busca. */
   truncado: boolean;
   /** Sem CNPJ confirmado da empresa não dá para separar os itens dela: entraram os do primeiro resultado de cada item. */
@@ -110,10 +111,6 @@ async function emParalelo<T, R>(lista: T[], n: number, fazer: (item: T) => Promi
   }
   await Promise.all(Array.from({ length: Math.min(n, lista.length) }, trabalhador));
   return saida;
-}
-
-function temMaisDeDuasCasas(v: number): boolean {
-  return Math.abs(v * 100 - Math.round(v * 100)) > 1e-6;
 }
 
 /**
@@ -194,7 +191,7 @@ export async function buscarItensDaAtaNoPncp(
     itens,
     semResultado,
     deOutraEmpresa,
-    comMaisDeDuasCasas: itens.filter((i) => temMaisDeDuasCasas(i.valorUnitario)).length,
+    comMaisDeQuatroCasas: itens.filter((i) => temMaisDeQuatroCasas(i.valorUnitario)).length,
     truncado,
     empresaNaoConfirmada: empresa === null,
   };
@@ -216,8 +213,8 @@ export function avisoDoPncp(r: ItensDoPncp): string {
   if (r.deOutraEmpresa > 0) partes.push(`${r.deOutraEmpresa} item(ns) da compra foram ganhos por outra empresa e ficaram de fora.`);
   if (r.semResultado > 0) partes.push(`${r.semResultado} item(ns) não têm resultado no PNCP (ninguém ganhou) e ficaram de fora.`);
   if (r.empresaNaoConfirmada) partes.push("A empresa da ata ainda não está confirmada, então não deu para separar os itens dela: entrou o primeiro resultado de cada item.");
-  if (r.comMaisDeDuasCasas > 0) {
-    partes.push(`${r.comMaisDeDuasCasas} item(ns) têm preço com mais de duas casas decimais (ex.: 0,1005): o sistema guarda duas, então o valor será arredondado. Confira.`);
+  if (r.comMaisDeQuatroCasas > 0) {
+    partes.push(`${r.comMaisDeQuatroCasas} item(ns) têm preço com mais de quatro casas decimais (ex.: 0,10055): o sistema guarda quatro, então o valor será arredondado. Confira.`);
   }
   if (r.truncado) partes.push(`A compra tem mais de ${MAX_ITENS_DO_PNCP} itens: só os primeiros ${MAX_ITENS_DO_PNCP} foram lidos.`);
   return partes.join(" ");

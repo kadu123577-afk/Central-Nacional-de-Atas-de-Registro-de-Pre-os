@@ -23,8 +23,6 @@ import { mensagemDeAtaReservada, reservaDaAta } from "@/lib/reserva-ata";
 import { carregarFeriadosExtras } from "@/lib/feriados-db";
 import { prazoParaEstagio } from "@/lib/negociacao";
 import { resultadoInteracaoValido } from "@/lib/pontos-focais";
-import { bloqueioDeCredenciamento } from "@/lib/credenciamento-db";
-import { estagioExigeCredenciamento } from "@/lib/credenciamento-view";
 import { expirarOportunidadesVencidas } from "@/lib/negociacao-expiracao";
 import {
   estagioOportunidadeValido,
@@ -137,13 +135,6 @@ export async function solicitarMunicipios(
   const vendedorId = await vendedorIdLogado();
   if (!vendedorId) redirect("/vendedor/login");
 
-  // Trava do credenciamento (Projeto RNA, etapa 6): pedir município é tomar
-  // trabalho novo, e só consultor credenciado toma. Vem logo depois da sessão
-  // e antes de qualquer leitura do formulário ou escrita (inclusive a
-  // expiração abaixo), e só depende do que está no banco.
-  const bloqueio = await bloqueioDeCredenciamento(vendedorId);
-  if (bloqueio) return { erro: bloqueio };
-
   await expirarOportunidadesVencidas();
 
   const ata = await prisma.ata.findUnique({ where: { id: ataId }, include: { contrato: true } });
@@ -225,17 +216,6 @@ export async function moverEstagioOportunidade(
   // nonce: muda a cada envio, pro cartão remontar o <select> (que o reset do form zera).
   const valores = { observacoes, nonce: randomUUID() };
   if (!estagioOportunidadeValido(novoEstagio)) return { erro: "Estágio inválido.", valores };
-
-  // Trava do credenciamento (Projeto RNA, etapa 6): levar a oportunidade para
-  // "em negociação" ou "aderiu" é tomar trabalho novo, e só consultor
-  // credenciado toma. Vale para o destino, venha de onde vier; os demais
-  // movimentos (a contatar, recusado) e o registro de contato ficam livres e
-  // nem consultam o credenciamento. Vem antes de qualquer leitura da
-  // oportunidade e de qualquer escrita.
-  if (estagioExigeCredenciamento(novoEstagio)) {
-    const bloqueio = await bloqueioDeCredenciamento(vendedorId);
-    if (bloqueio) return { erro: bloqueio, valores };
-  }
 
   const oportunidade = await prisma.oportunidadeVenda.findUnique({
     where: { id: oportunidadeId },

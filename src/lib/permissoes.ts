@@ -99,7 +99,7 @@ export const PERMISSOES = [
     chave: "usuarios.gerir",
     rotulo: "Gerir usuários",
     atividades: [],
-    descricao: "Equipe interna, consultores, credenciamento, fornecedores e órgãos.",
+    descricao: "Equipe interna, consultores, fornecedores e órgãos.",
   },
 ] as const;
 

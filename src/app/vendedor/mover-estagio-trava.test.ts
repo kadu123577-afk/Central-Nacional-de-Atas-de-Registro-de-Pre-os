@@ -1,18 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
- * Travas de moverEstagioOportunidade, testadas sem banco: o Prisma, a sessão
+ * Trava de moverEstagioOportunidade, testada sem banco: o Prisma, a sessão
  * e o restante do que a action importa são trocados por dublês.
  *
- * 1) Estágio "aderiu" (2026-11-14, atividade 13 do workflow): a adesão é
+ * Estágio "aderiu" (2026-11-14, atividade 13 do workflow): a adesão é
  *    registrada pela equipe da Central, com a quantidade de cada item
  *    (src/app/admin/adesoes). O consultor não entra em "aderiu" nem corrige o
  *    valor, e quem está em "aderiu" com quantidades registradas não sai por aqui.
- * 2) Credenciamento (etapa 6): levar a oportunidade para "em negociação" ou
- *    "aderiu" só vale para consultor credenciado; vem antes de qualquer leitura
- *    da oportunidade e de qualquer escrita. Os demais estágios seguem livres.
- *    Por padrão, aqui, o consultor está credenciado: os testes da trava do
- *    registro continuam isolados dela.
  */
 const dobles = vi.hoisted(() => ({
   vendedorIdLogado: vi.fn(),
@@ -24,7 +19,6 @@ const dobles = vi.hoisted(() => ({
   liquidacaoCount: vi.fn(),
   pontoFocalFindFirst: vi.fn(),
   interacaoCreate: vi.fn(),
-  credenciamentoFindUnique: vi.fn(),
 }));
 
 vi.mock("next/cache", () => ({ revalidatePath: dobles.revalidatePath }));
@@ -54,11 +48,9 @@ vi.mock("@/lib/prisma", () => ({
     liquidacao: { count: dobles.liquidacaoCount },
     pontoFocal: { findFirst: dobles.pontoFocalFindFirst },
     interacaoPontoFocal: { create: dobles.interacaoCreate },
-    credenciamentoConsultor: { findUnique: dobles.credenciamentoFindUnique },
   },
 }));
 
-import { mensagemBloqueio } from "@/lib/credenciamento";
 import { moverEstagioOportunidade, type EstadoMoverEstagio } from "./actions";
 
 const ERRO_PELA_EQUIPE =
@@ -110,7 +102,6 @@ beforeEach(() => {
   dobles.liquidacaoCount.mockResolvedValue(0);
   dobles.pontoFocalFindFirst.mockResolvedValue({ id: "pf1" });
   dobles.interacaoCreate.mockResolvedValue({});
-  dobles.credenciamentoFindUnique.mockResolvedValue({ status: "credenciado" });
 });
 
 describe("o consultor não marca Aderiu: o registro é da equipe", () => {
@@ -258,148 +249,5 @@ describe("a regra do registro vem depois das checagens que já existiam", () => 
 
     expect(estado.erro).toBe("O prazo deste município venceu. Faça um novo pedido de negociação.");
     nadaGravado();
-  });
-});
-
-describe("trava do credenciamento: levar para em negociação ou aderiu", () => {
-  const CAMINHO = "/vendedor/credenciamento";
-
-  /** Sem credenciamento nada é lido da oportunidade nem gravado. */
-  function recusadoSemTocarNaOportunidade() {
-    expect(dobles.oportunidadeFindUnique).not.toHaveBeenCalled();
-    expect(dobles.adesaoItemCount).not.toHaveBeenCalled();
-    expect(dobles.liquidacaoCount).not.toHaveBeenCalled();
-    nadaGravado();
-  }
-
-  it.each(["pendente", "aceito", "suspenso"])("consultor %s não leva para em negociação", async (status) => {
-    dobles.credenciamentoFindUnique.mockResolvedValue({ status });
-    const estado = await mover({ estagio: "em_negociacao", observacoes: "conversa" });
-
-    expect(estado.ok).toBeUndefined();
-    expect(estado.erro).toContain(mensagemBloqueio(status));
-    expect(estado.erro).toContain(CAMINHO);
-    recusadoSemTocarNaOportunidade();
-  });
-
-  it.each(["pendente", "aceito", "suspenso"])("consultor %s que tenta aderiu recebe o aviso de credenciamento", async (status) => {
-    dobles.credenciamentoFindUnique.mockResolvedValue({ status });
-    const estado = await mover({ estagio: "aderiu" });
-
-    expect(estado.erro).toContain(mensagemBloqueio(status));
-    expect(estado.erro).toContain(CAMINHO);
-    recusadoSemTocarNaOportunidade();
-  });
-
-  it("sem registro de credenciamento conta como pendente e recusa", async () => {
-    dobles.credenciamentoFindUnique.mockResolvedValue(null);
-    const estado = await mover({ estagio: "em_negociacao" });
-
-    expect(estado.erro).toContain(mensagemBloqueio("pendente"));
-    expect(estado.erro).toContain(CAMINHO);
-    recusadoSemTocarNaOportunidade();
-  });
-
-  it("status desconhecido no banco também recusa", async () => {
-    dobles.credenciamentoFindUnique.mockResolvedValue({ status: "qualquer" });
-    const estado = await mover({ estagio: "em_negociacao" });
-
-    expect(estado.erro).toContain(mensagemBloqueio("pendente"));
-    recusadoSemTocarNaOportunidade();
-  });
-
-  it("devolve o que a pessoa digitou, no mesmo formato dos outros erros", async () => {
-    dobles.credenciamentoFindUnique.mockResolvedValue({ status: "aceito" });
-    const estado = await mover({ estagio: "em_negociacao", observacoes: "  fechado  " });
-
-    expect(estado.valores).toEqual({ observacoes: "  fechado  ", nonce: expect.any(String) });
-  });
-
-  it("consulta o credenciamento do consultor logado, não de um id vindo do formulário", async () => {
-    await mover({ estagio: "em_negociacao", vendedorId: "outro", vendedor: "outro" });
-
-    expect(dobles.credenciamentoFindUnique).toHaveBeenCalledTimes(1);
-    expect(dobles.credenciamentoFindUnique.mock.calls[0][0].where).toEqual({ vendedorId: "vend1" });
-  });
-
-  it("campos extras no formulário não substituem o credenciamento", async () => {
-    dobles.credenciamentoFindUnique.mockResolvedValue({ status: "pendente" });
-    const estado = await mover({
-      estagio: "em_negociacao",
-      status: "credenciado",
-      credenciado: "true",
-      credenciamento: "credenciado",
-      integridade: "on",
-    });
-
-    expect(estado.erro).toContain(mensagemBloqueio("pendente"));
-    recusadoSemTocarNaOportunidade();
-  });
-
-  it("vale também para quem já está em negociação: a trava olha o destino", async () => {
-    dobles.credenciamentoFindUnique.mockResolvedValue({ status: "suspenso" });
-    dobles.oportunidadeFindUnique.mockResolvedValue(oportunidade({ estagio: "em_negociacao" }));
-    const estado = await mover({ estagio: "em_negociacao", observacoes: "nova anotação" });
-
-    expect(estado.erro).toContain(mensagemBloqueio("suspenso"));
-    recusadoSemTocarNaOportunidade();
-  });
-
-  it("falha do banco ao conferir o credenciamento não libera: a action para e nada é gravado", async () => {
-    dobles.credenciamentoFindUnique.mockRejectedValue(new Error("banco indisponível"));
-
-    await expect(mover({ estagio: "em_negociacao" })).rejects.toThrow("banco indisponível");
-    recusadoSemTocarNaOportunidade();
-  });
-
-  it("consultor credenciado leva para em negociação", async () => {
-    dobles.oportunidadeFindUnique.mockResolvedValue(oportunidade({ estagio: "a_contatar" }));
-    const estado = await mover({ estagio: "em_negociacao", observacoes: "reunião marcada" });
-
-    expect(estado).toEqual({ ok: true });
-    expect(dobles.oportunidadeUpdateMany).toHaveBeenCalledTimes(1);
-    expect(dobles.oportunidadeUpdateMany.mock.calls[0][0].data.estagio).toBe("em_negociacao");
-  });
-
-  it("consultor credenciado também não leva para aderiu: a regra do registro vale", async () => {
-    const estado = await mover({ estagio: "aderiu" });
-
-    expect(estado.erro).toBe(ERRO_PELA_EQUIPE);
-    nadaGravado();
-  });
-});
-
-describe("movimentos livres não dependem do credenciamento", () => {
-  it.each([
-    ["pendente", "a_contatar"],
-    ["aceito", "a_contatar"],
-    ["suspenso", "a_contatar"],
-    ["pendente", "recusado"],
-    ["aceito", "recusado"],
-    ["suspenso", "recusado"],
-  ])("consultor %s move para %s sem consultar o credenciamento", async (status, destino) => {
-    dobles.credenciamentoFindUnique.mockResolvedValue({ status });
-    dobles.oportunidadeFindUnique.mockResolvedValue(oportunidade({ estagio: "em_negociacao" }));
-    const estado = await mover({ estagio: destino, observacoes: "anotação" });
-
-    expect(estado).toEqual({ ok: true });
-    expect(dobles.credenciamentoFindUnique).not.toHaveBeenCalled();
-    expect(dobles.oportunidadeUpdateMany).toHaveBeenCalledTimes(1);
-    expect(dobles.oportunidadeUpdateMany.mock.calls[0][0].data.estagio).toBe(destino);
-  });
-
-  it("sem sessão do vendedor, vai para o login sem consultar o credenciamento", async () => {
-    dobles.vendedorIdLogado.mockResolvedValue(null);
-    await expect(mover({ estagio: "em_negociacao" })).rejects.toThrow("NEXT_REDIRECT:/vendedor/login");
-
-    expect(dobles.credenciamentoFindUnique).not.toHaveBeenCalled();
-    nadaGravado();
-  });
-
-  it("estágio inválido é recusado antes de consultar o credenciamento", async () => {
-    const estado = await mover({ estagio: "ganhou" });
-
-    expect(estado.erro).toBe("Estágio inválido.");
-    expect(dobles.credenciamentoFindUnique).not.toHaveBeenCalled();
   });
 });

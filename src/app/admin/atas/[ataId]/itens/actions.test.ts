@@ -233,7 +233,7 @@ describe("gravarItens", () => {
 
 describe("conferirItens: buscar os itens no PNCP", () => {
   const ITEM = { numeroItem: 1, descricao: "Papel sulfite A4", categoria: "Material", unidade: "Caixa", quantidadeRegistrada: 90, valorUnitario: 8.5 };
-  const BUSCA = { ok: true, itens: [ITEM], semResultado: 0, deOutraEmpresa: 2, comMaisDeDuasCasas: 0, truncado: false, empresaNaoConfirmada: false };
+  const BUSCA = { ok: true, itens: [ITEM], semResultado: 0, deOutraEmpresa: 2, comMaisDeQuatroCasas: 0, truncado: false, empresaNaoConfirmada: false };
 
   beforeEach(() => {
     d.ataFindUnique.mockResolvedValue({

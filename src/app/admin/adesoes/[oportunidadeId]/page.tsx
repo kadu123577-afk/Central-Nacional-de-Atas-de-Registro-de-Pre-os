@@ -4,7 +4,8 @@ import { exigirPermissaoDe, permissoesDoAdmin } from "@/lib/permissoes-db";
 import { temPermissao } from "@/lib/permissoes";
 import { prisma } from "@/lib/prisma";
 import { percentualDeFracao } from "@/lib/formato";
-import { centavosDoValor, formatarReaisDeCentavos } from "@/lib/registrar-adesao";
+import { formatarReaisDeCentavos } from "@/lib/registrar-adesao";
+import { centavosDaLinha, formatarValorUnitario } from "@/lib/valor-unitario";
 import { carregarCartoes } from "@/lib/kanban-db";
 import { carregarParaRegistro } from "@/lib/registrar-adesao-db";
 import { limiteAgregado, limitePorOrgao } from "@/lib/saldo";
@@ -86,7 +87,7 @@ export default async function RegistrarAdesaoPage({ params }: { params: Promise<
     };
   });
 
-  const totalCentavos = registrados.reduce((soma, r) => soma + centavosDoValor(r.item.valorUnitario.toString()) * r.quantidade, 0);
+  const totalCentavos = registrados.reduce((soma, r) => soma + centavosDaLinha(r.item.valorUnitario.toString(), r.quantidade), 0);
 
   return (
     <AppShell
@@ -153,10 +154,10 @@ export default async function RegistrarAdesaoPage({ params }: { params: Promise<
                       </td>
                       <td className="numero align-top">{num(r.quantidade)}</td>
                       <td className="numero align-top">
-                        R$ {Number(r.item.valorUnitario).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                        {formatarValorUnitario(Number(r.item.valorUnitario))}
                       </td>
                       <td className="numero align-top">
-                        {formatarReaisDeCentavos(centavosDoValor(r.item.valorUnitario.toString()) * r.quantidade)}
+                        {formatarReaisDeCentavos(centavosDaLinha(r.item.valorUnitario.toString(), r.quantidade))}
                       </td>
                     </tr>
                   ))}

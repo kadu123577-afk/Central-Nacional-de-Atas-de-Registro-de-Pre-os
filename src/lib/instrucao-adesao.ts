@@ -16,81 +16,108 @@
 
 export const GRUPO_ORGAO_ADERENTE = "Instrução do órgão aderente";
 export const GRUPO_ACEITES = "Aceites";
+export const GRUPO_AUTORIZACAO = "Autorização";
 export const GRUPO_FORMALIZACAO = "Formalização";
 
 /** Ordem em que os grupos aparecem na tela. */
-export const GRUPOS_INSTRUCAO = [GRUPO_ORGAO_ADERENTE, GRUPO_ACEITES, GRUPO_FORMALIZACAO] as const;
+export const GRUPOS_INSTRUCAO = [GRUPO_ORGAO_ADERENTE, GRUPO_ACEITES, GRUPO_AUTORIZACAO, GRUPO_FORMALIZACAO] as const;
 
 export type GrupoInstrucao = (typeof GRUPOS_INSTRUCAO)[number];
 
 /**
- * Itens fixos do checklist, na ordem da tela. `obrigatorio` é só o que vale
- * para a trava: publicação no PNCP e contrato/empenho acontecem DEPOIS da
- * adesão, então não impedem a declaração.
+ * Itens fixos do checklist, na ordem da tela. A ordem segue a sugestão de 14/11/2026 para a adesão
+ * (carona) do art. 86, §§ 2º a 8º, da Lei 14.133/2021: a lei só exige que a consulta e o aceite do
+ * gerenciador e do fornecedor sejam PRÉVIOS à contratação; a sequência entre justificativa, pesquisa de
+ * preços e ofício é sugestão, e o jurídico fixa a ordem final. Redação literal do artigo a confirmar no
+ * Planalto antes de citar em parecer.
+ *
+ * `obrigatorio` é só o que vale para a trava: publicação no PNCP, contrato (ou instrumento equivalente) e
+ * fiscal acontecem DEPOIS da adesão, então não impedem a declaração.
  */
 export const ITENS_INSTRUCAO = [
   {
     chave: "dfd",
-    rotulo: "Formalização da demanda assinada",
+    rotulo: "Formalização da demanda e estudo da necessidade, com o quantitativo pretendido",
     grupo: GRUPO_ORGAO_ADERENTE,
     obrigatorio: true,
-    ajuda: "Documento do órgão aderente que descreve a necessidade da compra, assinado por quem tem competência para isso.",
+    ajuda: "Documento do órgão aderente que descreve a necessidade, o estudo que a embasa e a quantidade que pretende comprar, assinado por quem tem competência.",
   },
   {
-    chave: "justificativa_vantagem",
-    rotulo: "Justificativa da vantagem da adesão",
+    chave: "identificacao_ata",
+    rotulo: "Identificação da ata: objeto, vigência, gerenciador, saldo por item e se ela permite adesão",
     grupo: GRUPO_ORGAO_ADERENTE,
     obrigatorio: true,
-    ajuda: "Texto do órgão aderente explicando por que aderir à ata é mais vantajoso do que licitar sozinho.",
+    ajuda: "Conferência dos dados da ata, do saldo atualizado por item, da vigência e de que ela admite adesão de quem não participou, inclusive que o registro de preços nasceu de licitação quando a ata é de órgão municipal.",
+  },
+  {
+    chave: "limites_conferidos",
+    rotulo: "Limites do art. 86 conferidos: 50% por órgão aderente e o dobro do registrado no total, item por item",
+    grupo: GRUPO_ORGAO_ADERENTE,
+    obrigatorio: true,
+    ajuda: "Conferência, com o saldo atualizado, de que a adesão cabe nos limites de quantidade da ata para cada item.",
   },
   {
     chave: "pesquisa_precos",
-    rotulo: "Pesquisa de preços que mostra preço compatível com o mercado, art. 23",
+    rotulo: "Pesquisa de mercado, art. 23, comparada aos preços registrados",
     grupo: GRUPO_ORGAO_ADERENTE,
     obrigatorio: true,
     ajuda: "Comparação com preços praticados no mercado que mostre que o valor da ata é compatível.",
   },
   {
-    chave: "dotacao",
-    rotulo: "Indicação de dotação orçamentária",
+    chave: "justificativa_vantagem",
+    rotulo: "Justificativa da vantagem da adesão, inclusive risco de desabastecimento ou de descontinuidade de serviço público",
     grupo: GRUPO_ORGAO_ADERENTE,
     obrigatorio: true,
-    ajuda: "Indicação de que existe recurso orçamentário reservado para pagar a despesa.",
+    ajuda: "Texto do órgão aderente explicando por que aderir à ata é mais vantajoso do que licitar sozinho.",
   },
   {
-    chave: "parecer_juridico",
-    rotulo: "Parecer jurídico do órgão, art. 53",
-    grupo: GRUPO_ORGAO_ADERENTE,
+    chave: "oficio_gerenciador",
+    rotulo: "Ofício ao órgão gerenciador pedindo autorização, e consulta ao fornecedor sobre a capacidade de atender",
+    grupo: GRUPO_ACEITES,
     obrigatorio: true,
-    ajuda: "Parecer da assessoria jurídica do órgão aderente analisando o pedido de adesão.",
-  },
-  {
-    chave: "autorizacao",
-    rotulo: "Autorização da autoridade competente",
-    grupo: GRUPO_ORGAO_ADERENTE,
-    obrigatorio: true,
-    ajuda: "Decisão da autoridade competente do órgão aderente autorizando a adesão.",
+    ajuda: "Pedido formal do órgão aderente ao gerenciador da ata e consulta ao fornecedor, feitos antes de qualquer contratação.",
   },
   {
     chave: "anuencia_gerenciador",
-    rotulo: "Anuência do órgão gerenciador da ata",
+    rotulo: "Aceite do órgão gerenciador da ata, por escrito",
     grupo: GRUPO_ACEITES,
     obrigatorio: true,
-    ajuda: "Concordância do órgão que gerencia a ata, obtida antes de formalizar a adesão.",
+    ajuda: "Concordância do órgão que gerencia a ata, obtida por escrito antes de formalizar a adesão.",
   },
   {
     chave: "aceite_fornecedor",
-    rotulo: "Aceite do fornecedor, sem prejuízo dos compromissos já assumidos na ata",
+    rotulo: "Aceite do fornecedor, por escrito, sem prejuízo dos compromissos já assumidos na ata",
     grupo: GRUPO_ACEITES,
     obrigatorio: true,
     ajuda: "Confirmação do fornecedor de que atende o órgão aderente nas condições da ata.",
   },
   {
-    chave: "limites_conferidos",
-    rotulo: "Limites do art. 86 conferidos: 50% por órgão aderente e 200% no total por item",
-    grupo: GRUPO_ACEITES,
+    chave: "autorizacao",
+    rotulo: "Autorização da autoridade competente",
+    grupo: GRUPO_AUTORIZACAO,
     obrigatorio: true,
-    ajuda: "Conferência de que a adesão cabe nos limites de quantidade da ata, item por item.",
+    ajuda: "Decisão da autoridade competente do órgão aderente autorizando a adesão.",
+  },
+  {
+    chave: "parecer_juridico",
+    rotulo: "Parecer jurídico do órgão, art. 53",
+    grupo: GRUPO_AUTORIZACAO,
+    obrigatorio: true,
+    ajuda: "Parecer da assessoria jurídica do órgão aderente analisando o pedido de adesão.",
+  },
+  {
+    chave: "dotacao",
+    rotulo: "Indicação de dotação orçamentária",
+    grupo: GRUPO_AUTORIZACAO,
+    obrigatorio: true,
+    ajuda: "Indicação de que existe recurso orçamentário reservado para pagar a despesa.",
+  },
+  {
+    chave: "contrato_ou_empenho",
+    rotulo: "Contrato ou instrumento equivalente, art. 95, e nota de empenho",
+    grupo: GRUPO_FORMALIZACAO,
+    obrigatorio: false,
+    ajuda: "Contrato assinado ou instrumento equivalente, com a nota de empenho emitida pelo órgão aderente, depois da adesão.",
   },
   {
     chave: "publicacao_pncp",
@@ -100,11 +127,11 @@ export const ITENS_INSTRUCAO = [
     ajuda: "Divulgação da contratação no Portal Nacional de Contratações Públicas, feita depois da adesão.",
   },
   {
-    chave: "contrato_ou_empenho",
-    rotulo: "Contrato ou nota de empenho emitido",
+    chave: "fiscal_designado",
+    rotulo: "Designação do fiscal do contrato",
     grupo: GRUPO_FORMALIZACAO,
     obrigatorio: false,
-    ajuda: "Contrato assinado ou nota de empenho emitida pelo órgão aderente, depois da adesão.",
+    ajuda: "Servidor ou servidores designados pelo órgão aderente para acompanhar e fiscalizar a execução do contrato.",
   },
 ] as const;
 

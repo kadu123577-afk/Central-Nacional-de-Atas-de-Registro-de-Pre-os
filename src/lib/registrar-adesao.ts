@@ -1,4 +1,5 @@
 import { limiteAgregado, limitePorOrgao, verificarAdesao } from "@/lib/saldo";
+import { centavosDaLinha } from "@/lib/valor-unitario";
 
 /**
  * Registro da adesão com a quantidade de cada item (2026-11-14, atividade 13 do workflow).
@@ -31,7 +32,7 @@ export type ResultadoRegistro =
   | { ok: true; linhas: LinhaDoRegistro[]; valorTotalCentavos: number }
   | { ok: false; erros: string[] };
 
-/** "25.90" → 2590. O banco guarda duas casas, então a conta é feita em centavos inteiros. */
+/** "25.90" → 2590 (valor em reais com até duas casas; o valor unitário do item usa centavosDaLinha). */
 export function centavosDoValor(valor: string): number {
   return Math.round(Number(valor) * 100);
 }
@@ -100,7 +101,7 @@ export function calcularRegistroDeAdesao(
       itemId: item.itemId,
       descricao: item.descricao,
       quantidade,
-      valorCentavos: centavosDoValor(item.valorUnitario) * quantidade,
+      valorCentavos: centavosDaLinha(item.valorUnitario, quantidade),
     });
   }
 

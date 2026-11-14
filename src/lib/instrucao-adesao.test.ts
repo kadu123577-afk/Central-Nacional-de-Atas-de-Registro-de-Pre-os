@@ -42,19 +42,22 @@ function congelarFundo<T>(valor: T): T {
 const texto = (n: number) => "a".repeat(n);
 
 describe("ITENS_INSTRUCAO", () => {
-  it("tem os 11 itens na ordem combinada", () => {
+  it("tem os 14 itens na ordem sugerida para a adesão (art. 86, §§ 2º a 8º): instrução, consulta e aceites, autorização, formalização", () => {
     expect(ITENS_INSTRUCAO.map((i) => i.chave)).toEqual([
       "dfd",
-      "justificativa_vantagem",
+      "identificacao_ata",
+      "limites_conferidos",
       "pesquisa_precos",
-      "dotacao",
-      "parecer_juridico",
-      "autorizacao",
+      "justificativa_vantagem",
+      "oficio_gerenciador",
       "anuencia_gerenciador",
       "aceite_fornecedor",
-      "limites_conferidos",
-      "publicacao_pncp",
+      "autorizacao",
+      "parecer_juridico",
+      "dotacao",
       "contrato_ou_empenho",
+      "publicacao_pncp",
+      "fiscal_designado",
     ]);
   });
 
@@ -71,14 +74,31 @@ describe("ITENS_INSTRUCAO", () => {
     }
   });
 
-  it("separa os grupos e marca como obrigatórios só os nove de antes da adesão", () => {
-    expect(GRUPOS_INSTRUCAO).toEqual(["Instrução do órgão aderente", "Aceites", "Formalização"]);
-    expect(ITENS_INSTRUCAO.filter((i) => i.grupo === "Instrução do órgão aderente")).toHaveLength(6);
-    expect(ITENS_INSTRUCAO.filter((i) => i.grupo === "Aceites")).toHaveLength(3);
+  it("separa os grupos e marca como obrigatórios só os onze de antes da adesão", () => {
+    expect(GRUPOS_INSTRUCAO).toEqual(["Instrução do órgão aderente", "Aceites", "Autorização", "Formalização"]);
+    expect(ITENS_INSTRUCAO.filter((i) => i.grupo === "Instrução do órgão aderente")).toHaveLength(5);
+    expect(ITENS_INSTRUCAO.filter((i) => i.grupo === "Aceites").map((i) => i.chave)).toEqual([
+      "oficio_gerenciador",
+      "anuencia_gerenciador",
+      "aceite_fornecedor",
+    ]);
+    expect(ITENS_INSTRUCAO.filter((i) => i.grupo === "Autorização").map((i) => i.chave)).toEqual([
+      "autorizacao",
+      "parecer_juridico",
+      "dotacao",
+    ]);
     const formalizacao = ITENS_INSTRUCAO.filter((i) => i.grupo === "Formalização");
-    expect(formalizacao.map((i) => i.chave)).toEqual(["publicacao_pncp", "contrato_ou_empenho"]);
+    expect(formalizacao.map((i) => i.chave)).toEqual(["contrato_ou_empenho", "publicacao_pncp", "fiscal_designado"]);
     expect(formalizacao.every((i) => !i.obrigatorio)).toBe(true);
-    expect(obrigatorios).toHaveLength(9);
+    expect(obrigatorios).toHaveLength(11);
+  });
+
+  it("a consulta e o aceite do gerenciador e do fornecedor vêm antes da autorização, e todos são obrigatórios (art. 86, § 2º, III)", () => {
+    const chaves = ITENS_INSTRUCAO.map((i) => i.chave);
+    for (const antes of ["oficio_gerenciador", "anuencia_gerenciador", "aceite_fornecedor"] as const) {
+      expect(chaves.indexOf(antes)).toBeLessThan(chaves.indexOf("autorizacao"));
+      expect(obrigatorios.map((i) => i.chave)).toContain(antes);
+    }
   });
 });
 
@@ -319,9 +339,9 @@ describe("resumirInstrucao", () => {
   it("sem nenhum item feito", () => {
     const r = resumirInstrucao({});
     expect(r).toMatchObject({
-      total: 11,
+      total: 14,
       feitos: 0,
-      obrigatoriosTotal: 9,
+      obrigatoriosTotal: 11,
       obrigatoriosFeitos: 0,
       completo: false,
       percentual: 0,
@@ -335,17 +355,17 @@ describe("resumirInstrucao", () => {
     expect(r.feitos).toBe(3);
     expect(r.obrigatoriosFeitos).toBe(2);
     expect(r.completo).toBe(false);
-    expect(r.percentual).toBe(22);
-    expect(r.pendentesObrigatorios).toHaveLength(7);
-    expect(r.pendentesObrigatorios).not.toContain("Formalização da demanda assinada");
+    expect(r.percentual).toBe(18);
+    expect(r.pendentesObrigatorios).toHaveLength(9);
+    expect(r.pendentesObrigatorios).not.toContain("Formalização da demanda e estudo da necessidade, com o quantitativo pretendido");
     expect(r.pendentesObrigatorios).not.toContain("Autorização da autoridade competente");
     // Pendentes seguem a ordem da tela.
-    expect(r.pendentesObrigatorios[0]).toBe("Justificativa da vantagem da adesão");
+    expect(r.pendentesObrigatorios[0]).toBe("Identificação da ata: objeto, vigência, gerenciador, saldo por item e se ela permite adesão");
   });
 
   it("com todos os obrigatórios feitos, formalização não faz falta", () => {
     const r = resumirInstrucao(mapaObrigatoriosFeitos());
-    expect(r).toMatchObject({ total: 11, feitos: 9, obrigatoriosFeitos: 9, completo: true, percentual: 100 });
+    expect(r).toMatchObject({ total: 14, feitos: 11, obrigatoriosFeitos: 11, completo: true, percentual: 100 });
     expect(r.pendentesObrigatorios).toEqual([]);
   });
 
@@ -353,23 +373,29 @@ describe("resumirInstrucao", () => {
     let mapa = mapaObrigatoriosFeitos();
     mapa = marcarItem(mapa, "publicacao_pncp", true, HOJE);
     mapa = marcarItem(mapa, "contrato_ou_empenho", true, HOJE);
-    expect(resumirInstrucao(mapa)).toMatchObject({ feitos: 11, obrigatoriosFeitos: 9, completo: true, percentual: 100 });
+    mapa = marcarItem(mapa, "fiscal_designado", true, HOJE);
+    expect(resumirInstrucao(mapa)).toMatchObject({ feitos: 14, obrigatoriosFeitos: 11, completo: true, percentual: 100 });
   });
 
   it("só formalização feita não completa nada", () => {
-    const mapa = marcarItem(marcarItem({}, "publicacao_pncp", true, HOJE), "contrato_ou_empenho", true, HOJE);
-    expect(resumirInstrucao(mapa)).toMatchObject({ feitos: 2, obrigatoriosFeitos: 0, completo: false, percentual: 0 });
+    const mapa = marcarItem(
+      marcarItem(marcarItem({}, "publicacao_pncp", true, HOJE), "contrato_ou_empenho", true, HOJE),
+      "fiscal_designado",
+      true,
+      HOJE,
+    );
+    expect(resumirInstrucao(mapa)).toMatchObject({ feitos: 3, obrigatoriosFeitos: 0, completo: false, percentual: 0 });
   });
 
   it("item presente mas desmarcado não conta", () => {
     expect(resumirInstrucao({ dfd: { feito: false, nota: "x" } }).feitos).toBe(0);
   });
 
-  it("só chega a 100% quando completo (8 de 9 é 88%)", () => {
+  it("só chega a 100% quando completo (10 de 11 é 90%)", () => {
     const mapa = mapaObrigatoriosFeitos();
     delete mapa.dfd;
     const r = resumirInstrucao(mapa);
-    expect(r.percentual).toBe(88);
+    expect(r.percentual).toBe(90);
     expect(r.completo).toBe(false);
   });
 
@@ -392,7 +418,7 @@ describe("podeDeclararConformidade", () => {
     const r = podeDeclararConformidade(mapa);
     expect(r.liberado).toBe(false);
     expect(r.motivo).toContain("Indicação de dotação orçamentária");
-    expect(r.motivo).not.toContain("Formalização da demanda assinada");
+    expect(r.motivo).not.toContain("Formalização da demanda e estudo da necessidade, com o quantitativo pretendido");
   });
 
   it("não libera com mapa vazio", () => {
@@ -550,7 +576,7 @@ describe("texto da declaração", () => {
     delete mapa.parecer_juridico;
     const r = textoDeclaracao({ mapa, justificativaExcecao: "  O parecer sai amanhã e a dotação já foi reservada  " });
     expect(r).toBe(
-      `${TEXTO_DECLARACAO} Itens ainda não confirmados: Indicação de dotação orçamentária; Parecer jurídico do órgão, art. 53. Justificativa: O parecer sai amanhã e a dotação já foi reservada.`,
+      `${TEXTO_DECLARACAO} Itens ainda não confirmados: Parecer jurídico do órgão, art. 53; Indicação de dotação orçamentária. Justificativa: O parecer sai amanhã e a dotação já foi reservada.`,
     );
   });
 

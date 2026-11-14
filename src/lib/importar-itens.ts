@@ -1,4 +1,5 @@
 import { resolverSlugCategoria } from "@/lib/categorias";
+import { textoDoValorUnitario } from "@/lib/valor-unitario";
 
 /**
  * Importação de itens da ata por planilha (2026-11-14), para a captação cadastrar muitos itens
@@ -20,7 +21,7 @@ export interface ItemImportado {
   descricao: string;
   unidade: string;
   quantidadeRegistrada: number;
-  /** Texto com duas casas ("25.90"), do jeito que o banco (Decimal) recebe. */
+  /** Texto com duas a quatro casas ("25.90", "0.1005"), do jeito que o banco (Decimal) recebe. */
   valorUnitario: string;
   marca: string | null;
   categoria: string;
@@ -269,7 +270,7 @@ export function interpretarPlanilhaDeItens(texto: string, categoriaPadrao: strin
       descricao,
       unidade,
       quantidadeRegistrada: quantidade as number,
-      valorUnitario: (valor as number).toFixed(2),
+      valorUnitario: textoDoValorUnitario(valor as number),
       marca: campo(celulas, "marca") || null,
       categoria: categoria as string,
       codigoCatalogo: codigo.ok ? codigo.codigo : null,

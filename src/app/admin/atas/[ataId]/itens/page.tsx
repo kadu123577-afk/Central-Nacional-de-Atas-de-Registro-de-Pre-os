@@ -14,6 +14,7 @@ import { linkPncpDaAta } from "@/lib/link-pncp";
 import { diasRestantesBrasilia, textoDiasRestantes, tomDiasRestantes } from "@/lib/radar-atas-view";
 import { FormularioAdicionarItem } from "../completar/formulario-item";
 import { ImportarItens } from "./importar-itens";
+import { formatarValorUnitario } from "@/lib/valor-unitario";
 
 export const dynamic = "force-dynamic";
 
@@ -132,7 +133,7 @@ export default async function ItensDaAtaPage({ params }: { params: Promise<{ ata
                     <td className="align-top">{i.unidade}</td>
                     <td className="numero align-top">{i.quantidadeRegistrada.toLocaleString("pt-BR")}</td>
                     <td className="numero align-top">
-                      R$ {Number(i.valorUnitario).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                      {formatarValorUnitario(Number(i.valorUnitario))}
                     </td>
                     <td className="align-top">{rotuloDaCategoria(i.categoria)}</td>
                     <td className="codigo align-top">{i.codigoCatalogo ?? "—"}</td>

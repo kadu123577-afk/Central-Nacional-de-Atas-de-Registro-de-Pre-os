@@ -53,7 +53,6 @@ import {
 import { expirarOportunidadesVencidas } from "@/lib/negociacao-expiracao";
 import { ITENS_CONFORMIDADE, itensPendentes, type RespostasConformidade } from "@/lib/conformidade";
 import { MENSAGEM_CODIGO_CATALOGO_INVALIDO, interpretarCodigoCatalogo } from "@/lib/vantajosidade-db";
-import { podeAtuar } from "@/lib/credenciamento";
 import { PERMISSAO_POR_ACAO } from "@/lib/permissoes";
 import { vincularAtaACaptacao } from "@/lib/captacao-db";
 import { lerLinkPncp } from "@/lib/link-pncp";
@@ -596,19 +595,6 @@ export async function decidirPedidosNegociacao(formData: FormData): Promise<void
     where: { id: { in: pedidoIds }, ataId, vendedorId, status: "pendente" },
   });
 
-  // Credenciamento (RNA etapa 6): só consultor credenciado recebe município
-  // novo. Aprovar um pedido de quem não está credenciado furaria a trava de
-  // solicitarMunicipios/moverEstagioOportunidade; por isso o pedido é negado
-  // com o motivo visível ao consultor, que pede de novo depois de credenciado.
-  let consultorCredenciado = true;
-  if (decisao === "aprovar") {
-    const credenciamento = await prisma.credenciamentoConsultor.findUnique({
-      where: { vendedorId },
-      select: { status: true },
-    });
-    consultorCredenciado = podeAtuar(credenciamento?.status);
-  }
-
   // Reserva da ata (14/11/2026): se outro consultor já negocia nela, liberar municípios a este
   // furaria a regra. Dois consultores podem ter pedido ao mesmo tempo; o primeiro liberado fica
   // com a ata, e o pedido do outro é negado com o motivo à vista.
@@ -627,17 +613,6 @@ export async function decidirPedidosNegociacao(formData: FormData): Promise<void
       await prisma.pedidoNegociacao.update({
         where: { id: pedido.id },
         data: { status: "negado", motivo: motivoDePedidoNegadoPorReserva(reservaDaAtaParaOutro), decididoEm: agora },
-      });
-      continue;
-    }
-    if (decisao === "aprovar" && !consultorCredenciado) {
-      await prisma.pedidoNegociacao.update({
-        where: { id: pedido.id },
-        data: {
-          status: "negado",
-          motivo: "Consultor ainda não credenciado. Conclua o credenciamento e peça de novo.",
-          decididoEm: agora,
-        },
       });
       continue;
     }

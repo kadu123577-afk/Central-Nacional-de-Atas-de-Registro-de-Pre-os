@@ -74,7 +74,7 @@ describe("buscarItensDaAtaNoPncp", () => {
       ["Item 1", 90, 8.5],
       ["Item 2", 40, 3.2],
     ]);
-    expect(r).toMatchObject({ semResultado: 0, deOutraEmpresa: 0, comMaisDeDuasCasas: 0, truncado: false, empresaNaoConfirmada: false });
+    expect(r).toMatchObject({ semResultado: 0, deOutraEmpresa: 0, comMaisDeQuatroCasas: 0, truncado: false, empresaNaoConfirmada: false });
   });
 
   it("separa os itens da empresa da ata: o que outra empresa ganhou e o que ninguém ganhou ficam de fora", async () => {
@@ -123,10 +123,10 @@ describe("buscarItensDaAtaNoPncp", () => {
     }
   });
 
-  it("conta os preços com mais de duas casas, que o sistema vai arredondar", async () => {
-    const { buscar } = pncp([item(1), item(2)], { 1: [resultado(1, EMPRESA_A, { valorUnitarioHomologado: 0.1005 })], 2: [resultado(2, EMPRESA_A, { valorUnitarioHomologado: 4.25 })] });
+  it("conta só os preços com mais de quatro casas, que o sistema vai arredondar (0,1005 cabe)", async () => {
+    const { buscar } = pncp([item(1), item(2), item(3)], { 1: [resultado(1, EMPRESA_A, { valorUnitarioHomologado: 0.10055 })], 2: [resultado(2, EMPRESA_A, { valorUnitarioHomologado: 0.1005 })], 3: [resultado(3, EMPRESA_A, { valorUnitarioHomologado: 4.25 })] });
     const r = await buscarItensDaAtaNoPncp(COMPRA, { fornecedorCnpj: EMPRESA_A, buscarJson: buscar });
-    expect(r.ok && r.comMaisDeDuasCasas).toBe(1);
+    expect(r.ok && r.comMaisDeQuatroCasas).toBe(1);
   });
 
   it("lê todas as páginas de itens e respeita o teto, avisando que cortou", async () => {
@@ -193,11 +193,11 @@ describe("texto e aviso", () => {
   });
 
   it("o aviso diz o que entrou e o que ficou de fora", () => {
-    const aviso = avisoDoPncp({ itens: [{ numeroItem: 1, descricao: "x", categoria: "Material", unidade: "u", quantidadeRegistrada: 1, valorUnitario: 1 }], semResultado: 2, deOutraEmpresa: 3, comMaisDeDuasCasas: 1, truncado: true, empresaNaoConfirmada: true });
-    for (const trecho of ["Li 1 item(ns)", "valor homologado", "3 item(ns) da compra foram ganhos por outra empresa", "2 item(ns) não têm resultado", "não está confirmada", "mais de duas casas", "mais de 300 itens"]) {
+    const aviso = avisoDoPncp({ itens: [{ numeroItem: 1, descricao: "x", categoria: "Material", unidade: "u", quantidadeRegistrada: 1, valorUnitario: 1 }], semResultado: 2, deOutraEmpresa: 3, comMaisDeQuatroCasas: 1, truncado: true, empresaNaoConfirmada: true });
+    for (const trecho of ["Li 1 item(ns)", "valor homologado", "3 item(ns) da compra foram ganhos por outra empresa", "2 item(ns) não têm resultado", "não está confirmada", "mais de quatro casas", "mais de 300 itens"]) {
       expect(aviso).toContain(trecho);
     }
-    const limpo = avisoDoPncp({ itens: [], semResultado: 0, deOutraEmpresa: 0, comMaisDeDuasCasas: 0, truncado: false, empresaNaoConfirmada: false });
+    const limpo = avisoDoPncp({ itens: [], semResultado: 0, deOutraEmpresa: 0, comMaisDeQuatroCasas: 0, truncado: false, empresaNaoConfirmada: false });
     expect(limpo).not.toContain("ficaram de fora");
   });
 });

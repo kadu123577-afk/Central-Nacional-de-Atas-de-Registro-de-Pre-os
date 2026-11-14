@@ -460,7 +460,7 @@ describe("declararConformidade", () => {
     expect(evento.alvo).toBe(OPORTUNIDADE_ID);
     expect(evento.detalhe).toContain(`versão ${VERSAO_DECLARACAO}`);
     expect(evento.detalhe).toContain("com exceção");
-    expect(evento.detalhe).toContain("9 obrigatório(s) pendente(s)");
+    expect(evento.detalhe).toContain("11 obrigatório(s) pendente(s)");
     expect(evento.detalhe).toContain(JUSTIFICATIVA);
     expect(dobles.revalidatePath).toHaveBeenCalledWith("/vendedor/atas/ata1");
     expect(dobles.revalidatePath).toHaveBeenCalledWith("/admin/pipeline");
