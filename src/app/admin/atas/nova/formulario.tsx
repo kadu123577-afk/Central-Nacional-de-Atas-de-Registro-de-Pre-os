@@ -126,7 +126,8 @@ export function FormularioNovaAtaAdmin({ inicial }: { inicial?: InicialNovaAta }
               />
               <span className="mt-1 block text-xs" style={{ color: "var(--cor-texto-3)" }}>
                 Genérico de propósito: o objeto original costuma ser o mesmo texto do PNCP e permitiria
-                achar a ata lá e contratar direto. Se ficar vazio, o site usa &quot;Ata de &lt;tema&gt;&quot;.
+                achar a ata lá e contratar direto. Nunca ponha o município, o órgão, o fornecedor nem o número da
+                ata: o sistema recusa. Se ficar vazio, o site usa &quot;Ata de &lt;tema&gt;&quot;.
               </span>
             </label>
             <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">

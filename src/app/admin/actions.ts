@@ -1415,7 +1415,13 @@ export async function cadastrarAtaComoAdmin(
   const objeto = String(formData.get("objeto") ?? "").trim();
   const ataCategoria = String(formData.get("ataCategoria") ?? "").trim();
   const tituloPublico = String(formData.get("tituloPublico") ?? "").trim();
-  const erroTitulo = validarTituloPublico(tituloPublico);
+  // O título é o único nome que o público vê: não pode entregar município, órgão, fornecedor nem número.
+  const erroTitulo = validarTituloPublico(tituloPublico, {
+    orgao: orgaoNome,
+    municipio: orgaoMunicipio,
+    fornecedor: fornecedorNome,
+    numero,
+  });
   if (erroTitulo) {
     return { erro: erroTitulo };
   }
@@ -1747,7 +1753,18 @@ export async function definirTituloPublicoAta(
   const titulo = String(formData.get("tituloPublico") ?? "").trim();
   if (!ataId) return { erro: "Ata inválida." };
 
-  const erro = validarTituloPublico(titulo);
+  const ata = await prisma.ata.findUnique({
+    where: { id: ataId },
+    select: { numero: true, orgaoGerenciador: { select: { nome: true, municipio: true } }, fornecedor: { select: { razaoSocial: true } } },
+  });
+  if (!ata) return { erro: "Ata não encontrada." };
+
+  const erro = validarTituloPublico(titulo, {
+    orgao: ata.orgaoGerenciador.nome,
+    municipio: ata.orgaoGerenciador.municipio,
+    fornecedor: ata.fornecedor.razaoSocial,
+    numero: ata.numero,
+  });
   if (erro) return { erro };
 
   await prisma.ata.update({ where: { id: ataId }, data: { tituloPublico: titulo || null } });

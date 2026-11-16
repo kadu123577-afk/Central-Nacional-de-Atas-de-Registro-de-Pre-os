@@ -272,3 +272,39 @@ describe("analisarAta: rascunho e conclusão (não há aprovação nem rejeiçã
     await expect(analisar({ decisao: "rascunho" })).resolves.toEqual({ erro: "Ata não encontrada." });
   });
 });
+
+describe("definirTituloPublicoAta não deixa o título entregar a ata (16/11/2026)", () => {
+  const ATA = {
+    numero: "11/2026",
+    orgaoGerenciador: { nome: "Município de Rio Verde", municipio: "Rio Verde" },
+    fornecedor: { razaoSocial: "Limpa Tudo Comercio Ltda" },
+  };
+  const definir = (titulo: string) => definirTituloPublicoAta({}, formulario({ ataId: "ata1", tituloPublico: titulo }));
+
+  it("título com o município é recusado e nada é gravado", async () => {
+    dobles.ataFindUnique.mockResolvedValue(ATA);
+    const r = await definir("Ata de limpeza de Rio Verde");
+    expect(r.erro).toContain("não pode revelar o município");
+    expect(dobles.ataUpdate).not.toHaveBeenCalled();
+  });
+
+  it("título com o fornecedor ou o número também", async () => {
+    dobles.ataFindUnique.mockResolvedValue(ATA);
+    expect((await definir("Ata Limpa Tudo de limpeza")).erro).toContain("o fornecedor");
+    expect((await definir("Ata 11/2026 de limpeza")).erro).toContain("o número da ata");
+    expect(dobles.ataUpdate).not.toHaveBeenCalled();
+  });
+
+  it("título genérico é gravado", async () => {
+    dobles.ataFindUnique.mockResolvedValue(ATA);
+    const r = await definir("Ata de material de limpeza");
+    expect(r).toEqual({ sucesso: true });
+    expect(dobles.ataUpdate).toHaveBeenCalledWith({ where: { id: "ata1" }, data: { tituloPublico: "Ata de material de limpeza" } });
+  });
+
+  it("ata que não existe devolve erro", async () => {
+    dobles.ataFindUnique.mockResolvedValue(null);
+    expect((await definir("Ata de material de limpeza")).erro).toBe("Ata não encontrada.");
+    expect(dobles.ataUpdate).not.toHaveBeenCalled();
+  });
+});

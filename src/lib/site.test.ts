@@ -204,3 +204,54 @@ describe("título público da ata", () => {
     expect(validarTituloPublico("x".repeat(121))).not.toBeNull();
   });
 });
+
+describe("título público não pode revelar a ata (16/11/2026)", () => {
+  const IDS = {
+    orgao: "Prefeitura Municipal de Rio Verde",
+    municipio: "Rio Verde",
+    fornecedor: "Limpa Tudo Comércio Ltda",
+    numero: "11/2026",
+  };
+
+  it("título genérico passa", () => {
+    expect(validarTituloPublico("Ata de material de limpeza", IDS)).toBeNull();
+    expect(validarTituloPublico("", IDS)).toBeNull();
+  });
+
+  it("recusa o município, com ou sem acento e em qualquer caixa", () => {
+    expect(validarTituloPublico("Ata de limpeza de RIO VERDE", IDS)).toContain("o município");
+    expect(validarTituloPublico("Ata de limpeza — Rio-Verde/GO", IDS)).toContain("o município");
+  });
+
+  it("recusa o nome do órgão gerenciador", () => {
+    expect(validarTituloPublico("Ata da Prefeitura Municipal de Rio Verde", { orgao: IDS.orgao })).toContain("o órgão gerenciador");
+  });
+
+  it("recusa o fornecedor (nome inteiro ou o início que o identifica, sem Ltda)", () => {
+    expect(validarTituloPublico("Material de limpeza Limpa Tudo", IDS)).toContain("o fornecedor");
+    expect(validarTituloPublico("Limpa Tudo Comércio: ata de limpeza", IDS)).toContain("o fornecedor");
+  });
+
+  it("recusa o número da ata", () => {
+    expect(validarTituloPublico("Ata 11/2026 de limpeza", IDS)).toContain("o número da ata");
+  });
+
+  it("junta o que revela em uma só mensagem", () => {
+    const m = validarTituloPublico("Ata 11/2026 de Rio Verde, Limpa Tudo", IDS);
+    expect(m).toContain("o município");
+    expect(m).toContain("o fornecedor");
+    expect(m).toContain("o número da ata");
+    expect(m).toContain("contrataria direto");
+  });
+
+  it("palavra comum que só parece o nome não pega", () => {
+    expect(validarTituloPublico("Ata de limpeza de rio e verde", IDS)).toBeNull();
+    expect(validarTituloPublico("Ata de produtos de limpeza tudo em um", IDS)).toBeNull();
+  });
+
+  it("sem identificadores valem só as regras de tamanho; identificador vazio ou curto não bloqueia", () => {
+    expect(validarTituloPublico("Ata de limpeza de Rio Verde")).toBeNull();
+    expect(validarTituloPublico("abc")).toContain("ao menos 5");
+    expect(validarTituloPublico("Ata de limpeza", { orgao: "", municipio: " ", fornecedor: null, numero: "1" })).toBeNull();
+  });
+});

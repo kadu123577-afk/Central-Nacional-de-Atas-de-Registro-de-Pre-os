@@ -34,7 +34,8 @@ export function FormularioTituloPublico({
       </div>
       <p className="text-xs" style={{ color: "var(--cor-texto-3)" }}>
         Genérico de propósito (ex.: &quot;Ata de material de limpeza&quot;): o objeto original costuma ser o mesmo
-        texto do PNCP. Vazio = o site mostra &quot;{tituloGenerico(categoria)}&quot;.
+        texto do PNCP. Nunca ponha o município, o órgão, o fornecedor nem o número da ata (o sistema recusa).
+        Vazio = o site mostra &quot;{tituloGenerico(categoria)}&quot;.
       </p>
       {estado.erro ? (
         <p className="text-xs" style={{ color: "var(--cor-critico)" }} role="alert">
