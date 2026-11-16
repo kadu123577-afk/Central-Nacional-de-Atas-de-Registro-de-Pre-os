@@ -16,6 +16,8 @@ import type { ItemNav } from "@/components/ui/app-shell";
 export const NAV_ADMIN: ItemNav[] = [
   { rotulo: "Painel", href: "/admin" },
   { rotulo: "Pipeline", href: "/admin/pipeline", permissoes: ["visao.geral"] },
+  // Onde é mais fácil vender: o match de cada município com as atas, pelo consumo dele (só a gestão).
+  { rotulo: "Panorama", href: "/admin/panorama", permissoes: ["visao.geral"] },
 
   // Atividades 1 a 5 e 7 (a ata; a 6, aprovar, foi retirada) e 8 a 17 (a adesão do município).
   {

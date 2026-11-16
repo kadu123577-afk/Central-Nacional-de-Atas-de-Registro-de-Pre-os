@@ -633,6 +633,19 @@ model HistoricoConsumoCategoria {
   quantidadeContratosNaJanela Int
   objetoUltimaContratacao     String
   atualizadoEm                DateTime @updatedAt
+  // Consumo detalhado (16/11/2026, para o panorama de vendas): preenchido pela consolidação da coleta
+  // (prisma/consolidar-consumo-coleta.ts). Nulo = só há o resumo simples do raio-X. Todos os órgãos
+  // do município entram (prefeitura, fundos, câmara...), só contratos de despesa, janela móvel.
+  valorTotalNaJanela          Decimal? @db.Decimal(16, 2)
+  janelaMeses                 Int?
+  primeiraContratacao         DateTime?
+  // A vigência que termina por último entre os contratos da categoria: quando o consumo precisa ser renovado.
+  vigenciaFimMaisRecente      DateTime?
+  fornecedoresDistintos       Int?
+  orgaosDistintos             Int?
+  // Contratos que nasceram de adesão a ata (carona): o município já compra desse jeito.
+  contratosPorAdesao          Int?
+  origemDados                 String?
 
   entidadeAlvo EntidadeAlvo @relation(fields: [entidadeAlvoId], references: [id])
 

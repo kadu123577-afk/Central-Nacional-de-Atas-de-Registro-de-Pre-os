@@ -28,10 +28,11 @@ const TELAS_DO_MENU_ANTIGO = [
 ];
 
 describe("menu do admin reunido em abas", () => {
-  it("tem 9 entradas no menu lateral, com o Pipeline logo abaixo do Painel", () => {
+  it("tem 10 entradas no menu lateral, com o Pipeline e o Panorama logo abaixo do Painel", () => {
     expect(NAV_ADMIN.map((i) => i.rotulo)).toEqual([
       "Painel",
       "Pipeline",
+      "Panorama",
       "Ciclos",
       "Atas",
       "Negociações e adesões",

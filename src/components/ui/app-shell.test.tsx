@@ -47,10 +47,11 @@ const ANALISTA = de("analista");
 const COBRANCA = de("cobranca");
 
 describe("casca do admin: cada função só vê o que é dela", () => {
-  it("a Gestão vê as 9 entradas, com o Pipeline logo abaixo do Painel", () => {
+  it("a Gestão vê as 10 entradas, com o Pipeline e o Panorama logo abaixo do Painel", () => {
     expect(menu(desenhar("/admin", GESTAO))).toEqual([
       "Painel",
       "Pipeline",
+      "Panorama",
       "Ciclos",
       "Atas",
       "Negociações e adesões",
