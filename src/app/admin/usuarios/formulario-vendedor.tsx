@@ -5,7 +5,6 @@ import { criarVendedorAdmin, type EstadoCriarVendedor } from "../actions";
 import { Secao } from "@/components/ui/secao";
 import { Aviso } from "@/components/ui/aviso";
 import { AvisoSenhaProvisoria } from "./redefinir-senha";
-import { ROTULO_TIPO_VENDEDOR, TIPOS_VENDEDOR } from "@/lib/vendedores";
 
 const estadoInicial: EstadoCriarVendedor = {};
 
@@ -21,16 +20,8 @@ export function FormularioNovoVendedor() {
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Campo label="Senha provisória (deixe em branco para o sistema gerar)" name="senha" type="password" />
-          <label className="block">
-            <span className="rotulo-campo">Tipo</span>
-            <select name="tipo" required className="campo-atas" defaultValue="interno">
-              {TIPOS_VENDEDOR.map((t) => (
-                <option key={t} value={t}>
-                  {ROTULO_TIPO_VENDEDOR[t]}
-                </option>
-              ))}
-            </select>
-          </label>
+          {/* Só há consultor interno (decisão de 16/11/2026): o tipo não é mais uma escolha. */}
+          <input type="hidden" name="tipo" value="interno" />
         </div>
 
         {estado.erro && <Aviso tom="critico">{estado.erro}</Aviso>}

@@ -3,23 +3,20 @@
 import { useActionState } from "react";
 import { Aviso } from "@/components/ui/aviso";
 import { formatarTelefone } from "@/lib/telefone";
-import { ROTULO_TIPO_VENDEDOR, TIPOS_VENDEDOR } from "@/lib/vendedores";
 import { atualizarVendedor, excluirVendedor, type EstadoEquipe } from "./equipe-actions";
 
 const estadoInicial: EstadoEquipe = {};
 
-/** Editar nome, e-mail e tipo do consultor. A senha não muda aqui: use "Redefinir senha". */
+/** Editar nome, e-mail e celular do consultor. A senha não muda aqui: use "Redefinir senha". */
 export function EditarVendedor({
   id,
   nome,
   email,
-  tipo,
   telefone = null,
 }: {
   id: string;
   nome: string;
   email: string;
-  tipo: string;
   telefone?: string | null;
 }) {
   const [estado, formAction, pendente] = useActionState(atualizarVendedor, estadoInicial);
@@ -43,16 +40,8 @@ export function EditarVendedor({
           <span className="rotulo-campo">Celular com DDD (a Renata avisa os prazos pelo WhatsApp)</span>
           <input name="telefone" type="tel" defaultValue={formatarTelefone(telefone)} className="campo-atas" />
         </label>
-        <label className="block max-w-xs">
-          <span className="rotulo-campo">Tipo</span>
-          <select name="tipo" required defaultValue={tipo} className="campo-atas">
-            {TIPOS_VENDEDOR.map((t) => (
-              <option key={t} value={t}>
-                {ROTULO_TIPO_VENDEDOR[t]}
-              </option>
-            ))}
-          </select>
-        </label>
+        {/* Só há consultor interno (decisão de 16/11/2026): o tipo não é mais uma escolha. */}
+        <input type="hidden" name="tipo" value="interno" />
         {estado.erro && <Aviso tom="critico">{estado.erro}</Aviso>}
         {estado.ok && <Aviso tom="atencao">Dados salvos.</Aviso>}
         <button type="submit" disabled={pendente} className="botao-atas pequeno self-start">

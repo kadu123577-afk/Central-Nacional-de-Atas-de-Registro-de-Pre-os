@@ -136,7 +136,7 @@ export default async function GestaoUsuariosPage() {
                       </div>
                     </div>
                     <div className="flex flex-wrap items-start gap-3">
-                      <EditarVendedor id={v.id} nome={v.nome} email={v.email} tipo={v.tipo} telefone={v.telefone} />
+                      <EditarVendedor id={v.id} nome={v.nome} email={v.email} telefone={v.telefone} />
                       <BotaoRedefinirSenha tipo="vendedor" id={v.id} />
                       <BotaoExcluirVendedor id={v.id} nome={v.nome} />
                     </div>

@@ -442,15 +442,22 @@ describe("excluirMembroEquipe", () => {
 describe("atualizarVendedor", () => {
   const ALVO = { id: "v1", nome: "Leide", email: "leide@exemplo.com", tipo: "interno" };
 
-  it("muda nome, e-mail e tipo e audita só o que mudou", async () => {
+  it("muda nome e e-mail e audita só o que mudou", async () => {
     dobles.vendedorFindUnique.mockResolvedValue(ALVO);
-    const r = await atualizarVendedor({}, formulario({ vendedorId: "v1", nome: " Leide Souza ", email: "LEIDE.S@exemplo.com", tipo: "externo" }));
+    const r = await atualizarVendedor({}, formulario({ vendedorId: "v1", nome: " Leide Souza ", email: "LEIDE.S@exemplo.com", tipo: "interno" }));
     expect(r).toEqual({ ok: true });
     expect(dobles.vendedorUpdate).toHaveBeenCalledWith({
       where: { id: "v1" },
-      data: { nome: "Leide Souza", email: "leide.s@exemplo.com", tipo: "externo" },
+      data: { nome: "Leide Souza", email: "leide.s@exemplo.com", tipo: "interno" },
     });
-    expect(dobles.registrarAuditoria.mock.calls[0][0]).toMatchObject({ acao: "admin.atualizarVendedor", detalhe: "alterado: nome, e-mail, tipo" });
+    expect(dobles.registrarAuditoria.mock.calls[0][0]).toMatchObject({ acao: "admin.atualizarVendedor", detalhe: "alterado: nome, e-mail" });
+  });
+
+  it("não há consultor externo: o tipo externo é recusado (decisão de 16/11/2026)", async () => {
+    dobles.vendedorFindUnique.mockResolvedValue(ALVO);
+    const r = await atualizarVendedor({}, formulario({ vendedorId: "v1", nome: "Leide", email: "leide@exemplo.com", tipo: "externo" }));
+    expect(r.erro).toBe("Selecione um tipo de consultor válido.");
+    expect(dobles.vendedorUpdate).not.toHaveBeenCalled();
   });
 
   it("sem mudança nada é gravado; dado inválido é recusado", async () => {
