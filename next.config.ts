@@ -51,11 +51,12 @@ const nextConfig: NextConfig = {
   experimental: {
     serverActions: { bodySizeLimit: "12mb" },
   },
-  // Um link só (14/11/2026): o endereço raiz abre a tela de entrada, e depois do login a pessoa
-  // vai para a área dela. O catálogo público continua em /catalogo. RAIZ_ABRE_LOGIN=nao devolve a
-  // vitrine à raiz. O valor é lido na hora do build.
+  // A raiz é a vitrine pública das atas (decisão de Carlos, 15/11/2026): quem procura o site na
+  // internet encontra as atas de forma prática e, pelo botão Entrar, chega ao login, que leva cada
+  // pessoa à área dela. RAIZ_ABRE_LOGIN=sim faz a raiz abrir direto a tela de entrada (o jeito de
+  // 14/11/2026). O valor é lido na hora do build.
   async redirects() {
-    return process.env.RAIZ_ABRE_LOGIN === "nao" ? [] : [{ source: "/", destination: "/entrar", permanent: false }];
+    return process.env.RAIZ_ABRE_LOGIN === "sim" ? [{ source: "/", destination: "/entrar", permanent: false }] : [];
   },
   async headers() {
     return [

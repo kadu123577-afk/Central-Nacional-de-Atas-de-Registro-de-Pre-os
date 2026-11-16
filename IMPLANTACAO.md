@@ -44,7 +44,7 @@ Modelo completo em [`.env.example`](.env.example). **Nunca** envie o `.env` real
 | `PNCP_ACCESS_TOKEN` | opcional | enriquece as atas importadas do PNCP |
 | `WHATSAPP_OFICIAL` | opcional | número oficial (só dígitos com DDI) |
 | `INDEXAR_SITE` | opcional | `true` liga a indexação no Google; deixe desligado até haver dados reais |
-| `RAIZ_ABRE_LOGIN` | opcional | por padrão a raiz abre o login; `nao` devolve a vitrine pública à raiz (lido no build) |
+| `RAIZ_ABRE_LOGIN` | opcional | por padrão a raiz é a vitrine pública das atas, com o botão Entrar; `sim` faz a raiz abrir direto o login (lido no build) |
 | `AMBIENTE_DEMONSTRACAO` | **não ligar** | mostra dados fictícios; só para demonstração |
 | `RENATA_API_ATIVA`, `RENATA_API_TOKEN` | **deixar vazias** | leitura para a Renata; só com autorização escrita da ARCA |
 
