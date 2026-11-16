@@ -1,5 +1,7 @@
 # Coleta em lote de dados públicos dos municípios-alvo
 
+> **Instrução permanente do robô (15/11/2026):** terminar os 1.250 municípios e ampliar por ondas até o Brasil todo. Leia `ROBO-DO-RAIO-X.md`, nesta mesma pasta.
+
 Levanta, para os 1.073 municípios de `EntidadeAlvo`, o histórico público de contratações e o contexto financeiro, e guarda tudo em `dados-coletados/` (fora do git).
 
 ## Fontes automáticas (scripts, não usam o Claude)
