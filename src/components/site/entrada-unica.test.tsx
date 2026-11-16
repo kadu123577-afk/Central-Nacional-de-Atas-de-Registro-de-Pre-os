@@ -91,6 +91,16 @@ describe("formulário de entrada", () => {
     expect(html).toContain("mailto:contato@central.example");
   });
 
+  it("o Esqueci minha senha fica ABAIXO do campo de senha e do botão Entrar, não acima", () => {
+    const html = desenhar();
+    const campoSenha = html.indexOf("id=\"senha\"");
+    const botaoEntrar = html.search(/<button[^>]*type="submit"[^>]*>Entrar<\/button>/);
+    const esqueci = html.indexOf("Esqueci minha senha");
+    expect(campoSenha).toBeGreaterThan(-1);
+    expect(botaoEntrar).toBeGreaterThan(campoSenha);
+    expect(esqueci).toBeGreaterThan(botaoEntrar);
+  });
+
   it("botão Entrar, que desabilita e muda o texto durante o envio", () => {
     expect(desenhar()).toMatch(/<button[^>]*type="submit"[^>]*>Entrar<\/button>/);
     expect(desenhar()).not.toMatch(/<button[^>]*type="submit"[^>]*disabled/);

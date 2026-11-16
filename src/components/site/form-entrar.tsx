@@ -152,10 +152,7 @@ export function FormEntrar({
             </span>
           </div>
           <div className="campo">
-            <div className="linha-form">
-              <label htmlFor="senha">Senha</label>
-              <a href={hrefEsqueci}>Esqueci minha senha</a>
-            </div>
+            <label htmlFor="senha">Senha</label>
             <div className="senha">
               <input
                 className="entrada"
@@ -253,6 +250,10 @@ export function FormEntrar({
           <button className="botao botao--primario botao--grande botao--largo" type="submit" disabled={pendente}>
             {pendente ? "Entrando..." : "Entrar"}
           </button>
+          {/* Abaixo do botão, não acima do campo (pedido de Carlos, 16/11/2026). */}
+          <p className="esqueci">
+            <a href={hrefEsqueci}>Esqueci minha senha</a>
+          </p>
         </form>
         <p className="cadastro">
           Ainda não tem conta? <a href={hrefCadastroOrgao}>Solicitar cadastro do órgão</a> ou{" "}

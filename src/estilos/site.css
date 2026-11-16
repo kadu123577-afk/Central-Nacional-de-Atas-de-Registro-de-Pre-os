@@ -675,6 +675,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .caps[hidden] { display: none; }
 .linha-form { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: var(--tam-sm); }
 .linha-form a { font-weight: 600; }
+.esqueci { margin: 0; text-align: center; font-size: var(--tam-sm); }
+.esqueci a { font-weight: 600; }
 .alerta { display: grid; grid-template-columns: 18px 1fr; gap: 10px; padding: 12px 14px; border-radius: var(--raio-sm); font-size: var(--tam-sm); }
 .alerta svg { width: 18px; height: 18px; margin-top: 1px; }
 .alerta--info { background: var(--info-fundo); color: var(--info); }
