@@ -42,22 +42,23 @@ backup do banco são eles; vocês cuidam do código e dos acessos.
 4. Em **Project Settings → Database**, confira que os **backups diários** estão
    ativos (plano Pro: 7 dias; considere o add-on de PITR para faturamento).
 
-## 2. Criar as tabelas e o primeiro admin
+## 2. Criar as tabelas, o administrador e a equipe (um comando só)
 
-No seu computador, na pasta do projeto (`npm install` antes), com a string do
-**Session pooler (porta 5432)**:
+As senhas e a lista da equipe **não ficam no GitHub** (o repositório é público). A coordenação entrega um arquivo
+`variaveis-de-producao.env`, por canal seguro, já com tudo preenchido (segredos do site, o administrador e a equipe).
+Só falta trocar a linha `DATABASE_URL` pela string do **Session pooler (porta 5432)** e rodar, na pasta do projeto
+(`npm ci` antes):
 
-```powershell
-$env:DATABASE_URL = "<string do Session pooler>"
-npx prisma migrate deploy
-
-$env:ADMIN_EMAIL = "voce@suaempresa.com.br"
-$env:ADMIN_SENHA = "<senha longa e única, 12+ caracteres>"
-npx tsx prisma/seed-admin.ts
+```bash
+npx tsx --env-file=variaveis-de-producao.env prisma/implantar.ts
 ```
 
-**Nunca** rode `npm run seed` (dados de demonstração) no banco de produção.
-Limpe as variáveis ao terminar (`Remove-Item Env:ADMIN_SENHA, Env:DATABASE_URL`).
+Ele cria as tabelas, o primeiro administrador (`ADMIN_EMAIL` e `ADMIN_SENHA`) e a equipe (`EQUIPE_JSON`, com a senha
+inicial `SENHA_PROVISORIA`, que cada um troca no primeiro acesso). Pode rodar de novo sem medo: conta que já existe
+não é alterada. Não imprime senha. Se a pasta tiver um arquivo `.env` com os mesmos nomes, o `.env` tem prioridade:
+apague-o antes. Depois de usar, apague o arquivo `variaveis-de-producao.env` do computador.
+
+**Nunca** rode `npm run seed` (dados de demonstração, senha pública) no banco de produção.
 
 ## 3. Site (Vercel)
 
@@ -66,7 +67,7 @@ Limpe as variáveis ao terminar (`Remove-Item Env:ADMIN_SENHA, Env:DATABASE_URL`
 
    | Variável | Valor |
    |---|---|
-   | `DATABASE_URL` | string do **Transaction pooler** (porta 6543, com `?pgbouncer=true&connection_limit=1`) |
+   | `DATABASE_URL` | string do **Transaction pooler** (porta 6543, com `?pgbouncer=true&connection_limit=1`): **diferente** da do passo 2 |
    | `SESSION_SECRET` | 64+ caracteres aleatórios — `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"` |
    | `CRON_SECRET` | outro valor aleatório (**obrigatório**: sem ele os rastreadores respondem 401) |
    | `TOTP_ENCRYPTION_KEY` | outro valor aleatório (cifra o segredo do 2FA; não troque depois, ou os admins precisam recadastrar o 2FA) |
@@ -77,7 +78,7 @@ Limpe as variáveis ao terminar (`Remove-Item Env:ADMIN_SENHA, Env:DATABASE_URL`
    | `PNCP_ACCESS_TOKEN` | opcional (sem ele as atas do PNCP entram sem itens) |
    | `TAXA_INTERMEDIACAO_PERCENTUAL` | só se não for 5% (`0.05`) |
 
-   Use valores **diferentes** dos de desenvolvimento e nunca os coloque no GitHub.
+   Use valores **diferentes** dos de desenvolvimento e nunca os coloque no GitHub. Na Vercel **não** coloque `ADMIN_SENHA`, `SENHA_PROVISORIA` nem `EQUIPE_JSON`: servem só ao passo 2.
 3. Clique em **Deploy**. O `vercel.json` já agenda os dois rastreadores diários
    (a Vercel envia o `CRON_SECRET` sozinha).
 4. **Settings → Billing → Spend Management**: ative um limite de gasto.

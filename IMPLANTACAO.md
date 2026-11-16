@@ -54,6 +54,8 @@ Gere os segredos com: `node -e "console.log(require('crypto').randomBytes(32).to
 
 ## 4. Passo a passo
 
+> **Atalho (recomendado):** com o arquivo `variaveis-de-producao.env` que a coordenação entrega, os passos 3, 4 e 5 abaixo viram um comando só: `npx tsx --env-file=variaveis-de-producao.env prisma/implantar.ts` (ver `DEPLOY-PRODUCAO.md`, seção 2). Ele cria as tabelas, o primeiro administrador e a equipe, pode ser repetido e não imprime senha.
+
 ```bash
 # 1. Instalar (já gera o cliente do banco; não precisa do banco ligado)
 npm ci

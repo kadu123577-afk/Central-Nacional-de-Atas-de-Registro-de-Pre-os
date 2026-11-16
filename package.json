@@ -11,6 +11,7 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
+    "implantar": "tsx prisma/implantar.ts",
     "seed:admin": "tsx prisma/seed-admin.ts",
     "seed:equipe": "tsx prisma/seed-equipe.ts",
     "admin:resetar-2fa": "tsx prisma/reset-admin-2fa.ts",
